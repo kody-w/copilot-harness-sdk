@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "HR Policy Change Rollout Data Agent"
+  description: "Fetches records by id (for example POL-PTO-v4 or POL-PTO-v5) from the system of record: the full contents needed to compare old vs. new policy language. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_HRPolicyChangeRolloutDataAgent
+historyType:
+  kind: ConversationHistory

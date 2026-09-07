@@ -22,6 +22,7 @@ import { createCopilotSdkAdapter } from './src/adapters/copilot-sdk.js';
 import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
 import { classifyBot, assertHarnessBot, inspectAgentHarness, assertHarnessAgent, ClassicAgentError, HARNESS_TEMPLATE, HARNESS_RECOGNIZERS } from './src/harness-guard.js';
+import { resolveHarnessBot, shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents, ACCESS_CONTROL_POLICY, CHANNELS } from './src/harness-admin.js';
 
 export {
   MODES,
@@ -50,7 +51,15 @@ export {
   assertHarnessAgent,
   ClassicAgentError,
   HARNESS_TEMPLATE,
-  HARNESS_RECOGNIZERS
+  HARNESS_RECOGNIZERS,
+  resolveHarnessBot,
+  shareAgent,
+  setAccessControl,
+  setChannels,
+  upsertEnvironmentVariable,
+  listComponents,
+  ACCESS_CONTROL_POLICY,
+  CHANNELS
 };
 
 /** @typedef {import('./index.js').HarnessClientConfig} HarnessClientConfig */

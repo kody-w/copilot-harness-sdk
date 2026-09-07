@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "NAIC Insurance Guidance"
+  description: "Public NAIC guidance on claims handling, documentation standards, and consumer protections. Search it for claim documentation and fair claims practice rules."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://content.naic.org

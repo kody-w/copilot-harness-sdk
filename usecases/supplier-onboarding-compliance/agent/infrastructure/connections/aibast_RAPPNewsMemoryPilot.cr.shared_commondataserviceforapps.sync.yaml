@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: aibast_RAPPNewsMemoryPilot.cr.shared_commondataserviceforapps
+    connectorId: /providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps

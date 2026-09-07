@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "NIST Manufacturing"
+  description: "Public NIST resources on manufacturing standards and engineering change practice. Search it for standards references relevant to engineering changes."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.nist.gov

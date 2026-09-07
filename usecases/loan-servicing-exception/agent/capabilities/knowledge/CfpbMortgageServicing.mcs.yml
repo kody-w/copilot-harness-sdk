@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "CFPB Mortgage Servicing"
+  description: "Public CFPB rules and guidance on mortgage servicing, loss mitigation and required borrower disclosures. Search it for servicing and modification rules."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.consumerfinance.gov

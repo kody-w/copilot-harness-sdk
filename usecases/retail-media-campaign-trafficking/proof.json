@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_RetailMediaCampaignCopilot",
+  "childSchemaName": "cr8c1_RetailMediaCampaignDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What are the IAB standard display ad unit sizes? Say which knowledge source you used.",
+      "expect": [
+        "ad|creative|standard",
+        "iab"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare IO-7781-v1 against IO-7781-v2 and flag added, resized, or expired assets.",
+      "expect": [
+        "135,?000",
+        "320x480|interstitial"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the launch-readiness report for IO-7781-v1 -> IO-7781-v2.",
+      "expect": [
+        "Recommended next step for Ad Ops",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

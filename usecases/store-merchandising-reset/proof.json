@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_StoreMerchandisingResetCopilot",
+  "childSchemaName": "cr8c1_StoreMerchandisingResetDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What does the NRF say about store operations best practices for merchandising resets? Say which knowledge source you used.",
+      "expect": [
+        "retail|store|merchandis",
+        "nrf"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare PLN-AISLE7-2026Q2 against PLN-AISLE7-2026Q3 and flag added, relocated, or discontinued SKUs.",
+      "expect": [
+        "10112|Protein Bites",
+        "10077|Trail Blend"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the execution report for PLN-AISLE7-2026Q2 -> PLN-AISLE7-2026Q3.",
+      "expect": [
+        "Recommended next step for district managers",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

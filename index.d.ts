@@ -310,3 +310,21 @@ export declare function createClientCredentialTokenProvider(
 export declare function resolveStudioConnection(mode: HarnessMode, config: CopilotStudioConfig): { settings?: Record<string, unknown>; conversationsUrl?: URL; tokenUrl?: string };
 export declare function preflight3p(conversationsUrl: URL, token: string, fetchImpl?: typeof fetch): Promise<PreflightResult>;
 export declare function explainStatus(status: number, detail?: string): string;
+
+// ---------------------------------------------------------------------------
+// Harness admin: the operations that have no `pac copilot` verb. Dataverse Web API, see src/harness-admin.js.
+export interface DataverseOptions {
+  /** Dataverse org URL, e.g. https://org7dfbd855.crm.dynamics.com/ */
+  environmentUrl: string;
+  getDataverseToken: () => Promise<string>;
+  fetchImpl?: typeof fetch;
+}
+export type AgentRef = { schemaName: string; botId?: string } | { schemaName?: string; botId: string };
+export declare const ACCESS_CONTROL_POLICY: { readonly Any: 0; readonly AgentReaders: 1; readonly GroupMembership: 2; readonly AnyMultiTenant: 3 };
+export declare const CHANNELS: { readonly Teams: 'MsTeams'; readonly Microsoft365Copilot: 'Microsoft365Copilot' };
+export declare function resolveHarnessBot(opts: DataverseOptions & AgentRef): Promise<{ botid: string; name: string; schemaname: string; template: string; configuration: string; accesscontrolpolicy: number; authorizedsecuritygroupids: string | null; publishedon: string | null }>;
+export declare function shareAgent(opts: DataverseOptions & AgentRef & ({ userId: string; teamId?: undefined } | { teamId: string; userId?: undefined }) & { access?: string }): Promise<{ botId: string; principal: string; access: string }>;
+export declare function setAccessControl(opts: DataverseOptions & AgentRef & { policy: keyof typeof ACCESS_CONTROL_POLICY; securityGroupIds?: string[] }): Promise<{ botId: string; policy: string; securityGroupIds: string[] }>;
+export declare function setChannels(opts: DataverseOptions & AgentRef & { channels: Array<keyof typeof CHANNELS> }): Promise<{ botId: string; channels: string[] }>;
+export declare function upsertEnvironmentVariable(opts: DataverseOptions & { schemaName: string; displayName?: string; type?: 'String' | 'Number' | 'Boolean' | 'JSON' | 'DataSource' | 'Secret'; defaultValue?: string; value?: string; description?: string }): Promise<{ schemaName: string; definitionId: string; valueId: string | null }>;
+export declare function listComponents(opts: DataverseOptions & AgentRef): Promise<Array<{ schemaName: string; name: string; displayName: string; kind: string; componentType: number }>>;

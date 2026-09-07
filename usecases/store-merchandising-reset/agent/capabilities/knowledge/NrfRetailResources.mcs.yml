@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "NRF Retail Resources"
+  description: "Public National Retail Federation resources on store operations and merchandising practice. Search it for reset and compliance practices."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://nrf.com

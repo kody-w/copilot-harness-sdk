@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Store Merchandising Reset Data Agent"
+  description: "Fetches records by id (for example PLN-AISLE7-2026Q2 or PLN-AISLE7-2026Q3) from the system of record: the full contents needed to compare old vs. new planograms. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_StoreMerchandisingResetDataAgent
+historyType:
+  kind: ConversationHistory

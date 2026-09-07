@@ -149,7 +149,7 @@ A Copilot Studio agent is either on the **GitHub Copilot harness** or it is a **
 
 This SDK enforces the policy that **no new classic agent is ever created or targeted**, at three layers:
 
-1. **Deploy only the harness.** `npm run deploy:harness -- --name "My Agent" --publisher-prefix cr8c1 --instructions-file ./instructions.md --environment https://<org>.crm.dynamics.com/` runs the proven sequence (`pac copilot init --authoring-mode cli-copilot` → `pack` → **refuse the zip unless `bot.xml` says `cliagent-*`** → `pac solution import` → write the instructions onto the live record → `pac copilot publish` → read the record back and assert harness + instructions + published). It exits non-zero at the first sign of a classic template and never accepts `--authoring-mode classic`. Two `pac` 2.10.1 defects it works around: `pack` writes `<language>0</language>` (import rejects it) and `push` drops `agentSettings.instructions`.
+1. **Deploy only the harness.** `npm run deploy:harness -- --name "My Agent" --publisher-prefix cr8c1 --instructions-file ./instructions.md --environment https://<org>.crm.dynamics.com/` runs the proven sequence (`pac copilot init --authoring-mode cli-copilot` → `pack` → **refuse the zip unless `bot.xml` says `cliagent-*`** → `pac solution import` → write the instructions onto the live record → `pac copilot publish` → read the record back and assert harness + instructions + published). It exits non-zero at the first sign of a classic template, never accepts `--authoring-mode classic`, and refuses display names over 42 characters (longer names never finish provisioning). Two `pac` 2.10.1 defects it works around: `pack` writes `<language>0</language>` (import rejects it) and `push` drops `agentSettings.instructions`.
 2. **Verify before you trust.** `assertHarnessAgent({ environmentUrl, schemaName, getDataverseToken })` reads the live record and throws `ClassicAgentError` for anything that is not the harness (optionally also for missing instructions or an unpublished agent). `classifyBot(botRecord)` is the pure version for exports you already have on disk.
 3. **Refuse to talk to one.** `HarnessClient.create({ mode: 'copilot-studio-standard' })` throws with `CLASSIC_REFUSAL` and `recommendMode` never answers that mode, unless `allowClassicAgent: true` is passed for a legacy agent you cannot recreate yet.
 
@@ -169,6 +169,35 @@ try {
 ```
 
 Reaching a harness agent from code still needs an Entra app with the delegated `CopilotStudio.Copilots.Invoke` permission (the Azure CLI's own app only carries `CopilotStudio.Copilots.Test`, which the `/3p` route rejects with `InsufficientDelegatedPermissions`).
+
+## Sample use cases: ten harness agents, every component, proved through the SDK
+
+[`usecases/usecases.json`](usecases/usecases.json) describes ten "packet copilots" (vendor contract renewal, claims intake, store resets, clinical trial activation, loan servicing exceptions, supplier onboarding, retail media trafficking, HR policy rollout, manufacturing BOM changes, grant compliance). `npm run build:usecases` turns each into a parent harness agent plus a child data agent, all carrying the same component set:
+
+| Component | File in `usecases/<slug>/agent/` | YAML kind |
+| --- | --- | --- |
+| Instructions, greeting, conversation starters, model | `settings.mcs.yml` | `agentSettings` |
+| Public-website knowledge | `capabilities/knowledge/<Name>.mcs.yml` | `KnowledgeSourceConfiguration` / `WebsiteKnowledgeSource` |
+| MCP server tool (Dataverse MCP, plus a domain MCP where one exists) | `capabilities/tools/<Name>.mcs.yml` + `infrastructure/connections/<ref>.sync.yaml` | `McpTool` |
+| Agent-flow tool | `capabilities/tools/SiteWeather.mcs.yml` + `workflows/<Name>-<id>/` | `WorkflowTool` |
+| Connected agent (the child) | `capabilities/tools/<Name>DataAgent.mcs.yml` | `ConnectedAgentTool` |
+| Skill (the report procedure) | `behaviors/<report>.mcs.yml` | `InlineAgentSkill` |
+
+`npm run deploy:usecases` deploys them (child first, then parent) through the same harness-only script, and `npm run prove:usecase -- --spec usecases/<slug>/proof.json …` drives each one through `HarnessClient` in `copilot-studio-3p` mode with scripted turns per component. The evidence and the remaining portal-only steps are in [`docs/harness-capability-ledger.md`](docs/harness-capability-ledger.md).
+
+### Admin operations with no `pac copilot` verb
+
+```js
+import { shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents } from 'copilot-harness-sdk';
+const dv = { environmentUrl: 'https://<org>.crm.dynamics.com/', getDataverseToken };   // az account get-access-token --resource <environmentUrl>
+await shareAgent({ ...dv, schemaName, userId });                                          // Dataverse GrantAccess
+await setAccessControl({ ...dv, schemaName, policy: 'GroupMembership', securityGroupIds: [groupId] });
+await setChannels({ ...dv, schemaName, channels: ['Teams', 'Microsoft365Copilot'] });    // then pac copilot publish
+await upsertEnvironmentVariable({ ...dv, schemaName: 'cr8c1_RenewalNoticeDays', type: 'Number', defaultValue: '90', value: '60' });
+console.log(await listComponents({ ...dv, schemaName }));                                 // [{ name: 'tool.SiteWeather', kind: 'WorkflowTool' }, …]
+```
+
+Every one of them resolves the bot first and throws `ClassicAgentError` for a classic agent.
 
 ## Choosing a mode without guessing
 

@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "IRS Forms and Publications"
+  description: "Public IRS information on Form W-9, taxpayer identification, and backup withholding. Search it for tax documentation requirements for new suppliers."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.irs.gov

@@ -1,0 +1,253 @@
+﻿{
+  "properties": {
+    "connectionReferences": {},
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "location": {
+                  "title": "location",
+                  "type": "string",
+                  "description": "City, region, postal code, or place name.",
+                  "x-ms-dynamically-added": true
+                },
+                "forecast_days": {
+                  "title": "forecast_days",
+                  "type": "string",
+                  "description": "Forecast days from 1 through 10. Defaults to 3.",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "NUMBER"
+                }
+              },
+              "required": [
+                "location"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Geocode_location": {
+          "type": "Http",
+          "inputs": {
+            "method": "GET",
+            "uri": "@concat(\u0027https://geocoding-api.open-meteo.com/v1/search?name=\u0027, uriComponent(triggerBody()?[\u0027location\u0027]), \u0027\u0026count=1\u0026language=en\u0026format=json\u0027)",
+            "headers": {
+              "User-Agent": "RAPP-Brainstem-Weatheragent/1.0"
+            }
+          }
+        },
+        "Check_location_found": {
+          "runAfter": {
+            "Geocode_location": [
+              "Succeeded"
+            ]
+          },
+          "type": "If",
+          "expression": {
+            "and": [
+              {
+                "greater": [
+                  "@length(coalesce(body(\u0027Geocode_location\u0027)?[\u0027results\u0027], createArray()))",
+                  0
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Forecast_weather": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "@concat(\u0027https://api.open-meteo.com/v1/forecast?latitude=\u0027, string(first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027latitude\u0027]), \u0027\u0026longitude=\u0027, string(first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027longitude\u0027]), \u0027\u0026current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cweather_code%2Cwind_speed_10m\u0026daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max\u0026temperature_unit=fahrenheit\u0026wind_speed_unit=mph\u0026precipitation_unit=inch\u0026timezone=auto\u0026forecast_days=\u0027, string(int(if(equals(triggerBody()?[\u0027forecast_days\u0027], null), 3, triggerBody()?[\u0027forecast_days\u0027]))))",
+                "headers": {
+                  "User-Agent": "RAPP-Brainstem-Weatheragent/1.0"
+                }
+              }
+            },
+            "Weather_codes": {
+              "runAfter": {
+                "Forecast_weather": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Compose",
+              "inputs": {
+                "0": "Clear sky",
+                "1": "Mainly clear",
+                "2": "Partly cloudy",
+                "3": "Overcast",
+                "45": "Fog",
+                "48": "Depositing rime fog",
+                "51": "Light drizzle",
+                "53": "Moderate drizzle",
+                "55": "Dense drizzle",
+                "56": "Light freezing drizzle",
+                "57": "Dense freezing drizzle",
+                "61": "Slight rain",
+                "63": "Moderate rain",
+                "65": "Heavy rain",
+                "66": "Light freezing rain",
+                "67": "Heavy freezing rain",
+                "71": "Slight snow",
+                "73": "Moderate snow",
+                "75": "Heavy snow",
+                "77": "Snow grains",
+                "80": "Slight rain showers",
+                "81": "Moderate rain showers",
+                "82": "Violent rain showers",
+                "85": "Slight snow showers",
+                "86": "Heavy snow showers",
+                "95": "Thunderstorm",
+                "96": "Thunderstorm with slight hail",
+                "99": "Thunderstorm with heavy hail"
+              }
+            },
+            "Build_forecast_days": {
+              "runAfter": {
+                "Weather_codes": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Select",
+              "inputs": {
+                "from": "@range(0, length(body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027time\u0027]))",
+                "select": {
+                  "date": "@body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027time\u0027][item()]",
+                  "condition": "@coalesce(outputs(\u0027Weather_codes\u0027)?[string(body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027weather_code\u0027][item()])], concat(\u0027Weather code \u0027, string(body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027weather_code\u0027][item()])))",
+                  "high_f": "@body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027temperature_2m_max\u0027][item()]",
+                  "low_f": "@body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027temperature_2m_min\u0027][item()]",
+                  "precipitation_chance_percent": "@body(\u0027Forecast_weather\u0027)?[\u0027daily\u0027]?[\u0027precipitation_probability_max\u0027][item()]"
+                }
+              }
+            },
+            "Respond_success": {
+              "runAfter": {
+                "Build_forecast_days": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Response",
+              "kind": "Skills",
+              "inputs": {
+                "statusCode": 200,
+                "body": {
+                  "status": "success",
+                  "message": null,
+                  "detail": null,
+                  "location": "@concat(first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027name\u0027], if(empty(first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027admin1\u0027]), \u0027\u0027, concat(\u0027, \u0027, first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027admin1\u0027])), if(empty(first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027country\u0027]), \u0027\u0027, concat(\u0027, \u0027, first(body(\u0027Geocode_location\u0027)?[\u0027results\u0027])?[\u0027country\u0027])))",
+                  "timezone": "@body(\u0027Forecast_weather\u0027)?[\u0027timezone\u0027]",
+                  "current": {
+                    "time": "@body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027time\u0027]",
+                    "condition": "@coalesce(outputs(\u0027Weather_codes\u0027)?[string(body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027weather_code\u0027])], concat(\u0027Weather code \u0027, string(body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027weather_code\u0027])))",
+                    "temperature_f": "@body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027temperature_2m\u0027]",
+                    "feels_like_f": "@body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027apparent_temperature\u0027]",
+                    "humidity_percent": "@body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027relative_humidity_2m\u0027]",
+                    "wind_mph": "@body(\u0027Forecast_weather\u0027)?[\u0027current\u0027]?[\u0027wind_speed_10m\u0027]"
+                  },
+                  "forecast": "@body(\u0027Build_forecast_days\u0027)",
+                  "source": "Open-Meteo"
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "current": {
+                      "type": "object"
+                    },
+                    "forecast": {
+                      "type": "array"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Respond_location_error": {
+                "type": "Response",
+                "kind": "Skills",
+                "inputs": {
+                  "statusCode": 200,
+                  "body": {
+                    "status": "error",
+                    "message": "@concat(\u0027Could not find a location matching \u0027\u0027\u0027, triggerBody()?[\u0027location\u0027], \u0027\u0027\u0027\u0027)",
+                    "detail": null,
+                    "location": null,
+                    "timezone": null,
+                    "current": null,
+                    "forecast": null,
+                    "source": null
+                  },
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      },
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "current": {
+                        "type": "object"
+                      },
+                      "forecast": {
+                        "type": "array"
+                      },
+                      "source": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,35 @@
+mcs.metadata:
+  componentName: "go-live-readiness-report"
+  description: "Produces the source-cited go-live readiness report for new supplier setup. Use when the user asks for the go-live readiness report, a onboarding approval packet review, or a comparison summary for specific record ids. Requires two record ids."
+kind: InlineAgentSkill
+content: |
+  ---
+  name: go-live-readiness-report
+  description: Produces the source-cited go-live readiness report for new supplier setup. Use when the user asks for the go-live readiness report, a onboarding approval packet review, or a comparison summary for specific record ids. Requires two record ids.
+  ---
+  # Go-live readiness report
+  
+  ## Step 1 - Establish the inputs
+  You need the two record ids to compare (for example SUP-NORTHWIND-2026 and REQ-SUPPLIER-STANDARD-2026). If either is missing, ask for it before doing anything else.
+  
+  ## Step 2 - Gather
+  1. Ask the Supplier Onboarding Compliance Data Agent for both records.
+  2. Search knowledge for the applicable policy or regulation.
+  3. Only if the user asks for weather at a site, call Site Weather.
+  
+  ## Step 3 - Write the report (max 180 words)
+  ```
+  GO-LIVE READINESS REPORT - <first id> -> <second id>
+  Changes: <each change on its own line with the old -> new value>  [source]
+  Missing items: <list or "none">  [source]
+  Flags: <certification gaps>  [source]
+  Rating: Low | Medium | High - one sentence why
+  Recommended next step for Procurement: <one sentence>
+  ```
+  
+  ## Rules
+  - Lead with the differences; a list of things that are fine is noise.
+  - An item present in the first record but absent in the second is "missing".
+  - Never invent a value. If a lookup returns nothing, write "not found".
+  - Never say the onboarding approval packet is approved, released, or final. Final vendor activation remain with Procurement.
+  

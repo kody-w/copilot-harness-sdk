@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Vendor Contract Renewal Data Agent"
+  description: "Fetches records by id (for example ACME-2023-014 or ACME-2026-014-DRAFT) from the system of record: the full contents needed to compare current vs. prior contract terms. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_VendorContractRenewalDataAgent
+historyType:
+  kind: ConversationHistory

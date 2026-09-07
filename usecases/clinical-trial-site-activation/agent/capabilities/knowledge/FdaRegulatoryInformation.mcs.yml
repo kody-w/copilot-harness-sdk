@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "FDA Regulatory Information"
+  description: "Public FDA regulatory information including clinical trial and IRB requirements. Search it for informed consent and IRB documentation rules."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.fda.gov/regulatory-information

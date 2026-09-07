@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_ClaimsIntakeReconciliationCopilot",
+  "childSchemaName": "cr8c1_ClaimsIntakeReconciliationDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What does NAIC guidance say about documentation an insurer may require to process a claim? Say which knowledge source you used.",
+      "expect": [
+        "claim",
+        "naic"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare CLM-88213 against POL-55021 and flag missing documentation or inconsistent dates.",
+      "expect": [
+        "14,?200",
+        "police report|proof of ownership"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the readiness report for CLM-88213 -> POL-55021.",
+      "expect": [
+        "Recommended next step for adjusters",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Verify Insurance tool and tell me what it can do; list the tools it exposes.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "US Department of Labor"
+  description: "Public US Department of Labor guidance on leave, wage and hour rules. Search it for federal leave requirements and state-law pointers."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.dol.gov

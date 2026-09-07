@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_ClinicalTrialSiteActivationCopilot",
+  "childSchemaName": "cr8c1_ClinicalTrialSiteActivationDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What does the FDA require in an informed consent document for a clinical trial? Say which knowledge source you used.",
+      "expect": [
+        "consent|IRB",
+        "fda"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare PROTO-4471-v3 against PROTO-4471-v4 and flag changed inclusion/exclusion criteria or dosing.",
+      "expect": [
+        "16 weeks|16-week",
+        "18-75|75"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the readiness report for PROTO-4471-v3 -> PROTO-4471-v4.",
+      "expect": [
+        "Recommended next step for Regulatory lead",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Log Compliance Audit tool and tell me what it can do; list the tools it exposes.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

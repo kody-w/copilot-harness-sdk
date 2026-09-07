@@ -23,7 +23,10 @@
     "example:studio-standard": "node examples/copilot-studio-standard.mjs",
     "example:studio-s2s": "node examples/copilot-studio-s2s.mjs",
     "example:agentic-directline": "node examples/agentic-directline.mjs",
-    "deploy:harness": "node scripts/deploy-harness-agent.mjs"
+    "deploy:harness": "node scripts/deploy-harness-agent.mjs",
+    "build:usecases": "node scripts/build-usecase-workspaces.mjs",
+    "deploy:usecases": "node scripts/deploy-usecases.mjs",
+    "prove:usecase": "node scripts/prove-usecase.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "^5.5.0",
