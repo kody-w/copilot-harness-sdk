@@ -12,19 +12,25 @@
  *   copilot-studio-s2s       directConnectUrl = build3pUrl(...)  + app-only token (private preview)
  *
  * The client library appends /conversations[/{id}] itself; the turn shapes
- * (startConversationStreaming, executeStreaming) and the token refresh trick
- * (assigning client.token before each turn) are the ones proven in server.js.
+ * (startConversationStreaming, executeStreaming) and the token refresh
+ * (assigning client.token before each turn) are the ones proven in the
+ * playground's server.js.
  *
  * "agentic-directline" does not use the client library at all: it fetches a
  * Direct Line token from the no-auth agentic runtime endpoint and drives the
  * standard Direct Line v3 REST API (final-only responses were observed).
+ *
+ * Turn contract: every turn ends with `idle`, also after an in-stream `error`
+ * (TURN_TIMEOUT, ABORTED, token failure, HTTP failure).
  */
-import { TextAccumulator, normalizeStudioActivity } from '../events.js';
+import { TextAccumulator, normalizeStudioActivity, safeEmit } from '../events.js';
 import { build3pUrl, buildAgenticDirectLineTokenUrl, guard3pUrl } from '../url.js';
 
 /** @typedef {import('../../index.js').HarnessEvent} HarnessEvent */
 /** @typedef {import('../../index.js').CopilotStudioConfig} CopilotStudioConfig */
 /** @typedef {import('../../index.js').HarnessMode} HarnessMode */
+
+const DEFAULT_TURN_TIMEOUT_MS = 5 * 60_000;
 
 /**
  * Resolve the connection shape for a Copilot Studio mode.
@@ -52,10 +58,11 @@ export function resolveStudioConnection(mode, config) {
     };
   }
   if (mode === 'agentic-directline') {
+    if (config.directLineTokenUrl) return { settings: undefined, tokenUrl: config.directLineTokenUrl };
     if (!config.environmentId || !config.schemaName) {
-      throw new Error('agentic-directline requires environmentId and schemaName.');
+      throw new Error('agentic-directline requires environmentId and schemaName, or directLineTokenUrl.');
     }
-    return { settings: undefined, tokenUrl: config.directLineTokenUrl || buildAgenticDirectLineTokenUrl({ environmentId: config.environmentId, schemaName: config.schemaName, cloud: /** @type {any} */ (cloud) }) };
+    return { settings: undefined, tokenUrl: buildAgenticDirectLineTokenUrl({ environmentId: config.environmentId, schemaName: config.schemaName, cloud: /** @type {any} */ (cloud) }) };
   }
   // 3p (delegated) and s2s (app-only) both use the guarded /3p URL.
   const directConnectUrl =
@@ -132,6 +139,47 @@ export function explainStatus(status, detail = '') {
 }
 
 /**
+ * Wrap an async generator with a per-turn timeout and an abort hook. On
+ * timeout/abort the inner generator is closed and an error with `code` is thrown.
+ * @template T
+ * @param {AsyncGenerator<T>} inner
+ * @param {number} timeoutMs
+ * @param {{ aborted: boolean }} abortFlag
+ * @returns {AsyncGenerator<T>}
+ */
+async function* withTurnGuard(inner, timeoutMs, abortFlag) {
+  try {
+    while (true) {
+      if (abortFlag.aborted) throw Object.assign(new Error('Turn aborted'), { code: 'ABORTED' });
+      /** @type {ReturnType<typeof setTimeout> | undefined} */
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error(`Turn timed out after ${timeoutMs} ms`), { code: 'TURN_TIMEOUT' })), timeoutMs);
+        timer.unref?.();
+      });
+      let result;
+      try {
+        result = await Promise.race([inner.next(), timeout]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      if (result.done) return;
+      yield result.value;
+    }
+  } finally {
+    // Do not await: an async generator suspended in a pending next() only
+    // honours return() after that next() settles, which on a stalled SSE
+    // stream is never. Fire-and-forget releases the wrapper immediately.
+    try {
+      const r = inner.return?.(undefined);
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
  * @param {HarnessMode} mode
  * @param {CopilotStudioConfig} config
  * @param {{ clientFactory?: (settings: any, token: string) => any, fetchImpl?: typeof fetch }} [deps]
@@ -142,7 +190,8 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
 
   /** @type {Set<(event: HarnessEvent) => void>} */
   const listeners = new Set();
-  const emit = (/** @type {HarnessEvent} */ event) => listeners.forEach((l) => l(event));
+  const onListenerError = config.onListenerError || (() => {});
+  const emit = (/** @type {HarnessEvent} */ event) => safeEmit(listeners, event, onListenerError);
 
   if (mode === 'agentic-directline') {
     return createAgenticDirectLineAdapter(config, /** @type {string} */ (resolved.tokenUrl), fetchImpl, listeners, emit);
@@ -156,16 +205,19 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
   const getAccessToken = /** @type {() => Promise<string>} */ (config.getAccessToken);
 
   /**
-   * Pump one turn of client-library activities into normalized events.
-   * @param {AsyncGenerator<any>} activities
+   * Pump one turn of client-library activities into normalized events. Any
+   * failure becomes an `error` event; `idle` is always yielded last.
+   * @param {() => AsyncGenerator<any>} startActivities
    * @param {number} turn
    * @param {() => string | undefined} getConversationId
+   * @param {number} timeoutMs
+   * @param {{ aborted: boolean }} abortFlag
    */
-  async function* pump(activities, turn, getConversationId) {
+  async function* pump(startActivities, turn, getConversationId, timeoutMs, abortFlag) {
     const acc = new TextAccumulator();
     let count = 0;
     try {
-      for await (const activity of activities) {
+      for await (const activity of withTurnGuard(startActivities(), timeoutMs, abortFlag)) {
         count += 1;
         for (const ev of normalizeStudioActivity(activity, acc)) {
           const withTurn = { ...ev, turn };
@@ -173,15 +225,15 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
           yield withTurn;
         }
       }
-      const idle = { type: /** @type {const} */ ('idle'), text: acc.snapshot, source: /** @type {const} */ ('copilot-studio'), raw: { count, conversationId: getConversationId() }, turn };
-      emit(idle);
-      yield idle;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      const ev = { type: /** @type {const} */ ('error'), error, code: /** @type {any} */ (err)?.code, statusCode: /** @type {any} */ (err)?.httpStatus, source: /** @type {const} */ ('copilot-studio'), raw: err, turn };
+      const ev = { type: /** @type {const} */ ('error'), error, code: /** @type {any} */ (err)?.code, statusCode: /** @type {any} */ (err)?.httpStatus, hint: /** @type {any} */ (err)?.hint, source: /** @type {const} */ ('copilot-studio'), raw: err, turn };
       emit(ev);
       yield ev;
     }
+    const idle = { type: /** @type {const} */ ('idle'), text: acc.snapshot, source: /** @type {const} */ ('copilot-studio'), raw: { count, conversationId: getConversationId() }, turn };
+    emit(idle);
+    yield idle;
   }
 
   /** @param {import('../../index.js').CreateSessionOptions} [opts] */
@@ -196,13 +248,24 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
     let turnCounter = 0;
     /** @type {HarnessEvent[]} */
     const greeting = [];
+    /** @type {{ aborted: boolean }} */
+    let currentAbort = { aborted: false };
+    const turnTimeout = config.turnTimeoutMs ?? DEFAULT_TURN_TIMEOUT_MS;
 
     if (!conversationId) {
       // Start the conversation now so the session has an id; greeting
-      // activities are kept and replayed as the first turn's events.
+      // activities are kept and exposed as session.greeting. A failure here
+      // is the library's real error (401/403/404), rethrown with its status.
       const turn = ++turnCounter;
-      for await (const ev of pump(client.startConversationStreaming(true), turn, () => client.conversationId)) {
+      currentAbort = { aborted: false };
+      for await (const ev of pump(() => client.startConversationStreaming(true), turn, () => client.conversationId, turnTimeout, currentAbort)) {
         greeting.push(ev);
+      }
+      const failed = greeting.find((e) => e.type === 'error');
+      if (failed && failed.type === 'error') {
+        const error = failed.error;
+        if (/** @type {any} */ (error).httpStatus && !/** @type {any} */ (error).hint) /** @type {any} */ (error).hint = explainStatus(/** @type {any} */ (error).httpStatus);
+        throw error;
       }
       conversationId = client.conversationId;
       if (!conversationId) throw new Error('Copilot Studio did not return a conversation id.');
@@ -210,14 +273,30 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
 
     /**
      * @param {string} prompt
+     * @param {{ timeoutMs?: number }} [sendOpts]
      * @returns {AsyncIterableIterator<HarnessEvent>}
      */
-    function stream(prompt) {
+    function stream(prompt, sendOpts = {}) {
       const turn = ++turnCounter;
+      const abortFlag = { aborted: false };
+      currentAbort = abortFlag;
+      const timeoutMs = sendOpts.timeoutMs ?? turnTimeout;
       return (async function* () {
-        client.token = await getAccessToken();
-        const activity = { type: 'message', text: prompt, conversation: { id: conversationId } };
-        yield* pump(client.executeStreaming(activity, /** @type {string} */ (conversationId)), turn, () => client.conversationId || conversationId);
+        yield* pump(
+          () => {
+            const activity = { type: 'message', text: prompt, conversation: { id: conversationId } };
+            return (async function* () {
+              // Token acquisition is inside the guarded generator so a refresh
+              // failure surfaces as an in-stream error, not a thrown next().
+              client.token = await getAccessToken();
+              yield* client.executeStreaming(activity, /** @type {string} */ (conversationId));
+            })();
+          },
+          turn,
+          () => client.conversationId || conversationId,
+          timeoutMs,
+          abortFlag
+        );
       })();
     }
 
@@ -227,24 +306,28 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
       mode,
       greeting,
       stream,
-      /** @param {string} prompt */
-      async send(prompt) {
+      /** @param {string} prompt @param {{ timeoutMs?: number }} [sendOpts] */
+      async send(prompt, sendOpts) {
         /** @type {HarnessEvent[]} */
         const events = [];
         let text = '';
         /** @type {Error | undefined} */
         let failure;
-        for await (const ev of stream(prompt)) {
+        for await (const ev of stream(prompt, sendOpts)) {
           events.push(ev);
-          if (ev.type === 'text.final') text = ev.text;
+          if (ev.type === 'text.final' && ev.text) text = ev.text;
           if (ev.type === 'idle' && !text) text = ev.text;
           if (ev.type === 'error') failure = ev.error;
         }
         if (failure && !text) throw failure;
         return { text, events };
       },
-      async abort() {},
-      async close() {},
+      async abort() {
+        currentAbort.aborted = true;
+      },
+      async close() {
+        currentAbort.aborted = true;
+      },
       native: client
     };
   }
@@ -284,6 +367,10 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
 /**
  * No-auth agentic Direct Line diagnostic: token from the agentic runtime,
  * then Direct Line v3 REST (start conversation, post activity, poll).
+ *
+ * The watermark is primed when the session opens (an initial GET drains
+ * existing activities), so a resumed conversation's history is never replayed
+ * as this turn's answer; only activities after the posted prompt count.
  * @param {CopilotStudioConfig} config
  * @param {string} tokenUrl
  * @param {typeof fetch} fetchImpl
@@ -292,6 +379,7 @@ export async function createCopilotStudioAdapter(mode, config, deps = {}) {
  */
 async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, listeners, emit) {
   const directLineBase = config.directLineBase || 'https://directline.botframework.com/v3/directline';
+  const userId = config.userId || 'copilot-harness-sdk';
 
   async function fetchToken() {
     const res = await fetchImpl(tokenUrl, { method: 'GET' });
@@ -305,6 +393,19 @@ async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, liste
     return { token: /** @type {string} */ (body.token), conversationId: body.conversationId };
   }
 
+  /**
+   * @param {string} token
+   * @param {string} conversationId
+   * @param {string} watermark
+   */
+  async function poll(token, conversationId, watermark) {
+    const q = watermark ? `?watermark=${encodeURIComponent(watermark)}` : '';
+    const res = await fetchImpl(`${directLineBase}/conversations/${conversationId}/activities${q}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw Object.assign(new Error(`Direct Line poll returned HTTP ${res.status}`), { httpStatus: res.status });
+    const body = await res.json();
+    return { watermark: body.watermark || watermark, activities: /** @type {any[]} */ (body.activities || []) };
+  }
+
   /** @param {import('../../index.js').CreateSessionOptions} [opts] */
   async function createSession(opts = {}) {
     const { token } = await fetchToken();
@@ -316,30 +417,47 @@ async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, liste
       const body = await res.json();
       conversationId = body.conversationId;
     }
+    // Prime the watermark: drain what already exists. For a new conversation
+    // that is the greeting (kept); for a resumed one it is history (discarded).
+    /** @type {HarnessEvent[]} */
+    const greeting = [];
+    const primed = await poll(token, /** @type {string} */ (conversationId), '');
+    watermark = primed.watermark;
+    if (!opts.resume) {
+      const acc = new TextAccumulator();
+      for (const activity of primed.activities) {
+        if (activity.from?.id === userId) continue;
+        for (const ev of normalizeStudioActivity(activity, acc)) greeting.push({ ...ev, turn: 0 });
+      }
+    }
     let turnCounter = 0;
+    let aborted = false;
 
-    /** @param {string} prompt */
-    function stream(prompt) {
+    /**
+     * @param {string} prompt
+     * @param {{ timeoutMs?: number }} [sendOpts]
+     */
+    function stream(prompt, sendOpts = {}) {
       const turn = ++turnCounter;
+      const timeoutMs = sendOpts.timeoutMs ?? config.turnTimeoutMs ?? 60_000;
+      aborted = false;
       return (async function* () {
         const acc = new TextAccumulator();
+        let done = false;
         try {
           const post = await fetchImpl(`${directLineBase}/conversations/${conversationId}/activities`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'message', from: { id: config.userId || 'copilot-harness-sdk' }, text: prompt })
+            body: JSON.stringify({ type: 'message', from: { id: userId }, text: prompt })
           });
           if (!post.ok) throw Object.assign(new Error(`Direct Line post returned HTTP ${post.status}`), { httpStatus: post.status });
-          const deadline = Date.now() + (config.turnTimeoutMs || 60_000);
-          let done = false;
+          const deadline = Date.now() + timeoutMs;
           while (!done && Date.now() < deadline) {
-            const q = watermark ? `?watermark=${encodeURIComponent(watermark)}` : '';
-            const res = await fetchImpl(`${directLineBase}/conversations/${conversationId}/activities${q}`, { headers: { Authorization: `Bearer ${token}` } });
-            if (!res.ok) throw Object.assign(new Error(`Direct Line poll returned HTTP ${res.status}`), { httpStatus: res.status });
-            const body = await res.json();
-            watermark = body.watermark || watermark;
-            for (const activity of body.activities || []) {
-              if (activity.from?.id === (config.userId || 'copilot-harness-sdk')) continue;
+            if (aborted) throw Object.assign(new Error('Turn aborted'), { code: 'ABORTED' });
+            const page = await poll(token, /** @type {string} */ (conversationId), watermark);
+            watermark = page.watermark;
+            for (const activity of page.activities) {
+              if (activity.from?.id === userId) continue;
               for (const ev of normalizeStudioActivity(activity, acc)) {
                 const withTurn = { ...ev, turn };
                 emit(withTurn);
@@ -350,15 +468,16 @@ async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, liste
             }
             if (!done) await new Promise((r) => setTimeout(r, 750));
           }
-          const idle = { type: /** @type {const} */ ('idle'), text: acc.snapshot, source: /** @type {const} */ ('copilot-studio'), raw: { conversationId, watermark }, turn };
-          emit(idle);
-          yield idle;
+          if (!done) throw Object.assign(new Error(`Turn timed out after ${timeoutMs} ms`), { code: 'TURN_TIMEOUT' });
         } catch (err) {
           const error = err instanceof Error ? err : new Error(String(err));
-          const ev = { type: /** @type {const} */ ('error'), error, statusCode: /** @type {any} */ (err)?.httpStatus, source: /** @type {const} */ ('copilot-studio'), raw: err, turn };
+          const ev = { type: /** @type {const} */ ('error'), error, code: /** @type {any} */ (err)?.code, statusCode: /** @type {any} */ (err)?.httpStatus, source: /** @type {const} */ ('copilot-studio'), raw: err, turn };
           emit(ev);
           yield ev;
         }
+        const idle = { type: /** @type {const} */ ('idle'), text: acc.snapshot, source: /** @type {const} */ ('copilot-studio'), raw: { conversationId, watermark }, turn };
+        emit(idle);
+        yield idle;
       })();
     }
 
@@ -366,25 +485,29 @@ async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, liste
       id: /** @type {string} */ (conversationId),
       conversationId: /** @type {string} */ (conversationId),
       mode: /** @type {const} */ ('agentic-directline'),
-      greeting: [],
+      greeting,
       stream,
-      /** @param {string} prompt */
-      async send(prompt) {
+      /** @param {string} prompt @param {{ timeoutMs?: number }} [sendOpts] */
+      async send(prompt, sendOpts) {
         /** @type {HarnessEvent[]} */
         const events = [];
         let text = '';
         /** @type {Error | undefined} */
         let failure;
-        for await (const ev of stream(prompt)) {
+        for await (const ev of stream(prompt, sendOpts)) {
           events.push(ev);
-          if (ev.type === 'text.final') text = ev.text;
+          if (ev.type === 'text.final' && ev.text) text = ev.text;
           if (ev.type === 'error') failure = ev.error;
         }
         if (failure && !text) throw failure;
         return { text, events };
       },
-      async abort() {},
-      async close() {},
+      async abort() {
+        aborted = true;
+      },
+      async close() {
+        aborted = true;
+      },
       native: { token, conversationId }
     };
   }

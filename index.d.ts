@@ -45,7 +45,9 @@ export interface CopilotSdkConfig {
   byok?: ProviderConfig;
   /**
    * "deny" (SDK default), "approve-all", "emit" (raise permission.request
-   * events carrying respond()), or your own PermissionHandler.
+   * events carrying respond() into the active stream and to onEvent), or
+   * your own PermissionHandler. With "emit", an unanswered request is denied
+   * after 60 s.
    */
   permissions?: 'deny' | 'approve-all' | 'emit' | PermissionHandler;
   /** Client-level GitHub token (sets useLoggedInUser=false). */
@@ -58,6 +60,7 @@ export interface CopilotSdkConfig {
     connectionToken?: string;
     cliPath?: string;
     args?: string[];
+    /** Environment for a spawned CLI (e.g. COPILOT_GITHUB_TOKEN for installation tokens). */
     env?: Record<string, string>;
     /**
      * "empty" for shared multi-user runtimes; default "copilot-cli". In "empty"
@@ -67,7 +70,8 @@ export interface CopilotSdkConfig {
     mode?: 'empty' | 'copilot-cli';
     /**
      * Session-state directory (default ~/.copilot). Required by the SDK in
-     * "empty" mode; this SDK defaults it to <tmpdir>/copilot-harness-sdk/empty-mode.
+     * "empty" mode for spawned runtimes; this SDK defaults it to
+     * <tmpdir>/copilot-harness-sdk/empty-mode. Ignored for uri runtimes.
      */
     baseDirectory?: string;
   };
@@ -75,7 +79,10 @@ export interface CopilotSdkConfig {
   client?: CopilotClientOptions;
   /** Raw passthrough merged into SessionConfig. */
   session?: Partial<SessionConfig>;
+  /** Per-turn timeout (default 5 minutes). Ends the turn with error TURN_TIMEOUT then idle. */
   turnTimeoutMs?: number;
+  /** Called when an onEvent listener throws; listener errors never break a turn. */
+  onListenerError?: (error: unknown, event: HarnessEvent) => void;
 }
 
 export interface CopilotStudioConfig {
@@ -83,19 +90,22 @@ export interface CopilotStudioConfig {
   /** Case-sensitive agent schema name, e.g. cr123_myAgent_aB3xY. */
   schemaName?: string;
   cloud?: 'Prod' | 'FirstRelease' | 'Test' | 'Preprod' | 'Dev' | 'Exp' | 'Prv';
-  /** Override the derived /3p URL (must still pass the guard). */
+  /** Override the derived /3p URL (must still pass the guard). /3p modes only. */
   directConnectUrl?: string;
   agentType?: 'Published' | 'Prebuilt';
-  /** Returns a bearer token: delegated user token (3p, standard) or app-only (s2s). */
+  /** Returns a bearer token: delegated user token (3p, standard) or app-only (s2s). Called before every turn. */
   getAccessToken?: () => Promise<string>;
-  /** Skip the one-shot /3p preflight (default: run it). */
+  /** Skip the one-shot /3p preflight (default: run it on new conversations; never on resume). */
   preflight?: boolean;
   diagnostics?: boolean;
-  /** agentic-directline only */
+  /** agentic-directline only: full token endpoint URL (alternative to environmentId + schemaName). */
   directLineTokenUrl?: string;
   directLineBase?: string;
   userId?: string;
+  /** Per-turn timeout: 5 minutes for the client-library modes, 60 s for agentic-directline. */
   turnTimeoutMs?: number;
+  /** Called when an onEvent listener throws; listener errors never break a turn. */
+  onListenerError?: (error: unknown, event: HarnessEvent) => void;
 }
 
 export interface HarnessClientConfig {
@@ -120,7 +130,7 @@ interface EventBase {
 }
 
 export type HarnessEvent =
-  | (EventBase & { type: 'text.delta'; delta: string; snapshot: string; sequence?: number; streamId?: string; messageId?: string })
+  | (EventBase & { type: 'text.delta'; delta: string; snapshot: string; replaced?: boolean; sequence?: number; streamId?: string; messageId?: string })
   | (EventBase & { type: 'text.final'; text: string; streamId?: string; messageId?: string; model?: string; citations?: unknown; attachments?: unknown[]; suggestedActions?: unknown[] })
   | (EventBase & { type: 'status'; text: string })
   | (EventBase & { type: 'reasoning.delta'; delta: string })
@@ -129,8 +139,8 @@ export type HarnessEvent =
   | (EventBase & { type: 'permission.request'; request: unknown; sessionId: string; respond: (decision: 'approve' | 'deny') => void })
   | (EventBase & { type: 'usage'; model?: string; inputTokens?: number; outputTokens?: number; cost?: number; byok: boolean })
   | (EventBase & { type: 'context'; currentTokens: number; tokenLimit: number })
-  | (EventBase & { type: 'idle'; text: string })
-  | (EventBase & { type: 'error'; error: Error; code?: string; statusCode?: number })
+  | (EventBase & { type: 'idle'; text: string; aborted?: boolean })
+  | (EventBase & { type: 'error'; error: Error; code?: string; statusCode?: number; hint?: string })
   | (EventBase & { type: 'raw' });
 
 export interface SendResult {
@@ -138,14 +148,27 @@ export interface SendResult {
   events: HarnessEvent[];
 }
 
+export interface StreamOptions {
+  timeoutMs?: number;
+  /** Copilot SDK only. */
+  attachments?: unknown[];
+  /** Copilot SDK only. */
+  agentMode?: 'interactive' | 'plan' | 'autopilot';
+}
+
 export interface HarnessSession {
   id: string;
   conversationId: string;
   mode: HarnessMode;
-  /** Copilot Studio modes: greeting events captured while starting the conversation. */
+  /** Copilot Studio modes: greeting events captured while starting the conversation (empty on resume). */
   greeting?: HarnessEvent[];
-  stream(prompt: string, opts?: { timeoutMs?: number; attachments?: unknown[]; agentMode?: 'interactive' | 'plan' | 'autopilot' }): AsyncIterableIterator<HarnessEvent>;
-  send(prompt: string, opts?: { timeoutMs?: number }): Promise<SendResult>;
+  /**
+   * One turn. Always ends with `idle`; error paths yield `error` then `idle`.
+   * Breaking out early aborts the turn and cleans up. Turns on one session are serialized.
+   */
+  stream(prompt: string, opts?: StreamOptions): AsyncIterableIterator<HarnessEvent>;
+  /** Waits for the turn; returns the final text. Throws only when no text arrived and an error did. */
+  send(prompt: string, opts?: StreamOptions): Promise<SendResult>;
   abort(): Promise<void>;
   close(): Promise<void>;
   native: unknown;
@@ -160,10 +183,19 @@ export interface PreflightResult {
   details?: unknown;
 }
 
+export interface CreateDeps {
+  /** Copilot Studio modes: replaces the client-library constructor. */
+  clientFactory?: (settings: any, token: string) => any;
+  /** Copilot Studio modes: replaces global fetch. */
+  fetchImpl?: typeof fetch;
+  /** copilot-sdk mode: an object shaped like the @github/copilot-sdk module. */
+  sdk?: unknown;
+}
+
 export declare class HarnessClient {
   readonly config: HarnessClientConfig;
   readonly mode: HarnessMode;
-  static create(config: HarnessClientConfig, deps?: { clientFactory?: (settings: any, token: string) => any; fetchImpl?: typeof fetch }): Promise<HarnessClient>;
+  static create(config: HarnessClientConfig, deps?: CreateDeps): Promise<HarnessClient>;
   capabilities(): HarnessCapabilities;
   describe(): string;
   preflight(): Promise<PreflightResult>;
@@ -177,7 +209,7 @@ export declare class HarnessClient {
   [Symbol.asyncDispose](): Promise<void>;
 }
 
-export declare function createHarnessClient(config: HarnessClientConfig, deps?: { clientFactory?: any; fetchImpl?: typeof fetch }): Promise<HarnessClient>;
+export declare function createHarnessClient(config: HarnessClientConfig, deps?: CreateDeps): Promise<HarnessClient>;
 export declare function validateConfig(config: HarnessClientConfig): string[];
 export declare function recommendMode(facts: {
   hasGithubIdentity?: boolean;
@@ -204,15 +236,31 @@ export declare class TextAccumulator {
   snapshot: string;
   shape: 'unknown' | 'delta' | 'cumulative';
   chunks: number;
-  push(text: string, opts?: { mode?: 'delta' | 'cumulative' | 'auto' }): string;
-  finalize(text: string): string;
+  lastReplaced: boolean;
+  streamId: string | undefined;
+  finalized: boolean;
+  reset(): void;
+  push(text: string, opts?: { mode?: 'delta' | 'cumulative' | 'auto'; streamId?: string }): string;
+  finalize(text: string | undefined): string;
 }
 export declare function normalizeStudioActivity(activity: unknown, acc: TextAccumulator): HarnessEvent[];
-export declare function createEventQueue<T>(): { push(item: T): void; close(err?: Error): void; readonly closed: boolean; iterator(): AsyncIterableIterator<T> };
+export declare function createEventQueue<T>(opts?: { onReturn?: () => void }): { push(item: T): void; close(err?: Error): void; readonly closed: boolean; iterator(): AsyncIterableIterator<T> };
+export declare function safeEmit(listeners: Iterable<(event: HarnessEvent) => void>, event: HarnessEvent, onListenerError?: (err: unknown, event: HarnessEvent) => void): void;
+export declare function createSdkEventMapper(opts?: { turn?: number }): {
+  readonly snapshot: string;
+  readonly finalText: string;
+  map(event: { type: string; data?: any }): { event: HarnessEvent; done: boolean };
+};
 
 export declare function staticToken(token: string): () => Promise<string>;
-export declare function createDeviceCodeTokenProvider(opts: { clientId: string; tenantId: string; cloud?: keyof typeof CLOUD_SUFFIX; scopes?: string[]; onDeviceCode?: (message: string) => void }): () => Promise<string>;
-export declare function createClientCredentialTokenProvider(opts: { clientId: string; tenantId: string; clientSecret: string; cloud?: keyof typeof CLOUD_SUFFIX; scopes?: string[] }): () => Promise<string>;
+export declare function createDeviceCodeTokenProvider(
+  opts: { clientId: string; tenantId: string; cloud?: keyof typeof CLOUD_SUFFIX; scopes?: string[]; onDeviceCode?: (message: string) => void },
+  deps?: { pcaFactory?: (config: any) => any; now?: () => number }
+): () => Promise<string>;
+export declare function createClientCredentialTokenProvider(
+  opts: { clientId: string; tenantId: string; clientSecret: string; cloud?: keyof typeof CLOUD_SUFFIX; scopes?: string[] },
+  deps?: { ccaFactory?: (config: any) => any; now?: () => number }
+): () => Promise<string>;
 
 export declare function resolveStudioConnection(mode: HarnessMode, config: CopilotStudioConfig): { settings?: Record<string, unknown>; conversationsUrl?: URL; tokenUrl?: string };
 export declare function preflight3p(conversationsUrl: URL, token: string, fetchImpl?: typeof fetch): Promise<PreflightResult>;

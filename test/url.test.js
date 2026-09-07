@@ -45,9 +45,15 @@ test('guard3pUrl is the SSRF boundary', () => {
     base.replace('api-version=1', 'api-version=2'),
     base + '&x=1',
     base.replace('environment.api.powerplatform.com', 'evil.example.com'),
+    base.replace('environment.api.powerplatform.com/', 'environment.api.powerplatform.com.evil.example/'),
+    base.replace('https://', 'https://evil.example.'),
+    base.replace('111111112222333344445555555555.55.', '11111111222233334444555555555.555.'),
+    base.replace('?api-version=1', '/conversations/a/b?api-version=1'),
+    base.replace('/bots/cr123_agent', '/bots/cr123_agent/extra'),
     base.replace('/3p/', '/%2f3p/'),
     base.replace('https://', 'https://user:pw@'),
     base.replace('.com/', '.com:8443/'),
+    base + '#frag',
     'not a url',
     ''
   ]) {

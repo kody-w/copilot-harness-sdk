@@ -51,11 +51,13 @@ await client.close();
 | `status` | `text` | Informative typing (`Searching…`) or the SDK's `assistant.intent`. |
 | `reasoning.delta` | `delta` | Copilot SDK only. |
 | `tool.start` / `tool.end` | `id`, `name`, `args?` / `id`, `success`, `result?`, `error?` | Copilot SDK only (Copilot Studio runs its tools server-side). |
-| `permission.request` | `request`, `respond('approve' \| 'deny')` | Copilot SDK with `permissions: 'emit'`. |
+| `permission.request` | `request`, `respond('approve' \| 'deny')` | Copilot SDK with `permissions: 'emit'`. Delivered into the active turn's stream and to `client.onEvent`; unanswered requests are denied after 60 s. |
 | `usage`, `context` | tokens, cost, `tokenLimit` | Copilot SDK only. |
-| `idle` | `text` | End of turn. Always last. |
-| `error` | `error`, `code?`, `statusCode?` | Surfaced in-stream; `send()` throws if no text arrived. |
+| `idle` | `text`, `aborted?` | End of turn. Always last, including after an `error`. An autopilot "idle between steps" is a `status`, not an `idle` (mirrors the SDK's own `sendAndWait`). |
+| `error` | `error`, `code?`, `statusCode?`, `hint?` | Surfaced in-stream, then `idle`. Codes: `TURN_TIMEOUT`, `ABORTED`, `SESSION_CLOSED`, `SEND_FAILED`, plus HTTP `statusCode` with a hint for 401/403/404. `send()` throws only if no text arrived. |
 | `raw` | `raw` | Anything unmapped, with the original payload. Every event carries `raw` and `source`. |
+
+Turn rules that hold in every mode: turns on one session are serialized; breaking out of a stream aborts the turn and cleans up (no leaked listeners or timers); `turnTimeoutMs` (or `stream(prompt, { timeoutMs })`) applies everywhere; `session.close()` and `client.close()` end open streams with `SESSION_CLOSED` then `idle` instead of hanging; a throwing `onEvent` listener never breaks a turn (see `onListenerError`).
 
 ## Scenario recipes
 
@@ -148,13 +150,18 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 
 ## Verification status (6 September 2026)
 
+58 unit tests (`npm test`), no network or credentials needed. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
+
 | Mode | Unit tests | Live |
 | --- | --- | --- |
-| `copilot-sdk` | event mapping, config validation | Passed 6 Sep 2026 on Copilot CLI 1.0.84 / SDK 1.0.13: `npm run test:live` streamed deltas → final → idle for a real prompt (`model: auto` resolved to `mai-code-1.1-flash`), and `examples/copilot-sdk.mjs` ran the full custom-tool loop: `tool.start lookupOrder` → `permission.request` (`kind=custom-tool`) → approve → `tool.end success=true` → "Order 42 is currently shipped." Denying the same request produced `success=false` and an explanation. |
-| `copilot-studio-3p` | preflight, guard, token refresh per turn, cumulative→delta normalization, resume, 403 hint | Same route verified live from the playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET); not yet re-run through this SDK (no Entra credentials on the build machine) |
-| `copilot-studio-standard` | settings shape, no preflight | Not run in this session |
+| `copilot-sdk` | event mapping; turn serialization; early break aborts and cleans up; autopilot idle; turn timeout; close during a stream; throwing listener isolation; permissions `emit` / `approve-all` / `deny`; empty-mode defaults; `runtime.env`; send failure; config validation | Passed 6 Sep 2026 on Copilot CLI 1.0.84 / SDK 1.0.13: `npm run test:live` streamed deltas → final → idle for a real prompt, and `examples/copilot-sdk.mjs` ran the full custom-tool loop: `tool.start lookupOrder` → `permission.request` (`kind=custom-tool`) → approve (`approve-once`) → `tool.end success=true` → "Order 9 is shipped and is expected to arrive in 2 days." (`model: auto` resolved to `mai-code-1.1-flash` and later `gpt-5.6-luna`). Denying the same request produced `success=false` and an explanation. |
+| `copilot-studio-3p` | preflight and 403 hint, guard, token refresh per turn, outbound activity shape, cumulative→delta normalization, onEvent parity and unsubscribe, resume without preflight, turn failure with status, token-provider failure in-stream, turn timeout | Same route verified live from the playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET); not yet re-run through this SDK (no Entra credentials on the build machine) |
+| `copilot-studio-standard` | settings shape, no preflight, start failure propagates with status and hint | Not run in this session |
 | `copilot-studio-s2s` | app-only token to the guarded route | Requires Microsoft's private-preview enablement |
-| `agentic-directline` | token endpoint + Direct Line REST + final-only normalization | Route observed final-only from the playground; not yet re-run through this SDK |
+| `agentic-directline` | watermark priming, greeting capture, resume discards history, HTTP failures (401/403/500) and timeout as error then idle | Route observed final-only from the playground; not yet re-run through this SDK |
+| token providers | cache, refresh skew, in-flight dedupe, failure recovery, silent-before-device-code | — |
+
+An adversarial review pass (four lenses, 6 Sep 2026) produced 43 candidate defects; each was checked against the code and the installed dependency sources, and the confirmed ones were fixed with the regression tests above (turn cross-talk after an early break, leaked listeners and timers, autopilot idle, permission events invisible to stream consumers, swallowed start-conversation errors, card-only messages wiping the answer, cumulative snapshots that do not extend, Direct Line history replay on resume, silent timeouts, queue double-rejection).
 
 ## Provenance
 

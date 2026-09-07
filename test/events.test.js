@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TextAccumulator, normalizeStudioActivity, createEventQueue } from '../src/events.js';
+import { TextAccumulator, normalizeStudioActivity, createEventQueue, safeEmit } from '../src/events.js';
 import { createSdkEventMapper } from '../src/adapters/copilot-sdk-map.js';
 
 test('TextAccumulator treats cumulative snapshots as such (Node client shape, verified 5 Aug 2026)', () => {
@@ -24,6 +24,35 @@ test('TextAccumulator appends delta fragments (Agent Framework shape, verified 6
   assert.equal(acc.finalize('Hello, world'), '');
 });
 
+test('TextAccumulator cumulative mode replaces (not appends) when a snapshot does not extend the previous one', () => {
+  // The client library joins chunks sorted by streamSequence, so out-of-order
+  // arrival produces snapshots 'The ', 'The 42', 'The answer is 42'.
+  const acc = new TextAccumulator();
+  assert.equal(acc.push('The ', { mode: 'cumulative' }), 'The ');
+  assert.equal(acc.push('The 42', { mode: 'cumulative' }), '42');
+  assert.equal(acc.push('The answer is 42', { mode: 'cumulative' }), '');
+  assert.equal(acc.lastReplaced, true);
+  assert.equal(acc.snapshot, 'The answer is 42');
+});
+
+test('TextAccumulator.finalize keeps the streamed text when the final has no text', () => {
+  const acc = new TextAccumulator();
+  acc.push('Streamed answer');
+  assert.equal(acc.finalize(''), '');
+  assert.equal(acc.snapshot, 'Streamed answer');
+  assert.equal(acc.finalize(undefined), '');
+  assert.equal(acc.snapshot, 'Streamed answer');
+});
+
+test('TextAccumulator resets for a new streamId or after a finalized message', () => {
+  const acc = new TextAccumulator();
+  acc.push('First', { mode: 'cumulative', streamId: 'a' });
+  acc.finalize('First.');
+  assert.equal(acc.push('Sec', { mode: 'cumulative', streamId: 'b' }), 'Sec');
+  assert.equal(acc.push('Second', { mode: 'cumulative', streamId: 'b' }), 'ond');
+  assert.equal(acc.snapshot, 'Second');
+});
+
 test('normalizeStudioActivity maps the Web Chat livestreaming protocol', () => {
   const acc = new TextAccumulator();
   const events = [
@@ -41,9 +70,38 @@ test('normalizeStudioActivity maps the Web Chat livestreaming protocol', () => {
   assert.equal(events[1].delta, 'The answer');
   assert.equal(events[2].delta, ' is 42');
   assert.equal(events[2].snapshot, 'The answer is 42');
+  assert.equal(events[2].replaced, false);
   assert.equal(events[3].delta, '.');
   assert.equal(events[4].text, 'The answer is 42.');
   assert.equal(events[4].streamId, 's1');
+});
+
+test('normalizeStudioActivity: a card-only message after the final keeps the answer text', () => {
+  const acc = new TextAccumulator();
+  const events = [
+    { type: 'typing', text: 'The answer is 42', channelData: { streamType: 'streaming', streamId: 's1', streamSequence: 1 } },
+    { type: 'message', text: 'The answer is 42.', channelData: { streamType: 'final', streamId: 's1' } },
+    { type: 'message', attachments: [{ contentType: 'application/vnd.microsoft.card.adaptive' }] },
+    { type: 'event', name: 'turn.complete' }
+  ].flatMap((a) => normalizeStudioActivity(a, acc));
+  assert.deepEqual(events.map((e) => e.type), ['text.delta', 'text.delta', 'text.final', 'text.final', 'raw']);
+  assert.equal(events[2].text, 'The answer is 42.');
+  assert.equal(events[3].text, 'The answer is 42.');
+  assert.equal(events[3].attachments.length, 1);
+  assert.equal(acc.snapshot, 'The answer is 42.');
+});
+
+test('normalizeStudioActivity: two streamed messages in one turn do not glue together', () => {
+  const acc = new TextAccumulator();
+  const events = [
+    { type: 'message', text: 'First.' },
+    { type: 'typing', text: 'Sec', channelData: { streamType: 'streaming', streamId: 'b', streamSequence: 1 } },
+    { type: 'typing', text: 'Second', channelData: { streamType: 'streaming', streamId: 'b', streamSequence: 2 } },
+    { type: 'message', text: 'Second.', channelData: { streamType: 'final', streamId: 'b' } }
+  ].flatMap((a) => normalizeStudioActivity(a, acc));
+  const deltas = events.filter((e) => e.type === 'text.delta').map((e) => e.delta);
+  assert.deepEqual(deltas, ['First.', 'Sec', 'ond', '.']);
+  assert.equal(events.at(-1).text, 'Second.');
 });
 
 test('normalizeStudioActivity handles final-only agents (no-auth agentic Direct Line observation)', () => {
@@ -84,6 +142,19 @@ test('createSdkEventMapper maps Copilot SDK events using the 1.0.13 field names'
   assert.equal(seq[3].event.success, true);
 });
 
+test('createSdkEventMapper: an autopilot idle is not the end of the turn (mirrors SDK sendAndWait)', () => {
+  const m = createSdkEventMapper();
+  m.map({ type: 'assistant.message_delta', data: { deltaContent: 'a' } });
+  const mid = m.map({ type: 'session.idle', data: { mode: 'autopilot' } });
+  assert.equal(mid.done, false);
+  assert.equal(mid.event.type, 'status');
+  m.map({ type: 'assistant.message_delta', data: { deltaContent: 'b' } });
+  m.map({ type: 'assistant.message', data: { content: 'ab' } });
+  const end = m.map({ type: 'session.idle', data: { mode: 'interactive' } });
+  assert.equal(end.done, true);
+  assert.equal(end.event.text, 'ab');
+});
+
 test('createSdkEventMapper surfaces session.error with code and status', () => {
   const m = createSdkEventMapper();
   const { event } = m.map({ type: 'session.error', data: { message: 'boom', errorType: 'provider', errorCode: 'E42', statusCode: 429 } });
@@ -107,9 +178,51 @@ test('createEventQueue delivers pushed items in order and ends on close', async 
   assert.deepEqual(seen, [1, 2, 3]);
 });
 
-test('createEventQueue rejects the pending next() when closed with an error', async () => {
+test('createEventQueue rejects a pending next() exactly once when closed with an error', async () => {
   const q = createEventQueue();
   const it = q.iterator();
-  setTimeout(() => q.close(new Error('nope')), 5);
-  await assert.rejects(it.next(), /nope/);
+  const pending = it.next();
+  q.close(new Error('nope'));
+  await assert.rejects(pending, /nope/);
+  assert.deepEqual(await it.next(), { value: undefined, done: true });
+});
+
+test('createEventQueue settles concurrent next() calls in FIFO order', async () => {
+  const q = createEventQueue();
+  const it = q.iterator();
+  const a = it.next();
+  const b = it.next();
+  q.push(1);
+  q.push(2);
+  q.close();
+  assert.deepEqual(await a, { value: 1, done: false });
+  assert.deepEqual(await b, { value: 2, done: false });
+  assert.deepEqual(await it.next(), { value: undefined, done: true });
+});
+
+test('createEventQueue calls onReturn when the consumer breaks early', async () => {
+  let returned = 0;
+  const q = createEventQueue({ onReturn: () => returned++ });
+  const it = q.iterator();
+  q.push(1);
+  q.push(2);
+  for await (const v of it) {
+    if (v === 1) break;
+  }
+  assert.equal(returned, 1);
+  assert.equal(q.closed, true);
+});
+
+test('safeEmit isolates a throwing listener and still delivers to the others', () => {
+  const seen = [];
+  const errors = [];
+  const listeners = [
+    () => {
+      throw new Error('listener bug');
+    },
+    (e) => seen.push(e.type)
+  ];
+  safeEmit(listeners, { type: 'idle' }, (err) => errors.push(err.message));
+  assert.deepEqual(seen, ['idle']);
+  assert.deepEqual(errors, ['listener bug']);
 });

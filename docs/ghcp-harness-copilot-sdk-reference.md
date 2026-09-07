@@ -134,6 +134,8 @@ Sources: [session-persistence](https://raw.githubusercontent.com/github/copilot-
 
 "Each iteration of this loop is exactly one LLM API call, visible as one `assistant.turn_start` / `assistant.turn_end` pair." The loop ends with `session.idle` (always emitted, ephemeral, returned by `sendAndWait`). `session.task_complete` is optional, persisted, and requires the model to signal it. ([agent-loop](https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/agent-loop.md))
 
+Verified in the 1.0.13 source (`dist/session.js`): `sendAndWait` treats `session.idle` as the end of the request only when `event.data.mode !== "autopilot"`; an idle emitted while the agent is in autopilot mode is a pause between steps, not completion. `IdleData` is `{ aborted?: boolean, mode?: SessionMode }`. Code that ends a turn on any idle will truncate autopilot runs.
+
 Event envelope: `id`, `timestamp`, `parentId`, `type`, `data`, optional `agentId`, `ephemeral`. Ephemeral events are not replayed on resume; persisted ones are recoverable via `getMessages`.
 
 | Group | Event types ([streaming-events](https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/streaming-events.md)) |

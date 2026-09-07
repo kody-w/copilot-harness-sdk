@@ -5,7 +5,9 @@
  * events and reused by anything that already holds an SDK session.
  *
  * Field names verified against @github/copilot-sdk 1.0.13
- * dist/generated/session-events.d.ts (see the adapter header).
+ * dist/generated/session-events.d.ts (see the adapter header). The
+ * end-of-turn rule mirrors the SDK's own sendAndWait (dist/session.js):
+ * `session.idle` ends the turn unless `data.mode === "autopilot"`.
  */
 
 /** @typedef {import('../../index.js').HarnessEvent} HarnessEvent */
@@ -36,7 +38,7 @@ export function createSdkEventMapper(opts = {}) {
       switch (event?.type) {
         case 'assistant.message_delta':
           snapshot += data.deltaContent || '';
-          return { event: { type: 'text.delta', delta: data.deltaContent || '', snapshot, messageId: data.messageId, ...base }, done: false };
+          return { event: { type: 'text.delta', delta: data.deltaContent || '', snapshot, replaced: false, messageId: data.messageId, ...base }, done: false };
         case 'assistant.message':
           finalText = data.content ?? snapshot;
           sawFinal = true;
@@ -56,8 +58,10 @@ export function createSdkEventMapper(opts = {}) {
           return { event: { type: 'context', currentTokens: data.currentTokens, tokenLimit: data.tokenLimit, ...base }, done: false };
         case 'session.error':
           return { event: { type: 'error', error: new Error(data.message || 'session.error'), code: data.errorCode || data.errorType, statusCode: data.statusCode, ...base }, done: false };
-        case 'session.idle':
-          return { event: { type: 'idle', text: sawFinal ? finalText : snapshot, ...base }, done: true };
+        case 'session.idle': {
+          const terminal = data.mode !== 'autopilot';
+          return { event: { type: terminal ? 'idle' : 'status', text: terminal ? (sawFinal ? finalText : snapshot) : 'autopilot: idle between steps', aborted: Boolean(data.aborted), ...base }, done: terminal };
+        }
         default:
           return { event: { type: 'raw', ...base }, done: false };
       }

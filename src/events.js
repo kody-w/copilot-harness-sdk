@@ -6,11 +6,15 @@
  *   - delta fragments        (Copilot SDK assistant.message_delta; Agent Framework
  *                             CopilotStudioAgent typing updates)
  *   - cumulative snapshots   (Copilot Studio client library typing activities
- *                             with channelData.streamType = "streaming")
+ *                             with channelData.streamType = "streaming"; the
+ *                             library joins chunks by streamSequence, so a
+ *                             snapshot is not always a prefix-extension)
  *   - final-only             (no-auth agentic Direct Line: one message, no chunks)
  *
- * Every text event carries BOTH `delta` and `snapshot`, so a caller can render
- * either way without caring which shape the wire used.
+ * Every text event carries BOTH `delta` and `snapshot`. `snapshot` is the
+ * authoritative full text so far; `delta` is best-effort and is '' when a
+ * cumulative snapshot replaced rather than extended the previous one
+ * (`replaced: true` on the event).
  */
 
 /** @typedef {import('../index.js').HarnessEvent} HarnessEvent */
@@ -25,33 +29,65 @@ export class TextAccumulator {
     /** @type {'unknown' | 'delta' | 'cumulative'} */
     this.shape = 'unknown';
     this.chunks = 0;
+    /** Set when the last cumulative push replaced (not extended) the snapshot. */
+    this.lastReplaced = false;
+    /** The stream this accumulator is currently tracking (Copilot Studio streamId). */
+    this.streamId = undefined;
+    /** True after finalize(); the next chunk starts a new stream. */
+    this.finalized = false;
+  }
+
+  reset() {
+    this.snapshot = '';
+    this.shape = 'unknown';
+    this.chunks = 0;
+    this.lastReplaced = false;
+    this.streamId = undefined;
+    this.finalized = false;
   }
 
   /**
    * Feed a chunk of text. Returns the delta that was appended.
-   * A chunk that starts with the current snapshot is treated as a cumulative
-   * snapshot (delta = the new suffix); anything else is treated as a fragment
-   * and appended.
+   * - mode 'delta': append.
+   * - mode 'cumulative': the chunk is the full text so far; delta is the new
+   *   suffix, or '' (with lastReplaced=true) when it does not extend the previous snapshot.
+   * - mode 'auto': a chunk that starts with the current snapshot is cumulative,
+   *   anything else is a fragment.
    * @param {string} text
-   * @param {{ mode?: 'delta' | 'cumulative' | 'auto' }} [opts]
+   * @param {{ mode?: 'delta' | 'cumulative' | 'auto', streamId?: string }} [opts]
    */
   push(text, opts = {}) {
     const mode = opts.mode || 'auto';
     const incoming = String(text ?? '');
+    if (this.finalized || (opts.streamId !== undefined && this.streamId !== undefined && opts.streamId !== this.streamId)) {
+      this.reset();
+    }
+    if (opts.streamId !== undefined) this.streamId = opts.streamId;
     this.chunks += 1;
+    this.lastReplaced = false;
     if (mode === 'delta') {
       this.shape = 'delta';
       this.snapshot += incoming;
       return incoming;
     }
-    if (mode === 'cumulative' || (this.snapshot && incoming.startsWith(this.snapshot))) {
+    if (mode === 'cumulative') {
+      this.shape = 'cumulative';
+      if (incoming.startsWith(this.snapshot)) {
+        const delta = incoming.slice(this.snapshot.length);
+        this.snapshot = incoming;
+        return delta;
+      }
+      this.lastReplaced = true;
+      this.snapshot = incoming;
+      return '';
+    }
+    if (this.snapshot && incoming.startsWith(this.snapshot)) {
       this.shape = 'cumulative';
       const delta = incoming.slice(this.snapshot.length);
       this.snapshot = incoming;
       return delta;
     }
     if (!this.snapshot) {
-      // First chunk: shape still unknown; both interpretations agree.
       this.snapshot = incoming;
       return incoming;
     }
@@ -61,13 +97,16 @@ export class TextAccumulator {
   }
 
   /**
-   * Finalize with the complete text. Returns the trailing delta (if any).
-   * @param {string} text
+   * Finalize with the complete text. An empty/undefined text keeps the current
+   * snapshot (a card-only message must not wipe the streamed answer). Returns
+   * the trailing delta (if any).
+   * @param {string | undefined} text
    */
   finalize(text) {
-    const finalText = String(text ?? this.snapshot);
+    const finalText = text ? String(text) : this.snapshot;
     const delta = finalText.startsWith(this.snapshot) ? finalText.slice(this.snapshot.length) : '';
     this.snapshot = finalText;
+    this.finalized = true;
     return delta;
   }
 }
@@ -76,11 +115,13 @@ export class TextAccumulator {
  * Maps one Copilot Studio activity (client library `Activity`, plain object
  * accepted) onto normalized events. `acc` carries text state across the turn.
  *
- * Wire facts this encodes (README "How livestreaming works"):
+ * Wire facts this encodes (playground README "How livestreaming works"):
  *   - typing + channelData.streamType "informative"  → status
- *   - typing + channelData.streamType "streaming"    → text.delta (cumulative snapshot on the Node client)
+ *   - typing + channelData.streamType "streaming"    → text.delta (cumulative snapshot from the Node client)
+ *   - typing with text and no streamType             → text.delta (auto-detected shape)
  *   - message + channelData.streamType "final"       → text.final
  *   - message without streamType                      → text.final (final-only agents)
+ *   - message without text (card / attachments only)  → text.final keeping the streamed text
  *   - event activities                                → raw (turn.complete, startConversation, etc.)
  *
  * @param {any} activity
@@ -92,18 +133,17 @@ export function normalizeStudioActivity(activity, acc) {
   const cd = activity?.channelData || {};
   const streamType = cd.streamType;
   const text = typeof activity?.text === 'string' ? activity.text : '';
-  const base = { source: 'copilot-studio', raw: activity };
+  const base = { source: /** @type {const} */ ('copilot-studio'), raw: activity };
 
   if (activity?.type === 'typing') {
     if (streamType === 'informative') {
       out.push({ type: 'status', text, ...base });
     } else if (streamType === 'streaming' && text) {
-      const delta = acc.push(text);
-      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
+      const delta = acc.push(text, { mode: 'cumulative', streamId: cd.streamId });
+      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, replaced: acc.lastReplaced, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
     } else if (text) {
-      // Typing with text but no streamType: treat as a fragment (Agent Framework shape).
-      const delta = acc.push(text);
-      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
+      const delta = acc.push(text, { streamId: cd.streamId });
+      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, replaced: acc.lastReplaced, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
     } else {
       out.push({ type: 'raw', ...base });
     }
@@ -111,9 +151,13 @@ export function normalizeStudioActivity(activity, acc) {
   }
 
   if (activity?.type === 'message') {
+    if (text && cd.streamId !== undefined && acc.streamId !== undefined && cd.streamId !== acc.streamId && !acc.finalized) {
+      // A final for a different stream than the one being accumulated: start fresh.
+      acc.reset();
+    }
     const delta = acc.finalize(text);
     if (delta) {
-      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
+      out.push({ type: 'text.delta', delta, snapshot: acc.snapshot, replaced: false, sequence: cd.streamSequence, streamId: cd.streamId, ...base });
     }
     out.push({
       type: 'text.final',
@@ -131,14 +175,35 @@ export function normalizeStudioActivity(activity, acc) {
 }
 
 /**
- * A tiny async queue so callbacks can feed an async iterator.
- * @template T
+ * Call every listener, isolating throws so one bad subscriber cannot break
+ * the stream or starve the others. Errors are reported via `onListenerError`.
+ * @param {Iterable<(event: HarnessEvent) => void>} listeners
+ * @param {HarnessEvent} event
+ * @param {(err: unknown, event: HarnessEvent) => void} [onListenerError]
  */
-export function createEventQueue() {
+export function safeEmit(listeners, event, onListenerError) {
+  for (const listener of listeners) {
+    try {
+      listener(event);
+    } catch (err) {
+      if (onListenerError) onListenerError(err, event);
+    }
+  }
+}
+
+/**
+ * A tiny async queue so callbacks can feed an async iterator.
+ * - FIFO waiters: concurrent next() calls all settle, in order.
+ * - close(err) rejects exactly one pending/next call with err, then ends.
+ * - return() (early break) calls `onReturn` so the producer can clean up.
+ * @template T
+ * @param {{ onReturn?: () => void }} [opts]
+ */
+export function createEventQueue(opts = {}) {
   /** @type {T[]} */
   const buffer = [];
-  /** @type {((v: IteratorResult<T>) => void) | null} */
-  let waiter = null;
+  /** @type {Array<{ resolve: (v: IteratorResult<T>) => void, reject: (e: Error) => void }>} */
+  const waiters = [];
   let done = false;
   /** @type {Error | null} */
   let failure = null;
@@ -147,29 +212,20 @@ export function createEventQueue() {
     /** @param {T} item */
     push(item) {
       if (done) return;
-      if (waiter) {
-        const w = waiter;
-        waiter = null;
-        w({ value: item, done: false });
-      } else {
-        buffer.push(item);
-      }
+      const w = waiters.shift();
+      if (w) w.resolve({ value: item, done: false });
+      else buffer.push(item);
     },
     /** @param {Error} [err] */
     close(err) {
       if (done) return;
       done = true;
-      failure = err || null;
-      if (waiter) {
-        const w = waiter;
-        waiter = null;
-        if (failure) {
-          // Surface as a rejected next() by pushing a sentinel the iterator throws on.
-          w({ value: /** @type {any} */ ({ __error: failure }), done: false });
-        } else {
-          w({ value: undefined, done: true });
-        }
+      if (err) {
+        const w = waiters.shift();
+        if (w) w.reject(err);
+        else failure = err;
       }
+      for (const w of waiters.splice(0)) w.resolve({ value: undefined, done: true });
     },
     get closed() {
       return done;
@@ -191,15 +247,18 @@ export function createEventQueue() {
             }
             return { value: undefined, done: true };
           }
-          const result = await new Promise((resolve) => {
-            waiter = resolve;
+          return new Promise((resolve, reject) => {
+            waiters.push({ resolve, reject });
           });
-          const v = /** @type {any} */ (result.value);
-          if (v && v.__error) throw v.__error;
-          return result;
         },
         async return() {
-          self.close();
+          if (!done) {
+            try {
+              opts.onReturn?.();
+            } finally {
+              self.close();
+            }
+          }
           return { value: undefined, done: true };
         }
       };

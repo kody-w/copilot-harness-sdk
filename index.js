@@ -16,9 +16,10 @@
  */
 import { MODES, capabilitiesFor, allCapabilities } from './src/modes.js';
 import { build3pUrl, buildAgenticDirectLineTokenUrl, environmentHost, guard3pUrl, powerPlatformScope, CLOUD_SUFFIX } from './src/url.js';
-import { TextAccumulator, normalizeStudioActivity, createEventQueue } from './src/events.js';
+import { TextAccumulator, normalizeStudioActivity, createEventQueue, safeEmit } from './src/events.js';
 import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, staticToken } from './src/auth/entra.js';
 import { createCopilotSdkAdapter } from './src/adapters/copilot-sdk.js';
+import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
 
 export {
@@ -34,6 +35,8 @@ export {
   TextAccumulator,
   normalizeStudioActivity,
   createEventQueue,
+  safeEmit,
+  createSdkEventMapper,
   createDeviceCodeTokenProvider,
   createClientCredentialTokenProvider,
   staticToken,
@@ -49,6 +52,7 @@ export {
 /**
  * Validate a config before any network or process is touched. Returns the
  * list of problems (empty = valid) so callers can show all of them at once.
+ * `HarnessClient.create` throws with exactly this list.
  * @param {HarnessClientConfig} config
  * @returns {string[]}
  */
@@ -62,18 +66,29 @@ export function validateConfig(config) {
   if (config.mode === 'copilot-sdk') {
     const c = config.copilotSdk || {};
     if (c.byok && !c.model && !c.session?.model) problems.push('copilot-sdk with byok requires model');
-    if (c.runtime?.uri && (c.runtime.cliPath || c.runtime.args)) problems.push('copilot-sdk runtime.uri cannot be combined with cliPath/args');
+    if (c.runtime?.uri && (c.runtime.cliPath || c.runtime.args || c.runtime.env)) {
+      problems.push('copilot-sdk runtime.uri (external runtime) cannot be combined with cliPath/args/env (spawned runtime)');
+    }
     return problems;
   }
   const s = config.copilotStudio || {};
-  if (config.mode !== 'agentic-directline' && typeof s.getAccessToken !== 'function') {
+  if (config.mode === 'agentic-directline') {
+    if (!s.directLineTokenUrl && (!s.environmentId || !s.schemaName)) {
+      problems.push('agentic-directline requires copilotStudio.environmentId and schemaName, or directLineTokenUrl');
+    }
+    if (s.directConnectUrl) problems.push('agentic-directline does not use directConnectUrl (that is for the /3p modes)');
+    return problems;
+  }
+  if (typeof s.getAccessToken !== 'function') {
     problems.push(`${config.mode} requires copilotStudio.getAccessToken`);
   }
-  if (!s.directConnectUrl && (!s.environmentId || !s.schemaName)) {
-    problems.push(`${config.mode} requires copilotStudio.environmentId and schemaName (or directConnectUrl for the /3p modes)`);
+  if (config.mode === 'copilot-studio-standard') {
+    if (!s.environmentId || !s.schemaName) problems.push('copilot-studio-standard requires copilotStudio.environmentId and schemaName');
+    if (s.directConnectUrl) problems.push('copilot-studio-standard uses environmentId + schemaName; directConnectUrl is for the /3p modes');
+    return problems;
   }
-  if (config.mode === 'copilot-studio-standard' && s.directConnectUrl) {
-    problems.push('copilot-studio-standard uses environmentId + schemaName; directConnectUrl is for the /3p modes');
+  if (!s.directConnectUrl && (!s.environmentId || !s.schemaName)) {
+    problems.push(`${config.mode} requires copilotStudio.environmentId and schemaName (or directConnectUrl)`);
   }
   return problems;
 }
@@ -93,14 +108,14 @@ export class HarnessClient {
    * Build a client for the chosen mode. Validates the config, then starts the
    * underlying runtime (Copilot SDK) or resolves the Copilot Studio connection.
    * @param {HarnessClientConfig} config
-   * @param {{ clientFactory?: any, fetchImpl?: typeof fetch }} [deps] test seams
+   * @param {{ clientFactory?: any, fetchImpl?: typeof fetch, sdk?: any }} [deps] test seams
    */
   static async create(config, deps = {}) {
     const problems = validateConfig(config);
     if (problems.length) throw new Error(`Invalid HarnessClient config: ${problems.join('; ')}`);
     const adapter =
       config.mode === 'copilot-sdk'
-        ? await createCopilotSdkAdapter(config.copilotSdk || {})
+        ? await createCopilotSdkAdapter(config.copilotSdk || {}, { sdk: deps.sdk })
         : await createCopilotStudioAdapter(config.mode, config.copilotStudio || {}, deps);
     return new HarnessClient(config, adapter);
   }
@@ -133,6 +148,7 @@ export class HarnessClient {
 
   /**
    * Subscribe to every normalized event from every session on this client.
+   * Listener exceptions are isolated (see copilotSdk/copilotStudio.onListenerError).
    * @param {(event: HarnessEvent) => void} listener
    * @returns {() => void}
    */
@@ -154,7 +170,7 @@ export class HarnessClient {
     return this._adapter.native;
   }
 
-  /** Resolved connection details for the Copilot Studio modes (settings, guarded URL). */
+  /** Resolved connection details (Copilot Studio: settings + guarded URL; Copilot SDK: client options). */
   get resolved() {
     return this._adapter.resolved;
   }
@@ -171,7 +187,7 @@ export class HarnessClient {
 /**
  * Convenience: `const client = await createHarnessClient({ mode, ... })`.
  * @param {HarnessClientConfig} config
- * @param {{ clientFactory?: any, fetchImpl?: typeof fetch }} [deps]
+ * @param {{ clientFactory?: any, fetchImpl?: typeof fetch, sdk?: any }} [deps]
  */
 export function createHarnessClient(config, deps) {
   return HarnessClient.create(config, deps);
@@ -194,7 +210,7 @@ export function recommendMode(facts) {
     if (facts.agentHarness === 'standard') {
       return { mode: 'copilot-studio-standard', why: 'Standard-harness agent with a delegated user token: the officially supported client-library path.' };
     }
-    return { mode: 'copilot-studio-3p', why: 'GitHub Copilot harness agent with a delegated user token: the /3p Direct-to-Engine route (experimental, verified live in this repo).' };
+    return { mode: 'copilot-studio-3p', why: 'GitHub Copilot harness agent with a delegated user token: the /3p Direct-to-Engine route (experimental, verified live from the playground).' };
   }
   if (facts.hasAppOnlyEntraCredentials) {
     if (facts.agentAuthentication === 'none') {
