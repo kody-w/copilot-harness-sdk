@@ -72,8 +72,8 @@ const MATRIX = {
   },
   'copilot-studio-standard': {
     mode: 'copilot-studio-standard',
-    harness: 'Copilot Studio standard-harness agent, via the Copilot Studio client library',
-    support: 'ga',
+    harness: 'Copilot Studio classic (standard-harness) agent, via the Copilot Studio client library',
+    support: 'deprecated',
     identity: ['entra-delegated'],
     appOnly: false,
     streaming: 'typing',
@@ -85,6 +85,7 @@ const MATRIX = {
     permissions: 'none',
     hooks: false,
     notes: [
+      'Deprecated in this SDK (policy, 2026-09-07): never create a classic agent; recreate it on the GitHub Copilot harness and use copilot-studio-3p. HarnessClient refuses this mode unless copilotStudio.allowClassicAgent is true. Microsoft still lists the standard harness itself as GA.',
       'The documented path: environmentId + schemaName, delegated Entra token with CopilotStudio.Copilots.Invoke.',
       'App-only tokens are on the roadmap, not available (Microsoft CAT decision guide, updated 2 Aug 2026).'
     ],

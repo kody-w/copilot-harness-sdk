@@ -6,7 +6,7 @@ One client for every way to reach a GitHub Copilot harness. Pick a mode, ask the
 | --- | --- | --- | --- |
 | `copilot-sdk` | The Copilot CLI harness in (or next to) your process via `@github/copilot-sdk` | GitHub user token, org-billed GitHub App/Actions token, or BYOK | GA |
 | `copilot-studio-3p` | A Copilot Studio **GitHub Copilot harness** agent over the Agentic Runtime `/3p` route | Delegated Entra user token (`CopilotStudio.Copilots.Invoke`) | Experimental (route verified live from the playground referenced below; Microsoft: client library not yet official for this harness) |
-| `copilot-studio-standard` | A Copilot Studio **standard-harness** agent via the official client library | Delegated Entra user token | GA |
+| `copilot-studio-standard` | A Copilot Studio **classic (standard-harness)** agent via the official client library | Delegated Entra user token | **Deprecated here** (refused unless `allowClassicAgent: true`; Microsoft still lists the harness itself as GA) |
 | `copilot-studio-s2s` | A Copilot Studio harness agent with **No Authentication**, app-only over `/3p` | Entra app (client credentials) | Private preview (Microsoft enables per tenant) |
 | `agentic-directline` | The no-auth agentic Direct Line token endpoint | None | Diagnostic; final-only responses |
 
@@ -137,6 +137,38 @@ Works only after Microsoft enables S2S Direct-to-Engine for the tenant and only 
 ### 7. Orchestrate both worlds
 
 Open two clients (`copilot-sdk` and `copilot-studio-3p`), subscribe with `client.onEvent(...)` on each, and route by `ev.source`. The Copilot Studio side has no client-side tools by design; give the Studio agent its tools in the Build tab.
+
+## Never a classic agent
+
+A Copilot Studio agent is either on the **GitHub Copilot harness** or it is a **classic (standard-harness)** agent, and it cannot be switched in place. The two are told apart by the Dataverse `bot` record, not by what a tool claimed:
+
+| Harness | `template` | `configuration.recognizer.$kind` | Copilot Studio shows |
+| --- | --- | --- | --- |
+| GitHub Copilot harness | `cliagent-1.0.0` | `CLICopilotRecognizer` (older: `CLIAgentRecognizer`) | Build · Preview · Evaluate · Monitor, model picker (Sonnet/Opus/GPT), Skills, Memory |
+| classic / standard | `default-2.1.0` … | `GenerativeAIRecognizer` | Topics, generative answers, the old test pane |
+
+This SDK enforces the policy that **no new classic agent is ever created or targeted**, at three layers:
+
+1. **Deploy only the harness.** `npm run deploy:harness -- --name "My Agent" --publisher-prefix cr8c1 --instructions-file ./instructions.md --environment https://<org>.crm.dynamics.com/` runs the proven sequence (`pac copilot init --authoring-mode cli-copilot` → `pack` → **refuse the zip unless `bot.xml` says `cliagent-*`** → `pac solution import` → write the instructions onto the live record → `pac copilot publish` → read the record back and assert harness + instructions + published). It exits non-zero at the first sign of a classic template and never accepts `--authoring-mode classic`. Two `pac` 2.10.1 defects it works around: `pack` writes `<language>0</language>` (import rejects it) and `push` drops `agentSettings.instructions`.
+2. **Verify before you trust.** `assertHarnessAgent({ environmentUrl, schemaName, getDataverseToken })` reads the live record and throws `ClassicAgentError` for anything that is not the harness (optionally also for missing instructions or an unpublished agent). `classifyBot(botRecord)` is the pure version for exports you already have on disk.
+3. **Refuse to talk to one.** `HarnessClient.create({ mode: 'copilot-studio-standard' })` throws with `CLASSIC_REFUSAL` and `recommendMode` never answers that mode, unless `allowClassicAgent: true` is passed for a legacy agent you cannot recreate yet.
+
+```js
+import { assertHarnessAgent, ClassicAgentError } from 'copilot-harness-sdk';
+try {
+  const info = await assertHarnessAgent({
+    environmentUrl: 'https://org7dfbd855.crm.dynamics.com/',
+    schemaName: 'cr8c1_MyAgent',
+    getDataverseToken: async () => tokenFor('https://org7dfbd855.crm.dynamics.com'),   // e.g. az account get-access-token --resource <environmentUrl>
+    requireInstructions: true, requirePublished: true
+  });
+  console.log(info.template, info.recognizer, info.model, info.instructionChars);        // cliagent-1.0.0 CLICopilotRecognizer Sonnet46 6338
+} catch (e) {
+  if (e instanceof ClassicAgentError) { /* recreate on the harness; do not ship */ }
+}
+```
+
+Reaching a harness agent from code still needs an Entra app with the delegated `CopilotStudio.Copilots.Invoke` permission (the Azure CLI's own app only carries `CopilotStudio.Copilots.Test`, which the `/3p` route rejects with `InsufficientDelegatedPermissions`).
 
 ## Choosing a mode without guessing
 

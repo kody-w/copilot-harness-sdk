@@ -7,7 +7,7 @@ export type HarnessMode =
   | 'copilot-studio-s2s'
   | 'agentic-directline';
 
-export type SupportLevel = 'ga' | 'preview' | 'private-preview' | 'experimental' | 'unsupported';
+export type SupportLevel = 'ga' | 'preview' | 'private-preview' | 'experimental' | 'unsupported' | 'deprecated';
 export type Identity = 'github-user' | 'github-app-installation' | 'byok' | 'entra-delegated' | 'entra-app' | 'none';
 export type StreamingShape = 'delta' | 'typing' | 'final-only';
 export type OnAgent = boolean | 'on-agent';
@@ -95,6 +95,12 @@ export interface CopilotStudioConfig {
   agentType?: 'Published' | 'Prebuilt';
   /** Returns a bearer token: delegated user token (3p, standard) or app-only (s2s). Called before every turn. */
   getAccessToken?: () => Promise<string>;
+  /**
+   * copilot-studio-standard only. Classic (standard-harness) agents are deprecated in this SDK and
+   * HarnessClient.create refuses the mode unless this is exactly true. Use only for a legacy agent
+   * you cannot yet recreate on the GitHub Copilot harness.
+   */
+  allowClassicAgent?: boolean;
   /** Skip the one-shot /3p preflight (default: run it on new conversations; never on resume). */
   preflight?: boolean;
   diagnostics?: boolean;
@@ -219,7 +225,46 @@ export declare function recommendMode(facts: {
   hasDelegatedEntraToken?: boolean;
   hasAppOnlyEntraCredentials?: boolean;
   agentAuthentication?: 'microsoft' | 'none';
+  /** Only with this exactly true will recommendMode ever answer copilot-studio-standard. */
+  allowClassicAgent?: boolean;
 }): { mode: HarnessMode; why: string };
+
+/** The refusal sentence validateConfig / HarnessClient.create emit for a classic agent. */
+export declare const CLASSIC_REFUSAL: string;
+
+// ---------------------------------------------------------------------------
+// Harness guard: classify a Copilot Studio agent by its Dataverse bot record and
+// refuse classic (standard-harness) agents. See src/harness-guard.js.
+export type AgentHarness = 'github-copilot' | 'classic' | 'unknown';
+export interface HarnessClassification {
+  harness: AgentHarness;
+  /** e.g. cliagent-1.0.0 (harness) or default-2.1.0 (classic). */
+  template: string;
+  /** e.g. CLICopilotRecognizer (harness) or GenerativeAIRecognizer (classic). */
+  recognizer: string;
+  model: string;
+  instructionChars: number;
+  authoringModel: string;
+}
+export declare const HARNESS_TEMPLATE: RegExp;
+export declare const HARNESS_RECOGNIZERS: readonly string[];
+export declare class ClassicAgentError extends Error {
+  code: 'CLASSIC_AGENT' | 'NO_INSTRUCTIONS';
+  classification?: HarnessClassification;
+}
+export declare function classifyBot(bot: { template?: string | null; configuration?: string | Record<string, unknown> | null }): HarnessClassification;
+export declare function assertHarnessBot(bot: { template?: string | null; configuration?: string | Record<string, unknown> | null; name?: string; schemaname?: string }, opts?: { requireInstructions?: boolean }): HarnessClassification;
+export interface InspectAgentOptions {
+  /** Dataverse org URL, e.g. https://org7dfbd855.crm.dynamics.com/ */
+  environmentUrl: string;
+  schemaName?: string;
+  botId?: string;
+  /** Bearer token for the Dataverse org (e.g. az account get-access-token --resource <environmentUrl>). */
+  getDataverseToken: () => Promise<string>;
+  fetchImpl?: typeof fetch;
+}
+export declare function inspectAgentHarness(opts: InspectAgentOptions): Promise<HarnessClassification & { bot: { botid: string; name: string; schemaname: string; publishedon: string | null; authenticationmode: number } }>;
+export declare function assertHarnessAgent(opts: InspectAgentOptions & { requireInstructions?: boolean; requirePublished?: boolean }): ReturnType<typeof inspectAgentHarness>;
 
 export declare const MODES: readonly HarnessMode[];
 export declare function capabilitiesFor(mode: HarnessMode | string): HarnessCapabilities;

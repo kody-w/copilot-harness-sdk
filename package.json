@@ -22,7 +22,8 @@
     "example:studio-3p": "node examples/copilot-studio-3p.mjs",
     "example:studio-standard": "node examples/copilot-studio-standard.mjs",
     "example:studio-s2s": "node examples/copilot-studio-s2s.mjs",
-    "example:agentic-directline": "node examples/agentic-directline.mjs"
+    "example:agentic-directline": "node examples/agentic-directline.mjs",
+    "deploy:harness": "node scripts/deploy-harness-agent.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "^5.5.0",

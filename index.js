@@ -21,6 +21,7 @@ import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, sta
 import { createCopilotSdkAdapter } from './src/adapters/copilot-sdk.js';
 import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
+import { classifyBot, assertHarnessBot, inspectAgentHarness, assertHarnessAgent, ClassicAgentError, HARNESS_TEMPLATE, HARNESS_RECOGNIZERS } from './src/harness-guard.js';
 
 export {
   MODES,
@@ -42,7 +43,14 @@ export {
   staticToken,
   resolveStudioConnection,
   preflight3p,
-  explainStatus
+  explainStatus,
+  classifyBot,
+  assertHarnessBot,
+  inspectAgentHarness,
+  assertHarnessAgent,
+  ClassicAgentError,
+  HARNESS_TEMPLATE,
+  HARNESS_RECOGNIZERS
 };
 
 /** @typedef {import('./index.js').HarnessClientConfig} HarnessClientConfig */
@@ -56,6 +64,12 @@ export {
  * @param {HarnessClientConfig} config
  * @returns {string[]}
  */
+/** The sentence every classic-agent refusal carries. */
+export const CLASSIC_REFUSAL =
+  'copilot-studio-standard targets a classic (standard-harness) agent, which this SDK treats as deprecated: ' +
+  'build the agent on the GitHub Copilot harness (scripts/deploy-harness-agent.mjs) and use copilot-studio-3p. ' +
+  'Only for a legacy agent that cannot be recreated yet, pass copilotStudio.allowClassicAgent: true.';
+
 export function validateConfig(config) {
   const problems = [];
   if (!config || typeof config !== 'object') return ['config must be an object'];
@@ -83,6 +97,9 @@ export function validateConfig(config) {
     problems.push(`${config.mode} requires copilotStudio.getAccessToken`);
   }
   if (config.mode === 'copilot-studio-standard') {
+    if (s.allowClassicAgent !== true) {
+      problems.push(CLASSIC_REFUSAL);
+    }
     if (!s.environmentId || !s.schemaName) problems.push('copilot-studio-standard requires copilotStudio.environmentId and schemaName');
     if (s.directConnectUrl) problems.push('copilot-studio-standard uses environmentId + schemaName; directConnectUrl is for the /3p modes');
     return problems;
@@ -199,7 +216,7 @@ export function createHarnessClient(config, deps) {
  *   - a Copilot Studio agent + a delegated user token → 3p for harness agents, standard otherwise
  *   - a Copilot Studio agent + app credentials → s2s (only if the agent is No Authentication)
  *   - a Copilot Studio agent and no identity at all → agentic-directline (diagnostic)
- * @param {{ hasGithubIdentity?: boolean, hasByok?: boolean, hasCopilotStudioAgent?: boolean, agentHarness?: 'github-copilot' | 'standard', hasDelegatedEntraToken?: boolean, hasAppOnlyEntraCredentials?: boolean, agentAuthentication?: 'microsoft' | 'none' }} facts
+ * @param {{ hasGithubIdentity?: boolean, hasByok?: boolean, hasCopilotStudioAgent?: boolean, agentHarness?: 'github-copilot' | 'standard', hasDelegatedEntraToken?: boolean, hasAppOnlyEntraCredentials?: boolean, agentAuthentication?: 'microsoft' | 'none', allowClassicAgent?: boolean }} facts
  * @returns {{ mode: HarnessMode, why: string }}
  */
 export function recommendMode(facts) {
@@ -208,7 +225,10 @@ export function recommendMode(facts) {
   }
   if (facts.hasDelegatedEntraToken) {
     if (facts.agentHarness === 'standard') {
-      return { mode: 'copilot-studio-standard', why: 'Standard-harness agent with a delegated user token: the officially supported client-library path.' };
+      if (facts.allowClassicAgent === true) {
+        return { mode: 'copilot-studio-standard', why: 'Legacy classic (standard-harness) agent, explicitly allowed: the client-library path. Recreate it on the GitHub Copilot harness when you can.' };
+      }
+      return { mode: 'copilot-studio-3p', why: 'A classic (standard-harness) agent is deprecated here: recreate it on the GitHub Copilot harness and use /3p. Pass allowClassicAgent: true only for a legacy agent you cannot recreate yet.' };
     }
     return { mode: 'copilot-studio-3p', why: 'GitHub Copilot harness agent with a delegated user token: the /3p Direct-to-Engine route (experimental, verified live from the playground).' };
   }

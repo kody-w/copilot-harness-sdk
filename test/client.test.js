@@ -13,7 +13,7 @@ test('every mode has a capability record with sources', () => {
     const c = capabilitiesFor(mode);
     assert.equal(c.mode, mode);
     assert.ok(c.sources.length > 0, `${mode} must cite sources`);
-    assert.ok(['ga', 'preview', 'private-preview', 'experimental', 'unsupported'].includes(c.support));
+    assert.ok(['ga', 'preview', 'private-preview', 'experimental', 'unsupported', 'deprecated'].includes(c.support));
   }
   assert.throws(() => capabilitiesFor('nope'), /Unknown harness mode/);
 });
@@ -23,7 +23,7 @@ test('capabilities encode the findings that matter for routing', () => {
   assert.equal(capabilitiesFor('copilot-sdk').appOnly, true);
   assert.equal(capabilitiesFor('copilot-studio-3p').support, 'experimental');
   assert.equal(capabilitiesFor('copilot-studio-3p').appOnly, false);
-  assert.equal(capabilitiesFor('copilot-studio-standard').support, 'ga');
+  assert.equal(capabilitiesFor('copilot-studio-standard').support, 'deprecated');
   assert.equal(capabilitiesFor('copilot-studio-s2s').support, 'private-preview');
   assert.equal(capabilitiesFor('agentic-directline').streaming, 'final-only');
 });
@@ -34,8 +34,8 @@ test('validateConfig reports every problem at once and agrees with create()', as
   assert.deepEqual(validateConfig({ mode: 'copilot-sdk', copilotSdk: { byok: { baseUrl: 'https://x' } } }), ['copilot-sdk with byok requires model']);
   assert.equal(validateConfig({ mode: 'copilot-sdk', copilotSdk: { runtime: { uri: 'localhost:1', env: { A: '1' } } } }).length, 1);
   assert.equal(validateConfig({ mode: 'copilot-studio-3p', copilotStudio: {} }).length, 2);
-  assert.deepEqual(validateConfig({ mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'a_b', getAccessToken: token } }), []);
-  assert.equal(validateConfig({ mode: 'copilot-studio-standard', copilotStudio: { directConnectUrl: 'https://x', getAccessToken: token } }).length, 2);
+  assert.deepEqual(validateConfig({ mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'a_b', getAccessToken: token, allowClassicAgent: true } }), []);
+  assert.equal(validateConfig({ mode: 'copilot-studio-standard', copilotStudio: { directConnectUrl: 'https://x', getAccessToken: token, allowClassicAgent: true } }).length, 2);
   assert.deepEqual(validateConfig({ mode: 'agentic-directline', copilotStudio: { environmentId: ENV, schemaName: 'a_b' } }), []);
   assert.deepEqual(validateConfig({ mode: 'agentic-directline', copilotStudio: { directLineTokenUrl: 'https://x/token' } }), []);
   const badDl = validateConfig({ mode: 'agentic-directline', copilotStudio: { directConnectUrl: 'https://x' } });
@@ -46,7 +46,8 @@ test('validateConfig reports every problem at once and agrees with create()', as
 test('recommendMode follows the decision guide', () => {
   assert.equal(recommendMode({ hasGithubIdentity: true }).mode, 'copilot-sdk');
   assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agentHarness: 'github-copilot' }).mode, 'copilot-studio-3p');
-  assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agentHarness: 'standard' }).mode, 'copilot-studio-standard');
+  assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agentHarness: 'standard' }).mode, 'copilot-studio-3p');
+  assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agentHarness: 'standard', allowClassicAgent: true }).mode, 'copilot-studio-standard');
   assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasAppOnlyEntraCredentials: true, agentAuthentication: 'none' }).mode, 'copilot-studio-s2s');
   assert.equal(recommendMode({ hasCopilotStudioAgent: true, hasAppOnlyEntraCredentials: true, agentAuthentication: 'microsoft' }).mode, 'copilot-studio-3p');
   assert.equal(recommendMode({ hasCopilotStudioAgent: true }).mode, 'agentic-directline');
@@ -163,7 +164,7 @@ test('copilot-studio-standard: uses environmentId + schemaName, no /3p preflight
   const log = [];
   const fetchImpl = fakeFetch(200);
   const client = await HarnessClient.create(
-    { mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'cr123_agent', getAccessToken: token } },
+    { mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'cr123_agent', getAccessToken: token, allowClassicAgent: true } },
     { clientFactory: fakeStudioClient(log), fetchImpl }
   );
   const session = await client.createSession();
@@ -174,7 +175,7 @@ test('copilot-studio-standard: uses environmentId + schemaName, no /3p preflight
   assert.equal(session.conversationId, 'conv-1');
 
   const failing = await HarnessClient.create(
-    { mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'cr123_agent', getAccessToken: token } },
+    { mode: 'copilot-studio-standard', copilotStudio: { environmentId: ENV, schemaName: 'cr123_agent', getAccessToken: token, allowClassicAgent: true } },
     { clientFactory: fakeStudioClient([], { startError: Object.assign(new Error('Request failed with status 403 Forbidden'), { httpStatus: 403 }) }), fetchImpl }
   );
   await assert.rejects(failing.createSession(), (err) => /403/.test(err.message) && err.httpStatus === 403 && /shared/.test(err.hint));
