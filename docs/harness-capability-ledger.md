@@ -66,7 +66,67 @@ All twenty records are `cliagent-1.0.0` / `CLICopilotRecognizer`, published, wit
 
 ## Proof results (SDK turns over `/3p`)
 
-_Filled in by `scripts/prove-usecase.mjs --out`; see the table appended at the bottom of this file._
+Run 2026-09-07 20:30 UTC through `HarnessClient` (`copilot-studio-3p`, delegated device-code token from the `copilot-harness-sdk` Entra app), one process, ten agents, five scripted turns each. A turn passes only when the answer matches every regex in the use case's `proof.json`.
+
+| Agent | Preflight | knowledge | connected-agent | skill | workflow-tool | mcp-tool | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `cr8c1_ClaimsIntakeReconciliationCopilot` | 200 | ✔ 39s | ✔ 42s | ✔ 12s | ✔ 10s | ✔ 12s | 5/5 |
+| `cr8c1_ClinicalTrialSiteActivationCopilot` | 200 | ✔ 32s | ✔ 30s | ✔ 9s | ✔ 9s | ✔ 10s | 5/5 |
+| `cr8c1_GrantComplianceReportingCopilot` | 200 | ✔ 25s | ✔ 37s | ✔ 10s | ✔ 9s | ✔ 24s | 5/5 |
+| `cr8c1_HRPolicyChangeRolloutCopilot` | 200 | ✔ 35s | ✔ 23s | ✔ 32s | ✔ 9s | ✔ 21s | 5/5 |
+| `cr8c1_LoanServicingExceptionCopilot` | 200 | ✔ 33s | ✔ 36s | ✔ 15s | ✔ 10s | ✔ 13s | 5/5 |
+| `cr8c1_ManufacturingBOMChangeCopilot` | 200 | ✔ 32s | ✔ 42s | ✔ 12s | ✔ 10s | ✔ 22s | 5/5 |
+| `cr8c1_RetailMediaCampaignCopilot` | 200 | ✔ 32s | ✔ 47s | ✔ 11s | ✔ 11s | ✔ 21s | 5/5 |
+| `cr8c1_StoreMerchandisingResetCopilot` | 200 | ✔ 39s | ✔ 35s | ✔ 12s | ✔ 11s | ✔ 23s | 5/5 |
+| `cr8c1_SupplierOnboardingComplianceCopilot` | 200 | ✔ 41s | ✔ 35s | ✔ 14s | ✔ 12s | ✔ 26s | 5/5 |
+| `cr8c1_VendorContractRenewalCopilot` | 200 | ✔ 51s | ✔ 47s | ✔ 18s | ✔ 11s | ✔ 14s | 5/5 |
+
+Answers that can only come from the component, not the prompt:
+
+- **cr8c1_ClaimsIntakeReconciliationCopilot · connected-agent**: ---
+
+**READINESS REPORT — CLM-88213 → POL-55021**
+
+**Changes / Mismatches:**
+- Claimed amount $14,200.00 vs. coverage limit $25,000 → within limit ✅
+- Deductible $1,000 not yet reflected in net payout on claim record [ClaimsDB://CLM-88213]
+- Date of Loss: 2026…
+- **cr8c1_ClinicalTrialSiteActivationCopilot · connected-agent**: ---
+
+**READINESS REPORT — PROTO-4471-v3 → PROTO-4471-v4**
+
+**Changes:**
+- Inclusion: Age upper limit → 65 → **75 years** [CTMS://PROTO-4471-v4]
+- Inclusion: FEV1 lower bound → 60% → **55%** [CTMS://PROTO-4471-v4]
+- Exclusion: Smoking window → 6 months → **12 m…
+- **cr8c1_GrantComplianceReportingCopilot · connected-agent**: ---
+
+**SUBMISSION-READINESS REPORT — GRANT-EDU-2026-BUDGET → GRANT-EDU-2026-ACTUALS-Q3**
+
+**Changes (Budget vs. Q3 Actuals):**
+- Travel: $12,000 budgeted → $6,900 spent (includes $1,400 unallowable alcohol) [GRANT-EDU-2026-ACTUALS-Q3]
+- Equipment: $25,000 budg…
+- **cr8c1_HRPolicyChangeRolloutCopilot · connected-agent**: Here is the clause-by-clause comparison between **POL-PTO-v4** and **POL-PTO-v5**, sourced from `HRIS://policies/POL-PTO-v4` and `HRIS://policies/POL-PTO-v5`:
+
+---
+
+## POL-PTO-v4 → POL-PTO-v5: Change Summary
+
+| Field | v4 | v5 | Change |
+|---|---|---|---|
+| Ac…
+- **cr8c1_LoanServicingExceptionCopilot · connected-agent**: ---
+
+```
+EXCEPTION REPORT — LN-204118 → LN-204118-MOD1
+Borrower: T. Nguyen
+──────────────────────────────────────────────────────
+
+CHANGES
+  Interest Rate:    6.25% fixed → 5.50% fixed  [LoanCore://LN-204118 & LN-204118-MOD1]
+  Loan Term:        360 months (30…
+
+Full transcript: `scripts/prove-usecase.mjs --out` JSON (not committed; regenerate with the command above).
 
 ## What still needs a person or the portal
 
