@@ -1,0 +1,1445 @@
+<title>Copilot Harness and SDK Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ground: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eaeef3;
+  --ink: #16202b;
+  --muted: #5c6b7a;
+  --line: #d5dce4;
+  --line-strong: #b9c3cf;
+  --accent: #b5622e;
+  --accent-ink: #8e4a1f;
+  --accent-soft: #f5e6da;
+  --code-bg: #eef2f6;
+  --code-ink: #24303c;
+  --ok: #2e7d5b;
+  --ok-soft: #dff1e8;
+  --no: #b3413a;
+  --no-soft: #f7e1df;
+  --warn: #9a6b00;
+  --warn-soft: #f6ecce;
+  --shadow: 0 1px 2px rgba(22,32,43,.06), 0 8px 24px -12px rgba(22,32,43,.18);
+  --display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0f151c;
+    --surface: #171f29;
+    --surface-2: #1f2934;
+    --ink: #e4e9ee;
+    --muted: #97a5b3;
+    --line: #2a3542;
+    --line-strong: #3a4756;
+    --accent: #e39a63;
+    --accent-ink: #f0b47f;
+    --accent-soft: #3a2a1f;
+    --code-bg: #0b1117;
+    --code-ink: #d7dee6;
+    --ok: #5fbf95;
+    --ok-soft: #173327;
+    --no: #e07a73;
+    --no-soft: #3b1e1c;
+    --warn: #e0b34a;
+    --warn-soft: #3a2f12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0f151c;
+  --surface: #171f29;
+  --surface-2: #1f2934;
+  --ink: #e4e9ee;
+  --muted: #97a5b3;
+  --line: #2a3542;
+  --line-strong: #3a4756;
+  --accent: #e39a63;
+  --accent-ink: #f0b47f;
+  --accent-soft: #3a2a1f;
+  --code-bg: #0b1117;
+  --code-ink: #d7dee6;
+  --ok: #5fbf95;
+  --ok-soft: #173327;
+  --no: #e07a73;
+  --no-soft: #3b1e1c;
+  --warn: #e0b34a;
+  --warn-soft: #3a2f12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent-ink); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--accent); }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, pre, kbd { font-family: var(--mono); }
+code { font-size: .86em; background: var(--code-bg); color: var(--code-ink); padding: .08em .35em; border-radius: 3px; }
+pre { background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-size: .84rem; line-height: 1.5; }
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* Masthead */
+.mast {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.mast-inner {
+  max-width: 1240px; margin: 0 auto; padding: 36px 28px 26px;
+  display: grid; gap: 22px;
+}
+.eyebrow {
+  font-family: var(--display); font-weight: 600; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink);
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+}
+.eyebrow .sep { color: var(--line-strong); }
+h1 {
+  font-family: var(--display); font-weight: 700; font-size: clamp(2.1rem, 4.2vw, 3.3rem); line-height: 1.02; letter-spacing: -.01em; margin: 6px 0 0;
+  text-wrap: balance;
+}
+.lede { max-width: 68ch; font-size: 1.12rem; color: var(--muted); margin: 0; }
+.lede p { margin: 0; }
+.legend {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 22px;
+  margin: 0; padding: 0; list-style: none; font-size: .95rem; color: var(--muted);
+}
+.legend li { padding-left: 14px; position: relative; }
+.legend li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; background: var(--accent); border-radius: 1px; }
+.legend code { font-size: .8em; }
+
+/* Pinout strip */
+.pinout {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; align-items: stretch;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--ground); overflow: hidden;
+}
+.pin {
+  padding: 14px 14px 12px; border-right: 1px solid var(--line); display: grid; grid-template-rows: auto auto 1fr auto; gap: 4px; min-height: 100%;
+  position: relative;
+}
+.pin:last-child { border-right: 0; }
+.pin + .pin { padding-left: 34px; }
+.pin .letter { margin-bottom: 2px; }
+.pin .name { font-family: var(--display); font-weight: 600; font-size: 1.02rem; line-height: 1.15; }
+.pin .what { font-size: .86rem; color: var(--muted); line-height: 1.35; }
+.pin .pkg { font-family: var(--mono); font-size: .72rem; color: var(--ink); margin-top: 6px; overflow-wrap: anywhere; }
+.pin.hosted { background: var(--accent-soft); }
+.pin[data-link]::after {
+  content: attr(data-link); position: absolute; right: -1px; top: 50%; transform: translate(50%, -50%);
+  background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted);
+  font-family: var(--mono); font-size: .66rem; padding: 1px 6px; border-radius: 10px; z-index: 1; white-space: nowrap;
+}
+.pinout-note { font-size: .92rem; color: var(--muted); margin: -8px 0 0; }
+.letter {
+  display: inline-grid; place-items: center; width: 1.55em; height: 1.55em; border-radius: 4px;
+  background: var(--accent); color: #fff; font-family: var(--display); font-weight: 700; font-size: .9em; line-height: 1;
+}
+@media (max-width: 900px) {
+  .pinout { grid-template-columns: 1fr 1fr; }
+  .pin { border-bottom: 1px solid var(--line); }
+  .pin[data-link]::after { display: none; }
+}
+@media (max-width: 560px) { .pinout { grid-template-columns: 1fr; } }
+
+/* Two-column body */
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 28px 80px; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 40px; }
+.rail { position: sticky; top: 18px; align-self: start; max-height: calc(100vh - 36px); overflow: auto; font-size: .9rem; }
+.rail .rail-title { font-family: var(--display); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: .72rem; color: var(--muted); margin: 0 0 8px; }
+.rail ul { list-style: none; margin: 0; padding: 0; }
+.rail > ul > li { margin: 0 0 4px; }
+.rail a { display: block; padding: 3px 0 3px 10px; border-left: 2px solid var(--line); color: var(--ink); text-decoration: none; line-height: 1.3; }
+.rail a:hover { border-left-color: var(--accent); color: var(--accent-ink); }
+.rail ul ul a { padding-left: 18px; color: var(--muted); font-size: .85rem; }
+.rail details { display: none; }
+article { min-width: 0; max-width: 900px; }
+article > p, article > ul, article > ol { max-width: 72ch; }
+article h2 {
+  font-family: var(--display); font-weight: 700; font-size: 1.85rem; line-height: 1.1; margin: 56px 0 14px; letter-spacing: -.005em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 12px; scroll-margin-top: 20px;
+}
+article h2:first-of-type { margin-top: 8px; }
+article h2 .num { font-family: var(--mono); font-weight: 500; font-size: .95rem; color: var(--accent-ink); }
+article h3 { font-family: var(--display); font-weight: 600; font-size: 1.22rem; margin: 30px 0 8px; scroll-margin-top: 20px; }
+article p { margin: 0 0 12px; }
+article ul, article ol { padding-left: 1.25em; margin: 0 0 14px; }
+article li { margin: 0 0 5px; }
+article li > p { margin: 0; }
+article strong { font-weight: 600; }
+article hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0 0; }
+blockquote { margin: 0 0 14px; padding: 8px 16px; border-left: 3px solid var(--accent); background: var(--surface); color: var(--ink); }
+
+/* Tables */
+.tbl { overflow-x: auto; margin: 6px 0 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--display); font-weight: 600; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); position: sticky; top: 0; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+td code:has(+ code), td code + code { white-space: normal; }
+.tbl table td:first-child { font-weight: 600; }
+.chip { display: inline-block; font-family: var(--display); font-weight: 600; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; line-height: 1.5; }
+.chip-ok { background: var(--ok-soft); color: var(--ok); }
+.chip-no { background: var(--no-soft); color: var(--no); }
+.chip-warn { background: var(--warn-soft); color: var(--warn); }
+
+@media (max-width: 960px) {
+  .wrap { grid-template-columns: 1fr; gap: 20px; padding: 20px 18px 60px; }
+  .rail { position: static; max-height: none; }
+  .rail > .rail-title, .rail > ul { display: none; }
+  .rail details { display: block; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); padding: 8px 12px; }
+  .rail summary { cursor: pointer; font-family: var(--display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .74rem; color: var(--muted); }
+  .rail details ul { margin-top: 8px; }
+  .mast-inner { padding: 26px 18px 20px; }
+}
+@media print {
+  .rail { display: none; }
+  .wrap { grid-template-columns: 1fr; }
+  .tbl { box-shadow: none; }
+  a { color: inherit; }
+}
+</style>
+
+<header class="mast">
+  <div class="mast-inner">
+    <div class="eyebrow"><span>Reference</span><span class="sep">/</span><span>Verified 6 September 2026</span><span class="sep">/</span><span>Copilot Studio · GitHub Copilot SDK · Agent Framework</span></div>
+    <h1>Copilot Harness and SDK Map</h1>
+    <div class="lede"><p>A verified reference for the three things Microsoft and GitHub call a "harness", the packages that sit on top of them, how they map to each other, and what you can actually build on today without guessing.</p></div>
+    <div class="pinout" aria-label="How the five pieces connect">
+      <div class="pin" data-link="drives">
+        <span class="letter">A</span>
+        <div class="name">GitHub Copilot CLI harness</div>
+        <div class="what">The agent loop: model calls, tools, permissions, MCP, skills, sub-agents, sessions.</div>
+        <div class="pkg">copilot --headless · v1.0.83</div>
+      </div>
+      <div class="pin" data-link="wraps">
+        <span class="letter">B</span>
+        <div class="name">GitHub Copilot SDK</div>
+        <div class="what">JSON-RPC client for A in six languages. GA 2 Jun 2026.</div>
+        <div class="pkg">@github/copilot-sdk 1.0.13</div>
+      </div>
+      <div class="pin">
+        <span class="letter">C</span>
+        <div class="name">Agent Framework provider</div>
+        <div class="what">B as an <code>AIAgent</code>: instructions, tools, middleware, OTel, approval.</div>
+        <div class="pkg">Microsoft.Agents.AI.GitHub.Copilot 1.20.0</div>
+      </div>
+      <div class="pin" data-link="calls">
+        <span class="letter">E</span>
+        <div class="name">Copilot Studio client library</div>
+        <div class="what">Direct-to-Engine client for a published Studio agent. Standard harness only, officially.</div>
+        <div class="pkg">Microsoft.Agents.AI.CopilotStudio 1.20.0-preview</div>
+      </div>
+      <div class="pin hosted">
+        <span class="letter">D</span>
+        <div class="name">Copilot Studio GitHub Copilot harness</div>
+        <div class="what">The same lineage as A, hosted by Microsoft with connectors, skills, memory, Office files, Copilot Credits. GA 3 Aug 2026.</div>
+        <div class="pkg">agenticruntime /3p · Teams · M365 Copilot · iframe</div>
+      </div>
+    </div>
+    <p class="pinout-note">A, B and C run the loop inside your process under GitHub identity. D runs it as a Microsoft-managed agent under Entra identity. E is how code reaches D, and today that is supported only for the standard harness.</p>
+    <ul class="legend"><li><strong>Verified as of:</strong> 6 September 2026. Every claim links to the source it came from. Dates in brackets are the source page's own published/updated date.</li><li><strong>Conventions:</strong> <code>GA</code> = generally available. <code>Preview</code> = production-ready preview or preview per the vendor. <code>Experimental</code> = works but not a documented support contract. <code>Verified here</code> = exercised live from this repository (dates in the README).</li><li><strong>Canonical copy:</strong> this Markdown file. The HTML rendering at <code>docs/ghcp-harness-copilot-sdk-reference.html</code> is generated from it.</li><li><strong>Provenance:</strong> live verifications described as "this repository" or "the playground" were performed in the public <a href="https://github.com/jzh24516/copilot-streaming-chat-playground">jzh24516/copilot-streaming-chat-playground</a> (its README dates them); this repo holds the SDK built from those findings.</li></ul>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="rail" aria-label="Contents">
+    <p class="rail-title">Contents</p>
+    
+<ul>
+<li><a href="#1-the-five-things-people-conflate">1. The five things people conflate</a></li>
+<li><a href="#2-capability-map-the-same-idea-in-each-surface">2. Capability map: the same idea in each surface</a></li>
+<li><a href="#3-github-copilot-sdk-b-what-it-is-and-how-to-drive-it">3. GitHub Copilot SDK (B): what it is and how to drive it</a><ul>
+<li><a href="#31-packages-and-prerequisites">3.1 Packages and prerequisites</a></li>
+<li><a href="#32-first-program-typescript">3.2 First program (TypeScript)</a></li>
+<li><a href="#33-client-options-process-level">3.3 Client options (process-level)</a></li>
+<li><a href="#34-session-options-per-conversation">3.4 Session options (per conversation)</a></li>
+<li><a href="#35-the-agent-loop-and-its-events">3.5 The agent loop and its events</a></li>
+<li><a href="#36-hooks">3.6 Hooks</a></li>
+<li><a href="#37-authentication-and-licensing">3.7 Authentication and licensing</a></li>
+<li><a href="#38-bring-your-own-key">3.8 Bring your own key</a></li>
+<li><a href="#39-running-it-as-a-service">3.9 Running it as a service</a></li>
+</ul>
+</li>
+<li><a href="#4-agent-framework-github-copilot-provider-c">4. Agent Framework GitHub Copilot provider (C)</a><ul>
+<li><a href="#41-install-and-construct">4.1 Install and construct</a></li>
+<li><a href="#42-canonical-net-sample-from-the-blog">4.2 Canonical .NET sample (from the blog)</a></li>
+<li><a href="#43-semantics-you-must-know">4.3 Semantics you must know</a></li>
+<li><a href="#44-what-agent-framework-adds-versus-using-the-sdk-directly">4.4 What Agent Framework adds versus using the SDK directly</a></li>
+</ul>
+</li>
+<li><a href="#5-copilot-studio-github-copilot-harness-d">5. Copilot Studio GitHub Copilot harness (D)</a><ul>
+<li><a href="#51-what-microsoft-says-it-is">5.1 What Microsoft says it is</a></li>
+<li><a href="#52-authoring-surface">5.2 Authoring surface</a></li>
+<li><a href="#53-billing">5.3 Billing</a></li>
+<li><a href="#54-publishing-and-channels-as-of-the-3-aug-2026-page-update">5.4 Publishing and channels (as of the 3 Aug 2026 page update)</a></li>
+</ul>
+</li>
+<li><a href="#6-agents-as-code-for-the-github-copilot-harness">6. Agents as code for the GitHub Copilot harness</a><ul>
+<li><a href="#61-power-platform-cli-pac-copilot">6.1 Power Platform CLI (pac copilot)</a></li>
+<li><a href="#62-workspace-files-that-identify-a-harness-agent">6.2 Workspace files that identify a harness agent</a></li>
+<li><a href="#63-the-experimental-plugin-mcs-assistant">6.3 The experimental plugin (mcs-assistant)</a></li>
+</ul>
+</li>
+<li><a href="#7-reaching-a-harness-agent-from-code-the-integration-map">7. Reaching a harness agent from code: the integration map</a><ul>
+<li><a href="#71-official-position">7.1 Official position</a></li>
+<li><a href="#72-the-experimental-route-that-works-today-agentic-runtime-3p">7.2 The experimental route that works today: Agentic Runtime /3p</a></li>
+<li><a href="#73-what-does-not-work-and-the-error-you-will-see">7.3 What does not work (and the error you will see)</a></li>
+<li><a href="#74-client-library-connection-settings-e">7.4 Client library connection settings (E)</a></li>
+</ul>
+</li>
+<li><a href="#8-decision-guide">8. Decision guide</a></li>
+<li><a href="#9-capabilities-you-can-leverage-now-and-gaps-to-plan-around">9. Capabilities you can leverage now, and gaps to plan around</a></li>
+<li><a href="#10-version-ledger-checked-6-september-2026">10. Version ledger (checked 6 September 2026)</a></li>
+<li><a href="#11-sources">11. Sources</a></li>
+</ul>
+
+
+    <details><summary>Contents</summary>
+<ul>
+<li><a href="#1-the-five-things-people-conflate">1. The five things people conflate</a></li>
+<li><a href="#2-capability-map-the-same-idea-in-each-surface">2. Capability map: the same idea in each surface</a></li>
+<li><a href="#3-github-copilot-sdk-b-what-it-is-and-how-to-drive-it">3. GitHub Copilot SDK (B): what it is and how to drive it</a><ul>
+<li><a href="#31-packages-and-prerequisites">3.1 Packages and prerequisites</a></li>
+<li><a href="#32-first-program-typescript">3.2 First program (TypeScript)</a></li>
+<li><a href="#33-client-options-process-level">3.3 Client options (process-level)</a></li>
+<li><a href="#34-session-options-per-conversation">3.4 Session options (per conversation)</a></li>
+<li><a href="#35-the-agent-loop-and-its-events">3.5 The agent loop and its events</a></li>
+<li><a href="#36-hooks">3.6 Hooks</a></li>
+<li><a href="#37-authentication-and-licensing">3.7 Authentication and licensing</a></li>
+<li><a href="#38-bring-your-own-key">3.8 Bring your own key</a></li>
+<li><a href="#39-running-it-as-a-service">3.9 Running it as a service</a></li>
+</ul>
+</li>
+<li><a href="#4-agent-framework-github-copilot-provider-c">4. Agent Framework GitHub Copilot provider (C)</a><ul>
+<li><a href="#41-install-and-construct">4.1 Install and construct</a></li>
+<li><a href="#42-canonical-net-sample-from-the-blog">4.2 Canonical .NET sample (from the blog)</a></li>
+<li><a href="#43-semantics-you-must-know">4.3 Semantics you must know</a></li>
+<li><a href="#44-what-agent-framework-adds-versus-using-the-sdk-directly">4.4 What Agent Framework adds versus using the SDK directly</a></li>
+</ul>
+</li>
+<li><a href="#5-copilot-studio-github-copilot-harness-d">5. Copilot Studio GitHub Copilot harness (D)</a><ul>
+<li><a href="#51-what-microsoft-says-it-is">5.1 What Microsoft says it is</a></li>
+<li><a href="#52-authoring-surface">5.2 Authoring surface</a></li>
+<li><a href="#53-billing">5.3 Billing</a></li>
+<li><a href="#54-publishing-and-channels-as-of-the-3-aug-2026-page-update">5.4 Publishing and channels (as of the 3 Aug 2026 page update)</a></li>
+</ul>
+</li>
+<li><a href="#6-agents-as-code-for-the-github-copilot-harness">6. Agents as code for the GitHub Copilot harness</a><ul>
+<li><a href="#61-power-platform-cli-pac-copilot">6.1 Power Platform CLI (pac copilot)</a></li>
+<li><a href="#62-workspace-files-that-identify-a-harness-agent">6.2 Workspace files that identify a harness agent</a></li>
+<li><a href="#63-the-experimental-plugin-mcs-assistant">6.3 The experimental plugin (mcs-assistant)</a></li>
+</ul>
+</li>
+<li><a href="#7-reaching-a-harness-agent-from-code-the-integration-map">7. Reaching a harness agent from code: the integration map</a><ul>
+<li><a href="#71-official-position">7.1 Official position</a></li>
+<li><a href="#72-the-experimental-route-that-works-today-agentic-runtime-3p">7.2 The experimental route that works today: Agentic Runtime /3p</a></li>
+<li><a href="#73-what-does-not-work-and-the-error-you-will-see">7.3 What does not work (and the error you will see)</a></li>
+<li><a href="#74-client-library-connection-settings-e">7.4 Client library connection settings (E)</a></li>
+</ul>
+</li>
+<li><a href="#8-decision-guide">8. Decision guide</a></li>
+<li><a href="#9-capabilities-you-can-leverage-now-and-gaps-to-plan-around">9. Capabilities you can leverage now, and gaps to plan around</a></li>
+<li><a href="#10-version-ledger-checked-6-september-2026">10. Version ledger (checked 6 September 2026)</a></li>
+<li><a href="#11-sources">11. Sources</a></li>
+</ul>
+
+</details>
+  </nav>
+  <article>
+<h2 id="1-the-five-things-people-conflate"><span class="num">1</span>The five things people conflate</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Letter</th>
+<th>Thing</th>
+<th>What it is</th>
+<th>Where it runs</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="letter">A</span></td>
+<td><strong>GitHub Copilot CLI harness</strong></td>
+<td>The agent runtime behind Copilot CLI: agent loop, tool calling, permissions, MCP, skills, custom sub-agents, sessions, compaction. Exposed over JSON-RPC by <code>copilot --headless</code>.</td>
+<td>Your machine, your container, or GitHub-hosted compute ("cloud sessions").</td>
+<td>GA. CLI v1.0.83 released 4 Sep 2026 (<a href="https://github.com/github/copilot-cli/releases">releases</a>); local install on this machine is 1.0.84.</td>
+</tr>
+<tr>
+<td><span class="letter">B</span></td>
+<td><strong>GitHub Copilot SDK</strong></td>
+<td>Programmatic access to A from Node, Python, Go, .NET, Java, Rust. Manages the CLI process for you or connects to a running one.</td>
+<td>Same as A.</td>
+<td>GA since 2 Jun 2026 (<a href="https://github.blog/changelog/2026-06-02-copilot-sdk-is-now-generally-available/">changelog</a>). Latest v1.0.13, 4 Sep 2026.</td>
+</tr>
+<tr>
+<td><span class="letter">C</span></td>
+<td><strong>Agent Framework GitHub Copilot provider</strong></td>
+<td>Wraps B as a standard Agent Framework <code>AIAgent</code> so you get instructions, tools, streaming, middleware, OpenTelemetry, and approval on top of the SDK's loop. This is what the seed blog post is about.</td>
+<td>Same as A.</td>
+<td>.NET package <code>Microsoft.Agents.AI.GitHub.Copilot</code> 1.20.0 (stable). Python <code>agent-framework-github-copilot</code> 1.0.3. Go via <code>provider/copilotprovider</code>. Blog dated 4 Aug 2026 (<a href="https://devblogs.microsoft.com/agent-framework/build-production-ready-agents-with-the-github-copilot-harness-and-agent-framework/">devblogs</a>).</td>
+</tr>
+<tr>
+<td><span class="letter">D</span></td>
+<td><strong>Copilot Studio "GitHub Copilot harness"</strong></td>
+<td>Microsoft-hosted runtime for Copilot Studio agents and workflows. Natural-language authoring, connectors, MCP, skills, memory, native Office file editing, sandboxed execution, Copilot Credits billing. Config artifacts (<code>cli-copilot</code> authoring mode, <code>CLICopilotRecognizer</code>) show it is the CLI agentic loop hosted by Copilot Studio.</td>
+<td>Microsoft cloud (Power Platform environment).</td>
+<td>GA 3 Aug 2026; credit billing for all such agents from 1 Sep 2026 (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/harnesses-overview">Learn: harnesses</a> [updated 5 Sep 2026]).</td>
+</tr>
+<tr>
+<td><span class="letter">E</span></td>
+<td><strong>Copilot Studio client library / Agent Framework Copilot Studio provider</strong></td>
+<td>Client for calling a <em>published</em> Copilot Studio agent from your code (Direct-to-Engine). Not a harness.</td>
+<td>Your code, calling D or a standard-harness agent.</td>
+<td><code>Microsoft.Agents.CopilotStudio.Client</code> 1.9.28-beta; <code>@microsoft/agents-copilotstudio-client</code> 1.8.1; <code>microsoft-agents-copilotstudio-client</code> 1.6.0; <code>Microsoft.Agents.AI.CopilotStudio</code> 1.20.0-preview.260831.1; <code>agent-framework-copilotstudio</code> 1.0.0b260813. Officially supports <strong>standard-harness agents only</strong> (<a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs">Learn, 21 Aug 2026</a>).</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The one sentence that resolves the confusion.</strong> A/B/C give you the agent loop <em>inside your process</em> under GitHub identity and billing; D gives you a Microsoft-managed SaaS agent, named after the same harness, under Entra identity, Power Platform governance, and Copilot Credits. E is how code talks to D, and today it is only officially supported for the <em>standard</em> harness.</p>
+<p><strong>What is documented versus inferred about A and D.</strong> No Microsoft page states that the Copilot Studio harness <em>is</em> the Copilot CLI runtime. The evidence that they share a lineage is the name, the <code>cli-copilot</code> authoring mode that <code>pac copilot init</code> uses for it, the <code>CLICopilotRecognizer</code> / <code>CLIAgentRecognizer</code> recognizer kinds in <code>settings.mcs.yml</code>, and Microsoft's own plugin calling these "CLI (agentic-loop) agents". Treat "same runtime" as an inference; treat "different surface, identity, billing, and API" as documented. The independent verification pass run for this document reached the same conclusion ("no verified source states they are the same runtime").</p>
+<p>Microsoft's own definition of a harness: "a runtime that exists between the two [your design and the model]: it determines when to call the model, what components to send it, interprets what comes back, and calls the right tools." (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/harnesses-overview">Learn: Harnesses in Copilot Studio</a>)</p>
+<p>The blog's split of responsibilities between B and C: "Copilot owns the agent loop (model calls, tool invocation, planning, and session state) while Agent Framework gives you a consistent surface for instructions, tools, streaming, middleware, observability, and human-in-the-loop approval." (<a href="https://devblogs.microsoft.com/agent-framework/build-production-ready-agents-with-the-github-copilot-harness-and-agent-framework/">devblogs, 4 Aug 2026</a>)</p>
+<hr>
+<h2 id="2-capability-map-the-same-idea-in-each-surface"><span class="num">2</span>Capability map: the same idea in each surface</h2>
+<p>Read across a row to find the equivalent concept. "—" means the surface does not expose it.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>A/B: Copilot SDK (session config, TS names)</th>
+<th>C: Agent Framework GitHub Copilot provider</th>
+<th>D: Copilot Studio GitHub Copilot harness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instructions / persona</td>
+<td><code>systemMessage</code> (mode <code>append</code> or replace)</td>
+<td><code>instructions:</code> (.NET <code>AsAIAgent(instructions:)</code>, Python <code>GitHubCopilotAgent(instructions=)</code>); .NET <code>SystemMessageConfig { Mode = SystemMessageMode.Append }</code></td>
+<td><strong>Build</strong> tab → Instructions (natural-language authoring, preview)</td>
+</tr>
+<tr>
+<td>Custom function tools</td>
+<td><code>tools: [...]</code> (name, description, JSON schema, handler)</td>
+<td>.NET <code>AIFunctionFactory.Create(...)</code>; Python plain callables / <code>@tool</code></td>
+<td>— (no code tools; use Connectors, MCP servers, Workflows)</td>
+</tr>
+<tr>
+<td>Approval-gated tool</td>
+<td><code>hooks.onPreToolUse</code> returning <code>"ask"</code> → <code>onPermissionRequest</code></td>
+<td>.NET <code>new ApprovalRequiredAIFunction(fn)</code>; Python <code>@tool(approval_mode="always_require")</code>. Installs a default <code>OnPreToolUse</code> hook unless you supply your own.</td>
+<td>Governed by Copilot Studio sandbox, sharing, and DLP; no per-tool approval hook exposed</td>
+</tr>
+<tr>
+<td>Built-in shell / file / URL tools</td>
+<td>Present in <code>mode: "copilot-cli"</code> (default); absent in <code>mode: "empty"</code>; gated by <code>onPermissionRequest</code></td>
+<td>Same; default is deny-all until you supply a permission handler</td>
+<td>Native Word/Excel/PowerPoint/PDF create/edit in a "secure sandbox governed by Copilot Studio"</td>
+</tr>
+<tr>
+<td>MCP servers</td>
+<td><code>mcpServers: { name: { type: "stdio"|"http"|"sse", command/args or url, headers, tools: ["*"], timeout } }</code>; <code>disabledMcpServers</code></td>
+<td>.NET <code>SessionConfig.McpServers</code> with <code>McpStdioServerConfig</code> / <code>McpHttpServerConfig</code>; Python <code>default_options["mcp_servers"]</code></td>
+<td><strong>Build → Tools → Add a tool → Model Context Protocol (MCP)</strong> tab; certification available</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td><code>skillDirectories: [...]</code> (folders containing <code>SKILL.md</code>), <code>disabledSkills</code></td>
+<td>Python: pass <code>skill_directories</code> through <code>default_options</code> (forwarded to <code>create_session</code>)</td>
+<td>Skills: <code>SKILL.md</code> with YAML front matter (name, description) plus optional files, uploaded as a ZIP package</td>
+</tr>
+<tr>
+<td>Sub-agents</td>
+<td><code>customAgents: [{ name, prompt, description, tools, mcpServers, skills, model, reasoningEffort, infer }]</code>; <code>agent:</code> to pre-select; <code>agents/*.md</code> in plugin dirs</td>
+<td>Not surfaced in provider docs (passes through <code>default_options</code> in Python)</td>
+<td><strong>Connected agents</strong>: "you can currently only connect other agents built in Copilot Studio"</td>
+</tr>
+<tr>
+<td>Parallel fan-out</td>
+<td>Fleet mode: <code>session.rpc.fleet.start({ prompt })</code>, <code>subagent.*</code> events</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Memory across conversations</td>
+<td>Session persistence: <code>sessionId</code>, <code>client.resumeSession(id)</code>, state under <code>~/.copilot/session-state/{id}</code></td>
+<td><code>AgentSession</code> / <code>agent.CreateSessionAsync(existingId)</code>; Python <code>agent.get_session(service_session_id=)</code></td>
+<td><strong>Memory (preview)</strong>: per-user store, private to the user, deleted after 28 days of inactivity, off in group chats and Teams channels</td>
+</tr>
+<tr>
+<td>Long-running context</td>
+<td><code>infiniteSessions: { enabled, backgroundCompactionThreshold, bufferExhaustionThreshold }</code>; <code>session.compaction_*</code> events</td>
+<td>Inherited from SDK</td>
+<td>Managed by the service</td>
+</tr>
+<tr>
+<td>Model choice</td>
+<td><code>model: "auto" | "&lt;id&gt;"</code>; <code>capi.autoTier: efficiency|balance|intelligence</code>; <code>reasoningEffort</code></td>
+<td><code>GITHUB_COPILOT_MODEL</code> env or <code>default_options={"model": ...}</code></td>
+<td><strong>Build → Model</strong> list; admin gates for preview/experimental models and for external providers (Anthropic, Mistral, xAI)</td>
+</tr>
+<tr>
+<td>Bring your own model key</td>
+<td><code>provider: { type: "openai"|"azure"|"anthropic", baseUrl, apiKey | bearerToken | bearerTokenProvider, wireApi: "completions"|"responses" }</code></td>
+<td>Python <code>GitHubCopilotOptions(provider=ProviderConfig)</code>; model must also be set at session level</td>
+<td>— (models are Microsoft-hosted or admin-enabled external providers)</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td><code>streaming: true</code>; <code>assistant.message_delta</code> and 40+ other events</td>
+<td><code>RunStreamingAsync</code> → <code>AgentResponseUpdate</code>; Python <code>agent.run(..., stream=True)</code></td>
+<td>Channel livestreaming; over <code>/3p</code> SSE as <code>typing</code> activities (see §7)</td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td><code>onPermissionRequest(request, invocation)</code> → <code>PermissionDecision</code> (approve once / reject / user not available)</td>
+<td>.NET <code>PermissionDecision.ApproveOnce()</code> / <code>.Reject()</code>; Python <code>PermissionHandler.approve_all</code> or custom</td>
+<td>Agent sharing, Entra auth mode, DLP policies, admin settings</td>
+</tr>
+<tr>
+<td>Hooks</td>
+<td><code>onPreToolUse</code>, <code>onPostToolUse</code>, <code>onPostToolUseFailure</code>, <code>onUserPromptSubmitted</code>, <code>onUserPromptTransformed</code>, <code>onSessionStart</code>, <code>onSessionEnd</code>, <code>onErrorOccurred</code>, <code>onAgentStop</code></td>
+<td><code>SessionConfig.Hooks</code> (.NET) / <code>on_pre_tool_use</code> (Python); supplying your own pre-tool hook disables the provider's default approval hook</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Identity and billing</td>
+<td>GitHub user token (<code>gho_</code>, <code>ghu_</code>, <code>github_pat_</code>), GitHub App installation token (org-billed), or BYOK (provider-billed). AI credits.</td>
+<td>Same as SDK</td>
+<td>Entra user (delegated) or no-auth; Copilot Credits from build time onward</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>OpenTelemetry guide; <code>assistant.usage</code>, <code>session.usage_info</code>, <code>session.usage.getMetrics()</code>, <code>account.getQuota()</code></td>
+<td>OTel built in: Python <code>configure_otel_providers()</code>; .NET via Agent Framework telemetry</td>
+<td><strong>Monitor</strong> tab; credit consumption per agent; PPAC licensing view</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>Bundled CLI, local CLI, headless TCP server, Docker/Kubernetes, Azure with shared session storage, GitHub cloud sessions</td>
+<td>Same, plus Agent Framework hosting/workflows</td>
+<td>Microsoft-managed</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sources for this table: SDK docs (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/getting-started.md">getting-started</a>, <a href="https://github.com/github/copilot-sdk/tree/main/docs/features">features</a>, <a href="https://github.com/github/copilot-sdk/tree/main/docs/hooks">hooks</a>, <a href="https://github.com/github/copilot-sdk/tree/main/docs/auth">auth</a>, <a href="https://github.com/github/copilot-sdk/tree/main/docs/setup">setup</a>); Agent Framework provider page (<a href="https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/github-copilot">Learn, updated 25 Aug 2026</a>); Copilot Studio agents-experience pages (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/overview">overview</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/tools-available">tools</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/skills-overview">skills</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/memory-overview">memory</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-add-other-agents">connected agents</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-select-agent-model">model</a>).</p>
+<hr>
+<h2 id="3-github-copilot-sdk-b-what-it-is-and-how-to-drive-it"><span class="num">3</span>GitHub Copilot SDK (B): what it is and how to drive it</h2>
+<h3 id="31-packages-and-prerequisites">3.1 Packages and prerequisites</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Language</th>
+<th>Package</th>
+<th>Install</th>
+<th>CLI bundled?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node / TypeScript</td>
+<td><code>@github/copilot-sdk</code> (1.0.13)</td>
+<td><code>npm install @github/copilot-sdk</code></td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>Python</td>
+<td><code>github-copilot-sdk</code> (1.0.13, Python ≥ 3.11)</td>
+<td><code>pip install github-copilot-sdk</code></td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>.NET</td>
+<td><code>GitHub.Copilot.SDK</code> (1.0.13-preview.2 on the feed used here)</td>
+<td><code>dotnet add package GitHub.Copilot.SDK</code></td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>Go</td>
+<td><code>github.com/github/copilot-sdk/go</code></td>
+<td><code>go get github.com/github/copilot-sdk/go</code></td>
+<td>No (bundled runtime by default per Learn; install CLI otherwise)</td>
+</tr>
+<tr>
+<td>Java</td>
+<td><code>com.github:copilot-sdk-java</code></td>
+<td>Maven/Gradle</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>Rust</td>
+<td><code>github-copilot-sdk</code></td>
+<td><code>cargo add github-copilot-sdk</code></td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>License MIT. "All SDKs communicate with the Copilot CLI server via JSON-RPC." SDK and CLI negotiate protocol versions at startup; SDK protocol range v2–v3, CLI v3 fully supported, v2 via adapters (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/troubleshooting/compatibility.md">compatibility</a>).</li>
+<li>Who can use it: "all existing GitHub Copilot subscribers, including Copilot Free for personal use, and non-Copilot users via BYOK" (<a href="https://github.blog/changelog/2026-06-02-copilot-sdk-is-now-generally-available/">GA changelog, 2 Jun 2026</a>).</li>
+<li>Security note from Microsoft Learn: "it is recommended to run agents with shell or file permissions in a containerized environment (Docker/Dev Container)."</li>
+</ul>
+<h3 id="32-first-program-typescript">3.2 First program (TypeScript)</h3>
+<pre><code class="language-typescript">import { CopilotClient } from &quot;@github/copilot-sdk&quot;;
+
+const client = new CopilotClient();
+const session = await client.createSession({ model: &quot;auto&quot; });
+const response = await session.sendAndWait({ prompt: &quot;What is 2 + 2?&quot; });
+console.log(response?.data.content);
+
+await client.stop();
+</code></pre>
+<p>.NET equivalent uses <code>CopilotClient</code>, <code>CreateSessionAsync(new SessionConfig { Model = "auto", OnPermissionRequest = PermissionHandler.ApproveAll })</code>, and <code>SendAndWaitAsync(new MessageOptions { Prompt = ... })</code>. Python uses <code>CopilotClient()</code>, <code>await client.start()</code>, <code>create_session(on_permission_request=PermissionHandler.approve_all, model="auto")</code>, <code>send_and_wait(...)</code>. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/getting-started.md">getting-started</a>)</p>
+<h3 id="33-client-options-process-level">3.3 Client options (process-level)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option (TS name)</th>
+<th>Meaning</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>default constructor</td>
+<td>SDK spawns and manages the bundled CLI</td>
+<td>getting-started</td>
+</tr>
+<tr>
+<td><code>connection: RuntimeConnection.forUri("host:port")</code></td>
+<td>Attach to a running <code>copilot --headless --port N</code> server; share one runtime across many client instances</td>
+<td>backend-services, multi-tenancy</td>
+</tr>
+<tr>
+<td><code>RuntimeConnection.forStdio({ args: ["--plugin-dir", ...] })</code></td>
+<td>Spawn CLI over stdio with extra args (also how plugin directories are loaded)</td>
+<td>plugin-directories, server-to-server</td>
+</tr>
+<tr>
+<td><code>mode: "empty"</code></td>
+<td>Disable ambient OS tools and CLI defaults; required for shared multi-user runtimes. Default mode is <code>copilot-cli</code>.</td>
+<td>multi-tenancy</td>
+</tr>
+<tr>
+<td><code>gitHubToken</code>, <code>useLoggedInUser: false</code></td>
+<td>Explicit per-user token (OAuth <code>gho_</code>, GitHub App <code>ghu_</code>, fine-grained PAT <code>github_pat_</code>; classic <code>ghp_</code> not supported)</td>
+<td>authenticate, github-oauth</td>
+</tr>
+<tr>
+<td><code>sessionIdleTimeoutSeconds</code></td>
+<td>Server-wide idle cleanup (15–30 min suggested for chat)</td>
+<td>session-persistence, multi-tenancy</td>
+</tr>
+<tr>
+<td><code>builtinPluginDirectories: [...]</code></td>
+<td>Trusted plugins bundled by the host app</td>
+<td>plugin-directories</td>
+</tr>
+<tr>
+<td><code>baseDirectory</code> / <code>GITHUB_COPILOT_BASE_DIRECTORY</code></td>
+<td>Where session state and config live (default <code>~/.copilot</code>). Configure on the runtime process, not on a client attaching to an existing runtime.</td>
+<td>Learn provider page, multi-tenancy</td>
+</tr>
+</tbody>
+</table></div>
+<p>Environment variables the runtime reads: <code>COPILOT_GITHUB_TOKEN</code> → <code>GH_TOKEN</code> → <code>GITHUB_TOKEN</code> (in that order after an explicit token and a direct <code>GITHUB_COPILOT_API_TOKEN</code> + <code>COPILOT_API_URL</code>), <code>GITHUB_COPILOT_INTEGRATION_ID</code> (attribution header <code>Copilot-Integration-Id</code>), <code>COPILOT_PLUGIN_DIR_ONLY=true</code> (deterministic plugin set). (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/auth/authenticate.md">authenticate</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/cloud-sessions.md">cloud-sessions</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/plugin-directories.md">plugin-directories</a>)</p>
+<h3 id="34-session-options-per-conversation">3.4 Session options (per conversation)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sessionId</code></td>
+<td>Stable id you choose; enables <code>client.resumeSession(id)</code>. Encode tenant/user boundary in it (<code>user-{id}-{task}</code>) and enforce ownership before resume/delete.</td>
+</tr>
+<tr>
+<td><code>model</code>, <code>reasoningEffort</code>, <code>capi.autoTier</code></td>
+<td>Model routing. <code>session.setAutoTier("intelligence")</code> changes tier live.</td>
+</tr>
+<tr>
+<td><code>streaming: true</code></td>
+<td>Emit ephemeral delta events in real time alongside persisted events.</td>
+</tr>
+<tr>
+<td><code>systemMessage</code></td>
+<td>Persona/instructions.</td>
+</tr>
+<tr>
+<td><code>tools: [...]</code></td>
+<td>Custom tools; <code>isTerminal: true</code> ends the turn on success (used for context clearing).</td>
+</tr>
+<tr>
+<td><code>availableTools</code> / <code>excludedTools</code></td>
+<td>Allow-list or block tools by pattern, e.g. <code>["custom:*"]</code>; review <code>builtin:*</code> before granting. <code>defaultAgent.excludedTools</code> hides tools from the main agent only.</td>
+</tr>
+<tr>
+<td><code>mcpServers</code>, <code>disabledMcpServers</code></td>
+<td>See §2.</td>
+</tr>
+<tr>
+<td><code>customAgents</code>, <code>agent</code></td>
+<td>Sub-agents; pre-select one.</td>
+</tr>
+<tr>
+<td><code>skillDirectories</code>, <code>disabledSkills</code></td>
+<td>Skills.</td>
+</tr>
+<tr>
+<td><code>hooks</code></td>
+<td>Nine hook callbacks (§3.6).</td>
+</tr>
+<tr>
+<td><code>onPermissionRequest</code></td>
+<td>Required to allow shell/file/URL tools at all; default denies.</td>
+</tr>
+<tr>
+<td><code>provider</code></td>
+<td>BYOK (§3.8). API keys are not persisted; re-supply on resume.</td>
+</tr>
+<tr>
+<td><code>gitHubToken</code> / <code>gitHubTokenProvider</code></td>
+<td>Per-session identity for multi-user servers. Token results must include <code>expiresIn</code>.</td>
+</tr>
+<tr>
+<td><code>infiniteSessions</code></td>
+<td>Automatic compaction thresholds (ratios 0–1).</td>
+</tr>
+<tr>
+<td><code>workingDirectory</code></td>
+<td>CLI working dir for file tools.</td>
+</tr>
+<tr>
+<td><code>maxAiCredits</code></td>
+<td>Session budget soft cap; <code>session_limits_exhausted.requested</code> asks for a decision.</td>
+</tr>
+<tr>
+<td><code>cloud: { repository: { owner, name, branch? } }</code></td>
+<td>Run on GitHub-hosted compute via Mission Control; wait for <code>session.start</code> with <code>producer === "copilot-agent"</code> before sending.</td>
+</tr>
+<tr>
+<td><code>remote: true</code></td>
+<td>Share a locally hosted session to GitHub web/mobile.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sources: <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/session-persistence.md">session-persistence</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/multi-tenancy.md">multi-tenancy</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/custom-agents.md">custom-agents</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/skills.md">skills</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/mcp.md">mcp</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/session-limits.md">session-limits</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/cloud-sessions.md">cloud-sessions</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/context-management.md">context-management</a>.</p>
+<h3 id="35-the-agent-loop-and-its-events">3.5 The agent loop and its events</h3>
+<p>"Each iteration of this loop is exactly one LLM API call, visible as one <code>assistant.turn_start</code> / <code>assistant.turn_end</code> pair." The loop ends with <code>session.idle</code> (always emitted, ephemeral, returned by <code>sendAndWait</code>). <code>session.task_complete</code> is optional, persisted, and requires the model to signal it. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/agent-loop.md">agent-loop</a>)</p>
+<p>Event envelope: <code>id</code>, <code>timestamp</code>, <code>parentId</code>, <code>type</code>, <code>data</code>, optional <code>agentId</code>, <code>ephemeral</code>. Ephemeral events are not replayed on resume; persisted ones are recoverable via <code>getMessages</code>.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Event types (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/streaming-events.md">streaming-events</a>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assistant</td>
+<td><code>assistant.turn_start</code>, <code>assistant.intent</code>, <code>assistant.reasoning</code>, <code>assistant.reasoning_delta</code>, <code>assistant.message</code>, <code>assistant.message_delta</code>, <code>assistant.streaming_delta</code>, <code>assistant.turn_end</code>, <code>assistant.usage</code></td>
+</tr>
+<tr>
+<td>Tools</td>
+<td><code>tool.execution_start</code>, <code>tool.execution_partial_result</code>, <code>tool.execution_progress</code>, <code>tool.execution_complete</code>, <code>tool.user_requested</code></td>
+</tr>
+<tr>
+<td>Session</td>
+<td><code>session.idle</code>, <code>session.error</code>, <code>session.compaction_start</code>, <code>session.compaction_complete</code>, <code>session.title_changed</code>, <code>session.context_changed</code>, <code>session.usage_info</code>, <code>session.session_limits_changed</code>, <code>session.usage_checkpoint</code>, <code>session.task_complete</code>, <code>session.shutdown</code></td>
+</tr>
+<tr>
+<td>Permission and input</td>
+<td><code>permission.requested</code>, <code>permission.completed</code>, <code>user_input.requested</code>, <code>user_input.completed</code>, <code>elicitation.requested</code>, <code>elicitation.completed</code>, <code>external_tool.requested</code>, <code>external_tool.completed</code></td>
+</tr>
+<tr>
+<td>Sub-agents and skills</td>
+<td><code>subagent.started</code>, <code>subagent.completed</code>, <code>subagent.failed</code>, <code>subagent.selected</code>, <code>subagent.deselected</code>, <code>skill.invoked</code></td>
+</tr>
+<tr>
+<td>Control</td>
+<td><code>abort</code>, <code>user.message</code>, <code>system.message</code>, <code>command.queued</code>, <code>command.completed</code>, <code>session_limits_exhausted.requested</code>, <code>session_limits_exhausted.completed</code>, <code>exit_plan_mode.requested</code>, <code>exit_plan_mode.completed</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Subscribe: TS <code>session.on("assistant.message_delta", e =&gt; ...)</code>; Python <code>session.on(handler)</code> and filter on <code>event.type</code>; .NET <code>session.On&lt;AssistantMessageDeltaEvent&gt;(...)</code>.</p>
+<h3 id="36-hooks">3.6 Hooks</h3>
+<p>Nine hooks, registered via <code>hooks:</code> in session config (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/hooks/hooks-overview.md">hooks-overview</a>): <code>onPreToolUse</code>, <code>onPostToolUse</code>, <code>onPostToolUseFailure</code>, <code>onUserPromptSubmitted</code>, <code>onUserPromptTransformed</code>, <code>onSessionStart</code>, <code>onSessionEnd</code>, <code>onErrorOccurred</code>, <code>onAgentStop</code>.</p>
+<p><code>onPreToolUse</code> input: <code>timestamp</code>, <code>cwd</code>, <code>toolName</code>, <code>toolArgs</code> (+ invocation <code>sessionId</code>). Output: <code>permissionDecision</code> (<code>"allow"</code> | <code>"deny"</code> | <code>"ask"</code>), <code>permissionDecisionReason</code>, <code>modifiedArgs</code>, <code>additionalContext</code>, <code>suppressOutput</code>. Return <code>null</code> to allow unchanged. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/hooks/pre-tool-use.md">pre-tool-use</a>)</p>
+<p>Permission requests observed live here (SDK 1.0.13 on CLI 1.0.84, 6 Sep 2026, via <code>sdk/examples/copilot-sdk.mjs</code>): a custom tool defined with <code>defineTool</code> arrives at <code>onPermissionRequest</code> as <code>{ kind: "custom-tool", toolCallId, toolName, toolDescription, ... }</code>. Returning <code>{ kind: "approve-once" }</code> (the value the SDK's own <code>approveAll</code> helper returns) let the tool run (<code>tool.execution_complete</code> with <code>success: true</code>, answer "Order 42 is currently shipped."); returning <code>{ kind: "denied-interactively-by-user" }</code> produced <code>success: false</code> and the model explained the refusal. <code>approveAll</code> throws when managed settings are enabled and returns <code>{ kind: "no-result" }</code> when a request is flagged <code>managedApprovalRequired</code>. The full <code>PermissionDecision</code> union in the 1.0.13 typings: ApproveOnce, ApproveForSession, ApproveForLocation, ApprovePermanently, Reject, UserNotAvailable, Approved, ApprovedForSession, ApprovedForLocation, Cancelled, DeniedByRules, DeniedNoApprovalRuleAndCouldNotRequestFromUser, DeniedInteractivelyByUser, DeniedByContentExclusionPolicy, DeniedByPermissionRequestHook (kind strings are the kebab-case forms, e.g. <code>approve-once</code>, <code>approve-for-session</code>). Set <code>skipPermission: true</code> on a tool definition to bypass the prompt for that tool. <code>model: "auto"</code> resolved to <code>mai-code-1.1-flash</code> in these runs.</p>
+<h3 id="37-authentication-and-licensing">3.7 Authentication and licensing</h3>
+<p>Priority order (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/auth/authenticate.md">authenticate</a>):</p>
+<ol>
+<li>Explicit <code>gitHubToken</code> on client or session.</li>
+<li>Direct API token: <code>GITHUB_COPILOT_API_TOKEN</code> with <code>COPILOT_API_URL</code>.</li>
+<li><code>COPILOT_GITHUB_TOKEN</code> → <code>GH_TOKEN</code> → <code>GITHUB_TOKEN</code>.</li>
+<li>Stored credentials from <code>copilot</code> CLI login.</li>
+<li><code>gh auth</code> credentials.</li>
+</ol>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Needs Copilot subscription?</th>
+<th>Billing</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Signed-in user (device flow)</td>
+<td>Yes (the user's)</td>
+<td>User's plan</td>
+<td>Default.</td>
+</tr>
+<tr>
+<td>OAuth App / GitHub App user token</td>
+<td>Yes (each user's)</td>
+<td>"Copilot usage is billed to each user's subscription"</td>
+<td>Your app owns storage/refresh. EMU needs no special config. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/github-oauth.md">github-oauth</a>)</td>
+</tr>
+<tr>
+<td>Env var token (CI)</td>
+<td><span class="chip chip-ok">Yes</span></td>
+<td>Token owner</td>
+<td>Auto-detected.</td>
+</tr>
+<tr>
+<td>Server-to-server: GitHub Actions <code>GITHUB_TOKEN</code></td>
+<td>No user seats</td>
+<td>Organization</td>
+<td>Needs <code>permissions: copilot-requests: write</code> and org policy "Allow use of Copilot CLI billed to the organization".</td>
+</tr>
+<tr>
+<td>Server-to-server: GitHub App installation token</td>
+<td>No user seats</td>
+<td>"the account that owns the GitHub App installation"</td>
+<td>App permission "Copilot Requests: Read &amp; write"; install with "All repositories"; token request must include <code>repository_ids</code> and <code>permissions.copilot_requests: "write"</code>; expires in 1 hour; pass via <code>COPILOT_GITHUB_TOKEN</code>, <strong>not</strong> the <code>gitHubToken</code> option; set <code>useLoggedInUser: false</code>. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/auth/server-to-server-tokens.md">server-to-server-tokens</a>)</td>
+</tr>
+<tr>
+<td>BYOK</td>
+<td><span class="chip chip-no">No</span></td>
+<td>Your model provider</td>
+<td>See §3.8.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Troubleshooting S2S: <code>401</code> = org does not support GitHub App auth; <code>403 Resource not accessible</code> = token in wrong env var; <code>403</code> from the Copilot API = missing <code>repository_ids</code>/permissions or installation lacks "All repositories".</p>
+<h3 id="38-bring-your-own-key">3.8 Bring your own key</h3>
+<p><code>provider</code> shape (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/auth/byok.md">byok</a>):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>"openai"</code> (OpenAI and OpenAI-compatible: Foundry, Ollama, Foundry Local, vLLM, LiteLLM), <code>"azure"</code> (native Azure OpenAI), <code>"anthropic"</code></td>
+</tr>
+<tr>
+<td><code>baseUrl</code></td>
+<td>Required endpoint</td>
+</tr>
+<tr>
+<td><code>apiKey</code></td>
+<td>Static key (optional for local providers)</td>
+</tr>
+<tr>
+<td><code>bearerToken</code> / <code>bearerTokenProvider</code></td>
+<td>Bearer auth; provider callback takes precedence over both. Used for Microsoft Entra tokens against Foundry (<code>DefaultAzureCredential</code>, scope <code>https://ai.azure.com/.default</code>, <code>wireApi: "responses"</code>, base <code>{foundryUrl}/openai/v1/</code>). (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/azure-managed-identity.md">azure-managed-identity</a>)</td>
+</tr>
+<tr>
+<td><code>wireApi</code></td>
+<td><code>"completions"</code> (default) or <code>"responses"</code>; Anthropic always uses Messages API</td>
+</tr>
+<tr>
+<td><code>azure.apiVersion</code></td>
+<td>For versioned Azure routes</td>
+</tr>
+<tr>
+<td><code>model</code> (session level)</td>
+<td>Required with BYOK</td>
+</tr>
+</tbody>
+</table></div>
+<p>Under BYOK: model availability, rate limits, and usage tracking come from your provider; "Premium requests do not count against Copilot premium request quotas." Keys are not persisted with the session.</p>
+<p><strong>Docs disagree on Entra.</strong> The repository README says "BYOK uses key-based authentication only. Microsoft Entra ID (Azure AD), managed identities, and third-party identity providers are not supported," while <code>docs/setup/azure-managed-identity.md</code> documents <code>bearerTokenProvider</code> with <code>DefaultAzureCredential</code> for Foundry. Treat managed identity as available through the bearer-token path and test it before depending on it.</p>
+<h3 id="39-running-it-as-a-service">3.9 Running it as a service</h3>
+<ul>
+<li>Start the runtime: <code>copilot --headless --port 4321</code> (binds loopback; add <code>--host 0.0.0.0</code> for other machines). Set <code>COPILOT_GITHUB_TOKEN</code> before starting. Add <code>--session-idle-timeout &lt;seconds&gt;</code>. There is "no built-in auth between SDK and CLI", so secure the TCP path. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/backend-services.md">backend-services</a>)</li>
+<li>Multi-user: one runtime, <code>mode: "empty"</code>, unique session ids per user, <code>gitHubToken</code> per session, explicit <code>availableTools</code>. Session state lives at <code>COPILOT_HOME/session-state/{sessionId}</code>; put it on shared storage (Azure Files, NFS, PVC) if any server must resume any session. No built-in session locking or load balancing; CLI is single-process. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/multi-tenancy.md">multi-tenancy</a>, <a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/setup/scaling.md">scaling</a>)</li>
+<li>Health: <code>client.getStatus()</code> (also returns <code>protocolVersion</code>). Cleanup: <code>client.listSessions()</code> + <code>client.deleteSession(id)</code>.</li>
+<li>Usage: <code>assistant.usage</code> per model call (<code>inputTokens</code>, <code>outputTokens</code>, <code>model</code>, <code>cost</code> multiplier); <code>session.usage_info</code> (<code>currentTokens</code>, <code>tokenLimit</code>); <code>session.usage.getMetrics()</code> (<code>totalNanoAiu</code>, <code>totalPremiumRequestCost</code>, <code>modelMetrics</code>); <code>models.list</code> (billing multipliers, token prices); <code>account.getQuota()</code> (<code>quotaSnapshots.premium_interactions</code>, <code>remainingPercentage</code>, <code>resetDate</code>). Nano-AI units divide by 1e9 for credits. (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/usage-and-billing.md">usage-and-billing</a>)</li>
+<li>Plugins: a directory with <code>plugin.json</code> (or <code>.github/plugin.json</code>), optional <code>SKILL.md</code>, <code>hooks.json</code>, <code>.mcp.json</code>, <code>agents/*.md</code>, <code>skills/*/SKILL.md</code>, <code>.lsp.json</code>; loaded with <code>--plugin-dir</code> (ephemeral, precedence over marketplace plugins). (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/features/plugin-directories.md">plugin-directories</a>)</li>
+</ul>
+<hr>
+<h2 id="4-agent-framework-github-copilot-provider-c"><span class="num">4</span>Agent Framework GitHub Copilot provider (C)</h2>
+<h3 id="41-install-and-construct">4.1 Install and construct</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Language</th>
+<th>Package</th>
+<th>Construct</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET (≥ .NET 8)</td>
+<td><code>Microsoft.Agents.AI.GitHub.Copilot</code> 1.20.0 (first stable 1.16.0 on 30 Jul 2026; depends on <code>GitHub.Copilot.SDK</code> ≥ 1.0.5)</td>
+<td><code>await using CopilotClient copilotClient = new(); await copilotClient.StartAsync(); AIAgent agent = copilotClient.AsAIAgent(sessionConfig, ownsClient: true);</code> or <code>new GitHubCopilotAgent(copilotClient, instructions: ...)</code>. <code>AsAIAgent</code> has two overloads: <code>(SessionConfig? sessionConfig = null, bool ownsClient = false, string? id, name, description)</code> and <code>(bool ownsClient, id, name, description, IList&lt;AIFunctionDeclaration&gt;? tools, string? instructions)</code>; it returns <code>GitHubCopilotAgent : AIAgent, IAsyncDisposable</code>. There is no <code>AIAgentOptions</code> overload; the docs.github.com integration page that shows one (and <code>--prerelease</code>) is stale.</td>
+</tr>
+<tr>
+<td>Python (≥ 3.11)</td>
+<td><code>agent-framework-github-copilot</code> 1.0.3, classifier Production/Stable (pins <code>github-copilot-sdk==1.0.2</code>)</td>
+<td><code>async with GitHubCopilotAgent(instructions=..., default_options=GitHubCopilotOptions(...), tools=[...]) as agent: await agent.run(...)</code></td>
+</tr>
+<tr>
+<td>Go</td>
+<td><code>github.com/microsoft/agent-framework-go</code> (README: public preview; <code>go.mod</code> says go 1.26.0 while Learn says 1.25+) + <code>github.com/github/copilot-sdk/go</code></td>
+<td><code>copilotprovider.NewAgent(copilotClient, copilotprovider.AgentConfig{ Instructions, SessionConfig, Config: agent.Config{ Tools } })</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Prerequisites (blog): Copilot CLI installed, active Copilot subscription, authenticated CLI. Python env vars: <code>GITHUB_COPILOT_CLI_PATH</code>, <code>GITHUB_COPILOT_MODEL</code> (e.g. <code>gpt-5</code>, <code>claude-sonnet-4</code>), <code>GITHUB_COPILOT_TIMEOUT</code> (default 60 s), <code>GITHUB_COPILOT_LOG_LEVEL</code>, <code>GITHUB_COPILOT_BASE_DIRECTORY</code> (default <code>~/.copilot</code>). .NET: <code>CopilotClientOptions { CliPath, LogLevel, BaseDirectory, WorkingDirectory }</code>. (<a href="https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/github-copilot">Learn provider page</a>)</p>
+<h3 id="42-canonical-net-sample-from-the-blog">4.2 Canonical .NET sample (from the blog)</h3>
+<pre><code class="language-csharp">using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
+using Microsoft.Agents.AI;
+
+await using CopilotClient copilotClient = new();
+await copilotClient.StartAsync();
+
+SessionConfig sessionConfig = new()
+{
+    OnPermissionRequest = (request, invocation) =&gt;
+        Task.FromResult(PermissionDecision.ApproveOnce()),
+};
+
+AIAgent agent = copilotClient.AsAIAgent(sessionConfig, ownsClient: true);
+AgentResponse response = await agent.RunAsync(&quot;Summarize what this project does.&quot;);
+Console.WriteLine(response);
+</code></pre>
+<h3 id="43-semantics-you-must-know">4.3 Semantics you must know</h3>
+<ul>
+<li><strong>Default is deny-all.</strong> "By default, the agent cannot execute shell commands, read/write files, or fetch URLs" until you supply <code>OnPermissionRequest</code> / <code>on_permission_request</code>. Decision types: .NET <code>PermissionDecision.ApproveOnce()</code>, <code>.Reject(feedback?)</code>, <code>.UserNotAvailable()</code> (the default when no handler is set); Python <code>PermissionHandler.approve_all</code>, <code>PermissionDecisionDeniedInteractivelyByUser</code>, <code>PermissionDecisionUserNotAvailable</code>; Go <code>PermissionDecisionApproveOnce</code>, <code>PermissionDecisionReject</code>, <code>PermissionDecisionDeniedInteractivelyByUser</code>.</li>
+<li><strong>Tool approval runs in the SDK hook, not the framework round-trip.</strong> Wrapping a tool in <code>ApprovalRequiredAIFunction</code> (.NET) or <code>@tool(approval_mode="always_require")</code> (Python) makes the provider install a default <code>OnPreToolUse</code> hook that returns <code>"ask"</code> and routes to your permission handler. If you register your own pre-tool hook, that default is <strong>not</strong> installed and you own enforcement; the agent logs a warning naming each approval-required tool.</li>
+<li><strong><code>default_options</code> is a passthrough</strong> to the SDK's <code>create_session</code>: <code>reasoning_effort</code>, <code>context_tier</code>, <code>enable_citations</code>, <code>provider</code>, <code>skill_directories</code>, <code>mcp_servers</code>, etc. Unknown keys raise <code>TypeError</code>.</li>
+<li><strong>Sessions:</strong> .NET <code>AgentSession session = await agent.CreateSessionAsync(existingSessionId);</code> Python <code>session.service_session_id</code> round-trips through <code>agent2.get_session(service_session_id=...)</code>.</li>
+<li><strong>Context providers (Python):</strong> <code>context_providers=[InMemoryHistoryProvider()]</code> run before/after each invocation.</li>
+<li><strong>Observability:</strong> Python <code>configure_otel_providers(enable_console_exporters=True)</code>; <code>RawGitHubCopilotAgent</code> for the untraced agent.</li>
+<li><strong>Tool support table:</strong> Function tools ✅, tool approval ✅, shell/file/URL ✅ (gated), hosted (HTTP) MCP ✅, local (stdio) MCP ✅, code interpreter ❌, file search ❌, web search ❌ ("Not a Copilot CLI capability" / "Not exposed as a hosted tool").</li>
+<li>Samples: .NET <code>samples/02-agents/AgentProviders/github-copilot</code>; Python <code>samples/02-agents/providers/github_copilot</code> in <a href="https://github.com/microsoft/agent-framework">microsoft/agent-framework</a>. Release cadence at time of writing: <code>dotnet-1.20.0</code> (31 Aug 2026), <code>python-1.17.0</code> (3 Sep 2026).</li>
+</ul>
+<h3 id="44-what-agent-framework-adds-versus-using-the-sdk-directly">4.4 What Agent Framework adds versus using the SDK directly</h3>
+<p>Per the SDK's own integration page (<a href="https://raw.githubusercontent.com/github/copilot-sdk/main/docs/integrations/microsoft-agent-framework.md">microsoft-agent-framework.md</a>): sequential/concurrent orchestration, multi-provider composition (Copilot beside Azure OpenAI, Anthropic, Copilot Studio), A2A protocol, one <code>AIAgent</code> abstraction. The SDK keeps: tool definition, MCP config, custom agents, infinite sessions, model selection, streaming deltas, permissions. Integration packages exist for .NET and Python only; TypeScript, Go (framework has its own provider), Java, and Rust use the SDK directly.</p>
+<hr>
+<h2 id="5-copilot-studio-github-copilot-harness-d"><span class="num">5</span>Copilot Studio GitHub Copilot harness (D)</h2>
+<h3 id="51-what-microsoft-says-it-is">5.1 What Microsoft says it is</h3>
+<ul>
+<li>"The GitHub Copilot harness is the most capable option, built for reasoning-heavy agents and workflows... it can take a goal, break it into steps, call the right tools across connectors, knowledge, MCP, and connected agents, and adjust when a step fails or a request changes. It natively creates and edits Word, Excel, PowerPoint, and PDF files, supports skills and memory, and runs each task in a secure sandbox governed by Copilot Studio. Agents and workflows on this harness use Copilot Credits." (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/harnesses-overview">harnesses-overview</a>)</li>
+<li>Three harnesses: GitHub Copilot harness (reasoning-heavy agents and workflows), standard harness (rule-based agents and agent flows), Copilot chat harness (extend Microsoft 365 Copilot Chat).</li>
+<li>Agents cannot be transferred between harnesses; you choose at creation. The GitHub Copilot harness "uses this enhanced orchestration model for all agents" (not configurable). (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/overview">agents-experience/overview</a>)</li>
+<li>Timeline: production-ready preview from June 2026; GA announced 3 Aug 2026; usage-based billing in Copilot Credits for all such agents from 1 Sep 2026 (agents created before 3 Aug kept old pricing only until then). (<a href="https://techcommunity.microsoft.com/blog/copilot-studio-blog/more-powerful-agents-and-workflows-for-autonomous-business-processes-introducing/4542969">Tech Community announcement</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/billing-credit-overview">billing overview, 27 Aug 2026</a>)</li>
+</ul>
+<h3 id="52-authoring-surface">5.2 Authoring surface</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Build</td>
+<td>Instructions, knowledge, tools, skills, model, memory, connected agents</td>
+</tr>
+<tr>
+<td>Preview</td>
+<td>Interactive test chat (backed by a built-in Direct Line test channel)</td>
+</tr>
+<tr>
+<td>Evaluate</td>
+<td>Test sets to measure quality</td>
+</tr>
+<tr>
+<td>Monitor</td>
+<td>Recent tasks, files accessed, activity, consumed credits</td>
+</tr>
+</tbody>
+</table></div>
+<p>Components and their exact scope:</p>
+<ul>
+<li><strong>Tools</strong> = Connectors (Power Platform connectors), MCP servers, Workflows. Added via Build → Tools → Add a tool with Featured / MCP / Connectors / Workflows tabs. (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/tools-available">tools-available</a>)</li>
+<li><strong>Skills</strong> = <code>SKILL.md</code> (YAML front matter <code>name</code>, <code>description</code>, Markdown instructions) plus optional scripts/templates/reference docs, packaged as ZIP; authored in Studio or uploaded. Same file format the Copilot SDK/CLI uses for skills. (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/skills-overview">skills-overview</a>)</li>
+<li><strong>Memory (preview)</strong>: per-user folder in Microsoft-managed storage; capture → store → apply; private to the user; deleted after 28 days of inactivity; disabled in group chats and Teams channels; a memory portal link appears on first interaction per channel. (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/memory-overview">memory-overview, 27 Jul 2026</a>)</li>
+<li><strong>Connected agents</strong>: "you can currently only connect other agents built in Copilot Studio." (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-add-other-agents">authoring-add-other-agents</a>)</li>
+<li><strong>Model</strong>: chosen per agent; admins gate preview/experimental models (environment setting plus cross-region data movement) and external providers (Anthropic, Mistral, xAI via Microsoft 365 admin center). (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-select-agent-model">authoring-select-agent-model</a>)</li>
+</ul>
+<h3 id="53-billing">5.3 Billing</h3>
+<p>"Copilot credits are charged for large language model (LLM) tokens, tools (including knowledge and MCPs), and the harness itself." "Billing starts when you start building": previewing, testing, and generating evaluations all consume credits, unlike the standard harness which bills after publish. Credits are allocated per environment in the Power Platform admin center. (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/billing-credit-overview">billing-credit-overview</a>)</p>
+<h3 id="54-publishing-and-channels-as-of-the-3-aug-2026-page-update">5.4 Publishing and channels (as of the 3 Aug 2026 page update)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Available for GitHub Copilot harness agents?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microsoft 365 Copilot</td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>Microsoft Teams</td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>Demo website</td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>Web app (iframe embed)</td>
+<td><span class="chip chip-ok">Yes</span></td>
+</tr>
+<tr>
+<td>SharePoint</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>Native app via Direct Line</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>MCP client</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>Facebook, WhatsApp, Slack, Telegram</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>Genesys, LivePerson, Salesforce, ServiceNow</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+<tr>
+<td>Twilio, Line, GroupMe, Direct Line Speech, Email</td>
+<td><span class="chip chip-no">No</span></td>
+</tr>
+</tbody>
+</table></div>
+<p>Source: <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-channels-overview">publication-channels-overview</a>. Publishing creates a versioned live copy; DLP policies are evaluated per channel; the built-in Direct Line test channel does not block publishing. (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-publish-agent">publication-publish-agent</a>, <a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-fundamentals-publish-channels">publish overview, 31 Aug 2026</a>)</p>
+<hr>
+<h2 id="6-agents-as-code-for-the-github-copilot-harness"><span class="num">6</span>Agents as code for the GitHub Copilot harness</h2>
+<p>The web UI is not the only authoring path. The Power Platform CLI and an experimental Microsoft plugin let you treat a harness agent as files.</p>
+<h3 id="61-power-platform-cli-pac-copilot">6.1 Power Platform CLI (<code>pac copilot</code>)</h3>
+<p>Installed locally: <code>pac</code> 2.10.1. Subcommands: <code>list</code>, <code>init</code>, <code>status</code>, <code>pack</code>, <code>create</code>, <code>publish</code>, <code>pull</code>, <code>push</code>, <code>clone</code>, <code>delete</code>, <code>quarantine</code>, <code>model</code>, <code>mcp</code>, translation helpers. The plugin requires <code>pac</code> ≥ 2.9.3 (<a href="https://github.com/microsoft/copilot-studio-plugin">copilot-studio-plugin README</a>).</p>
+<ul>
+<li><code>pac copilot init</code> with authoring mode <code>cli-copilot</code> creates an empty GitHub-Copilot-harness agent workspace in a target environment (the plugin's init sub-agent uses exactly this; publisher prefix defaults to <code>catmgr</code>).</li>
+<li><code>pac copilot clone</code> pulls a published agent into a local workspace; <code>push</code>/<code>pull</code> sync; <code>publish</code> publishes.</li>
+</ul>
+<h3 id="62-workspace-files-that-identify-a-harness-agent">6.2 Workspace files that identify a harness agent</h3>
+<p>From the plugin's chat script and skills (<a href="https://github.com/microsoft/copilot-studio-plugin/blob/main/scripts/src/chat-with-agent.js">chat-with-agent.js</a>, <a href="https://github.com/microsoft/copilot-studio-plugin/blob/main/commands/chat.md">commands/chat.md</a>):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Keys that matter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings.mcs.yml</code></td>
+<td><code>schemaName</code> (the case-sensitive id used in URLs), <code>displayName</code>, <code>configuration.recognizer.kind</code> = <code>CLICopilotRecognizer</code> (newer) or <code>CLIAgentRecognizer</code> (older). Anything else, such as <code>GenerativeAIRecognizer</code>, is a standard-harness agent. <code>authenticationMode: Integrated</code> for Entra-authenticated agents.</td>
+</tr>
+<tr>
+<td><code>.mcs/conn.json</code></td>
+<td><code>EnvironmentId</code>, <code>TenantId</code>, <code>AgentManagementEndpoint</code>, <code>DataverseEndpoint</code> (the script infers the cloud from these hosts).</td>
+</tr>
+<tr>
+<td><code>agent.mcs.yml</code></td>
+<td>Present in classic (standard harness) workspaces; the migrate flow looks for it to find a source agent.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="63-the-experimental-plugin-mcs-assistant">6.3 The experimental plugin (<code>mcs-assistant</code>)</h3>
+<pre><code class="language-text">/plugin marketplace add microsoft/copilot-studio-plugin
+/plugin install mcs-assistant@copilot-studio-plugin
+</code></pre>
+<p>Works in GitHub Copilot CLI and Claude Code. Provides <code>/migrate</code> (clone a classic agent, describe it, approve a migration plan, convert actions to tools, author the new YAML, push) and <code>/chat</code> (stream a turn against the published harness agent through the <code>/3p</code> route with MSAL device-code sign-in). Sub-agents: architect, describer, init, manage. Disclaimer: "an experimental research project, not an officially supported Microsoft product... not meant for production use."</p>
+<p>Related but different: the <strong>Copilot Studio VS Code extension</strong> (GA) and <strong>microsoft/skills-for-copilot-studio</strong> cover the <em>standard</em> harness only; the plugin README calls the latter the legacy plugin that "may conflict". (<a href="https://learn.microsoft.com/en-us/microsoft-copilot-studio/visual-studio-code-extension-overview">VS Code extension overview, 24 Jul 2026</a>)</p>
+<hr>
+<h2 id="7-reaching-a-harness-agent-from-code-the-integration-map"><span class="num">7</span>Reaching a harness agent from code: the integration map</h2>
+<h3 id="71-official-position">7.1 Official position</h3>
+<ul>
+<li>Copilot Studio client library: "Currently, you can only use the Copilot Studio client library with Copilot Studio agents created by using the standard harness. Agents using the GitHub Copilot harness aren't yet officially supported." (<a href="https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs">Learn, 21 Aug 2026</a>)</li>
+<li>Direct Line / native app channel for harness agents: No (§5.4).</li>
+<li>Agent Framework Copilot Studio provider: invokes a published agent and "does not expose Agent Framework tool types... at the client"; capabilities are configured on the Copilot Studio agent. (<a href="https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/copilot-studio">Learn</a>)</li>
+<li>Microsoft CAT decision guide (updated 2 Aug 2026): the SDK client "requires delegated (user) authentication through Entra ID, with no service principal auth, app-only tokens, or secure anonymous options"; app-only "is on the roadmap". (<a href="https://microsoft.github.io/mcscatblog/posts/copilot-studio-api-decision-guide/">mcscatblog</a>)</li>
+</ul>
+<h3 id="72-the-experimental-route-that-works-today-agentic-runtime-3p">7.2 The experimental route that works today: Agentic Runtime <code>/3p</code></h3>
+<p>Microsoft's own plugin talks to "the agenticruntime '3p' (third-party) Direct-to-Engine endpoint, which is how CLI-authored / agentic-loop agents are served." This repository reproduced it in three stacks.</p>
+<pre><code class="language-text">https://{env-host}/copilotstudio/agenticruntime/3p/dataverse-backed/authenticated/bots/{schemaName}?api-version=1
+</code></pre>
+<ul>
+<li><code>{env-host}</code> = environment GUID with dashes removed, split into the first 30 and last 2 hex characters: <code>{30}.{2}.environment.api.powerplatform.com</code> for Prod. Other clouds use <code>api.test.</code>, <code>api.preprod.</code>, <code>api.dev.</code> etc. This repo maps Prod only.</li>
+<li>Token: delegated Entra user token for scope <code>https://api.powerplatform.com/.default</code>, from an app registration holding the Power Platform API delegated permission <code>CopilotStudio.Copilots.Invoke</code>. Public client (SPA or native) with no secret.</li>
+<li>Agent prerequisites: published, <strong>Authenticate with Microsoft</strong>, and shared with the signed-in user. Unshared → <code>403</code>.</li>
+<li>The client library appends <code>/conversations</code> and <code>/conversations/{id}</code>; keep <code>api-version=1</code> pinned. The conversation id also rides the <code>x-ms-conversationid</code> response header.</li>
+<li>Streaming shape differs by client: Node <code>@microsoft/agents-copilotstudio-client</code> delivered cumulative <code>typing</code> snapshots; Agent Framework <code>CopilotStudioAgent.RunStreamingAsync</code> delivered delta fragments in <code>AgentResponseUpdate</code> with the original activity in <code>RawRepresentation</code> (15 fragments consolidated to a 1,164-character answer in the 6 Aug 2026 verification).</li>
+</ul>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Stack</th>
+<th>Package</th>
+<th>Verified here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node sidecar</td>
+<td><code>@microsoft/agents-copilotstudio-client</code> ^1.6.1 with <code>directConnectUrl</code></td>
+<td>5 Aug 2026, real progressive response in Web Chat</td>
+</tr>
+<tr>
+<td>.NET Agent Framework</td>
+<td><code>Microsoft.Agents.AI.CopilotStudio</code> 1.13.0-preview.260703.1 (POC) and 1.19.0-preview.260822.1 (latest mode); both restore <code>Microsoft.Agents.CopilotStudio.Client</code> 1.3.171-beta</td>
+<td>6 Aug 2026 (POC); compatibility mode checked 30 Aug 2026</td>
+</tr>
+<tr>
+<td>Dynamics 365 side pane</td>
+<td>Same Node route behind a hardened relay on App Service</td>
+<td>See <code>docs/dynamics-sidepane-deployment.html</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="73-what-does-not-work-and-the-error-you-will-see">7.3 What does not work (and the error you will see)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Attempt</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App-only (client credentials) token against the <code>/authenticated/</code> <code>/3p</code> route</td>
+<td>Rejected; <code>/3p</code> requires a delegated token. S2S Direct-to-Engine is a private preview that Microsoft must enable per tenant and only applies to <strong>No Authentication</strong> agents; an authenticated agent returns <code>S2SDirectEngineRequiresNoAuthentication</code>.</td>
+</tr>
+<tr>
+<td>No-auth agentic Direct Line token endpoint (<code>/copilotstudio/agenticruntime/botsbyschema/{schema}/directline/token</code>)</td>
+<td>Connects and answers, but final-only: empty <code>typing</code>, one <code>message</code>, <code>turn.complete</code>; no <code>streamType</code>/<code>streamId</code>/<code>streamSequence</code>.</td>
+</tr>
+<tr>
+<td><code>401</code></td>
+<td>Wrong audience, app credential, or preview not enabled.</td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td>Missing permission/consent, agent not shared, policy, or S2S ACL.</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td>Wrong environment/schema, unpublished agent, or <code>/3p</code> not enabled for this harness.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="74-client-library-connection-settings-e">7.4 Client library connection settings (E)</h3>
+<p><code>ConnectionSettings</code> in <code>@microsoft/agents-copilotstudio-client</code> (<a href="https://learn.microsoft.com/en-us/javascript/api/@microsoft/agents-copilotstudio-client/connectionsettings?view=agents-sdk-js-latest">API reference</a>):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>environmentId</code>, <code>schemaName</code></td>
+<td>Required unless <code>directConnectUrl</code> is set</td>
+</tr>
+<tr>
+<td><code>directConnectUrl</code></td>
+<td>"if provided all other settings are ignored"</td>
+</tr>
+<tr>
+<td><code>cloud</code></td>
+<td><code>PowerPlatformCloud</code> enum: <code>Prod</code>, <code>FirstRelease</code>, <code>Preprod</code>, <code>Test</code>, <code>Dev</code>, <code>Gov</code>, <code>GovFR</code>, <code>High</code>, <code>DoD</code>, <code>Mooncake</code>, <code>Ex</code>, <code>Rx</code>, <code>Prv</code>, <code>Exp</code>, <code>Local</code>, <code>Other</code>, <code>Unknown</code></td>
+</tr>
+<tr>
+<td><code>customPowerPlatformCloud</code></td>
+<td>Custom cloud URL</td>
+</tr>
+<tr>
+<td><code>copilotAgentType</code></td>
+<td><code>AgentType.Published</code> or <code>AgentType.Prebuilt</code></td>
+</tr>
+<tr>
+<td><code>useExperimentalEndpoint</code>, <code>enableDiagnostics</code></td>
+<td>Flags</td>
+</tr>
+<tr>
+<td><code>appClientId</code>, <code>tenantId</code>, <code>authority</code>, <code>agentIdentifier</code></td>
+<td><strong>Deprecated</strong>; handle auth in your app and use <code>schemaName</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>.NET equivalents used in this repo's sidecar: <code>new ConnectionSettings { DirectConnectUrl, Cloud = PowerPlatformCloud.Prod, CopilotAgentType = AgentType.Published }</code>, <code>new CopilotClient(settings, httpClientFactory, logger, httpClientName)</code>, <code>new CopilotStudioAgent(client, loggerFactory)</code>.</p>
+<p>Python Agent Framework: <code>pip install agent-framework-copilotstudio --pre</code>; env <code>COPILOTSTUDIOAGENT__ENVIRONMENTID</code>, <code>__SCHEMANAME</code>, <code>__AGENTAPPID</code>, <code>__TENANTID</code>; <code>CopilotStudioAgent()</code> and <code>agent.run(..., stream=True)</code>. .NET quick form: <code>new CopilotStudioChatClient(environmentId, agentIdentifier, credential: new AzureCliCredential()).AsAIAgent(...)</code>.</p>
+<hr>
+<h2 id="8-decision-guide"><span class="num">8</span>Decision guide</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>You want to...</th>
+<th>Use</th>
+<th>Identity and billing</th>
+<th>Watch out for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Embed the agent loop in your own app or service, keep tools in your code</td>
+<td><strong>Copilot SDK</strong> (B); add <strong>Agent Framework provider</strong> (C) when you want middleware, OTel, orchestration with other providers, or approval-gated <code>AIFunction</code>s</td>
+<td>Per-user GitHub token (each user needs Copilot), org-billed GitHub App/Actions token, or BYOK</td>
+<td>Default deny-all permissions; containerize when granting shell/file; <code>mode: "empty"</code> for shared runtimes</td>
+</tr>
+<tr>
+<td>Let makers build a governed business agent over M365 data, connectors, MCP, skills, memory, Office files</td>
+<td><strong>Copilot Studio GitHub Copilot harness</strong> (D)</td>
+<td>Entra users; Copilot Credits per environment, billed from first build</td>
+<td>Consume through M365 Copilot, Teams, demo site, or iframe; no Direct Line; client library not officially supported yet</td>
+</tr>
+<tr>
+<td>Put a harness agent inside a custom web/Dynamics surface with streaming</td>
+<td><code>/3p</code> route via <code>@microsoft/agents-copilotstudio-client</code> or <code>Microsoft.Agents.AI.CopilotStudio</code> (§7.2)</td>
+<td>Delegated Entra token with <code>CopilotStudio.Copilots.Invoke</code>; agent shared with each user</td>
+<td>Experimental; keep an official channel as fallback; verify support before production</td>
+</tr>
+<tr>
+<td>Call a harness agent from a daemon with no user present</td>
+<td>Not available today (app-only <code>/3p</code> rejected; S2S private preview is no-auth only)</td>
+<td>—</td>
+<td>Track the roadmap item "app-only auth" for the client library</td>
+</tr>
+<tr>
+<td>Orchestrate a Copilot Studio agent alongside your own SDK-backed agent</td>
+<td>Agent Framework with both providers (<code>Microsoft.Agents.AI.CopilotStudio</code> + <code>Microsoft.Agents.AI.GitHub.Copilot</code>)</td>
+<td>Entra delegated for the Studio side; GitHub or BYOK for the SDK side</td>
+<td>Studio provider exposes no tools at the client; configure them on the agent</td>
+</tr>
+<tr>
+<td>Run hundreds of user sessions in one backend</td>
+<td>Headless CLI + SDK: <code>copilot --headless</code>, <code>mode: "empty"</code>, per-session <code>gitHubToken</code>, shared <code>session-state</code> storage</td>
+<td>Per-user or org tokens</td>
+<td>No built-in locking, LB, or SDK↔CLI auth; secure the network path</td>
+</tr>
+<tr>
+<td>Reuse prompts and playbooks across both worlds</td>
+<td><code>SKILL.md</code> folders: <code>skillDirectories</code> in the SDK, ZIP upload in Copilot Studio</td>
+<td>—</td>
+<td>Studio skills are Markdown plus optional files; keep scripts portable</td>
+</tr>
+<tr>
+<td>Move a classic Copilot Studio agent onto the harness</td>
+<td><code>mcs-assistant</code> plugin <code>/migrate</code> with <code>pac</code> ≥ 2.9.3</td>
+<td>Maker identity</td>
+<td>Experimental; review generated YAML; agents cannot be switched in place</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="9-capabilities-you-can-leverage-now-and-gaps-to-plan-around"><span class="num">9</span>Capabilities you can leverage now, and gaps to plan around</h2>
+<p><strong>Available now (with the surface that provides it)</strong></p>
+<ul>
+<li>Streaming token deltas with 40+ typed events, per-call token usage, and account quota (SDK).</li>
+<li>Custom tools with JSON schemas, approval-gated tools, and nine lifecycle hooks (SDK, Agent Framework).</li>
+<li>Local stdio and remote HTTP/SSE MCP servers with per-server tool allow-lists (SDK, Agent Framework, Copilot Studio).</li>
+<li>Sub-agents with scoped tools, per-agent models, fleet-mode parallelism (SDK).</li>
+<li>Skills as <code>SKILL.md</code> in both worlds; plugin directories bundling skills, agents, hooks, MCP, LSP (SDK).</li>
+<li>Resumable sessions on disk, infinite sessions with compaction, budget caps (SDK).</li>
+<li>Headless multi-tenant hosting, GitHub-hosted cloud sessions with Mission Control URLs (SDK).</li>
+<li>BYOK to OpenAI, Azure OpenAI/Foundry (including Entra bearer tokens), Anthropic, local OpenAI-compatible servers (SDK).</li>
+<li>Org-billed server-to-server identity without user seats (SDK via GitHub App or Actions).</li>
+<li>Maker-authored agents with connectors, MCP, workflows, skills, per-user memory, native Office file editing, model choice including external providers, evaluation and monitoring (Copilot Studio).</li>
+<li>Delegated-token streaming into custom canvases via <code>/3p</code> (verified in this repo, experimental).</li>
+</ul>
+<p><strong>Gaps and caveats</strong></p>
+<ul>
+<li>Copilot Studio harness agents: no Direct Line/native app channel, no MCP-client exposure, client library not officially supported, connected agents limited to Copilot Studio agents, memory off in Teams channels, credits consumed during authoring.</li>
+<li>App-only access to harness agents: not available outside a no-auth private preview.</li>
+<li>Agent Framework GitHub Copilot provider: no code interpreter, file search, or hosted web search; Python package pins an older <code>github-copilot-sdk</code> (1.0.2) than the SDK's latest (1.0.13).</li>
+<li>Agent Framework Copilot Studio provider: still preview (<code>1.20.0-preview.*</code>); tools live on the agent, not the client.</li>
+<li>SDK: no built-in session locking or load balancing; BYOK keys not persisted; README and setup docs disagree on Entra for BYOK; installation tokens must go through the env var, not the <code>gitHubToken</code> option.</li>
+<li>SDK 1.0.13 behavior verified here: constructing <code>CopilotClient</code> with <code>mode: "empty"</code> throws unless <code>baseDirectory</code> or <code>sessionFs</code> is set ("Empty mode requires an explicit per-session persistence location"), and <code>createSession</code> in that mode throws unless <code>availableTools</code> is set explicitly (for example <code>["custom:*"]</code> or <code>new ToolSet().addBuiltIn(BuiltInTools.Isolated)</code>). The multi-tenancy doc shows <code>availableTools</code> but does not state either requirement.</li>
+<li>SDK 1.0.13 typings expose far more event types than the ~40 the streaming-events doc lists (canvas, factory, fusion, MCP OAuth, schedules, plan mode, and more); the documented set in §3.5 is the stable subset to build on.</li>
+<li>Stale vendor pages: the docs.github.com Agent Framework integration page still shows <code>--prerelease</code> and an <code>AIAgentOptions</code> overload that does not exist in source.</li>
+<li>The Copilot Studio harness needs no GitHub Copilot seat; Copilot Credits are the only meter, and dev/trial non-billing ended 1 Sep 2026.</li>
+</ul>
+<hr>
+<h2 id="10-version-ledger-checked-6-september-2026"><span class="num">10</span>Version ledger (checked 6 September 2026)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Package or product</th>
+<th>Version</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GitHub Copilot CLI</td>
+<td>v1.0.83 (4 Sep 2026); local 1.0.84</td>
+<td>github/copilot-cli releases; <code>copilot --version</code></td>
+</tr>
+<tr>
+<td><code>@github/copilot-sdk</code></td>
+<td>1.0.13</td>
+<td>npm</td>
+</tr>
+<tr>
+<td><code>github-copilot-sdk</code> (PyPI)</td>
+<td>1.0.13 (4 Sep 2026)</td>
+<td>PyPI</td>
+</tr>
+<tr>
+<td><code>GitHub.Copilot.SDK</code> (NuGet)</td>
+<td>1.0.13 (4 Sep 2026; .NET 8 / netstandard2.0). The Microsoft feed proxy used on this machine still listed 1.0.13-preview.2.</td>
+<td>nuget.org via the verification pass; <code>dotnet package search</code></td>
+</tr>
+<tr>
+<td>github/copilot-sdk release</td>
+<td>v1.0.13 (4 Sep 2026)</td>
+<td>GitHub releases</td>
+</tr>
+<tr>
+<td><code>Microsoft.Agents.AI.GitHub.Copilot</code></td>
+<td>1.20.0</td>
+<td>NuGet via dotnet</td>
+</tr>
+<tr>
+<td><code>agent-framework-github-copilot</code></td>
+<td>1.0.3 (21 Aug 2026)</td>
+<td>PyPI</td>
+</tr>
+<tr>
+<td><code>Microsoft.Agents.AI.CopilotStudio</code></td>
+<td>1.20.0-preview.260831.1</td>
+<td>NuGet via dotnet</td>
+</tr>
+<tr>
+<td><code>agent-framework-copilotstudio</code></td>
+<td>1.0.0b260813 (14 Aug 2026)</td>
+<td>PyPI</td>
+</tr>
+<tr>
+<td><code>agent-framework-core</code></td>
+<td>1.17.0 (3 Sep 2026)</td>
+<td>PyPI</td>
+</tr>
+<tr>
+<td>microsoft/agent-framework releases</td>
+<td>dotnet-1.20.0 (31 Aug 2026), python-1.17.0 (3 Sep 2026)</td>
+<td>GitHub releases</td>
+</tr>
+<tr>
+<td><code>Microsoft.Agents.CopilotStudio.Client</code></td>
+<td>1.9.28-beta</td>
+<td>NuGet via dotnet</td>
+</tr>
+<tr>
+<td><code>@microsoft/agents-copilotstudio-client</code></td>
+<td>1.8.1</td>
+<td>npm</td>
+</tr>
+<tr>
+<td><code>microsoft-agents-copilotstudio-client</code></td>
+<td>1.6.0 (27 Aug 2026)</td>
+<td>PyPI</td>
+</tr>
+<tr>
+<td>Power Platform CLI <code>pac</code></td>
+<td>2.10.1 local; plugin needs ≥ 2.9.3</td>
+<td><code>pac</code>; plugin README</td>
+</tr>
+<tr>
+<td>Copilot Studio GitHub Copilot harness</td>
+<td>GA 3 Aug 2026; credit billing 1 Sep 2026</td>
+<td>Tech Community; Learn</td>
+</tr>
+<tr>
+<td>Copilot SDK GA</td>
+<td>2 Jun 2026</td>
+<td>GitHub changelog</td>
+</tr>
+<tr>
+<td>Agent Framework GitHub Copilot blog</td>
+<td>4 Aug 2026 (Giles Odigwe)</td>
+<td>devblogs</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="11-sources"><span class="num">11</span>Sources</h2>
+<p>GitHub</p>
+<ul>
+<li>https://github.com/github/copilot-sdk (README, MIT, language table)</li>
+<li>https://github.com/github/copilot-sdk/tree/main/docs (getting-started, auth/<em>, setup/</em>, features/<em>, hooks/</em>, integrations/microsoft-agent-framework.md, troubleshooting/compatibility.md)</li>
+<li>https://github.blog/changelog/2026-06-02-copilot-sdk-is-now-generally-available/</li>
+<li>https://github.com/github/copilot-cli/releases</li>
+<li>https://docs.github.com/copilot/how-tos/copilot-sdk</li>
+</ul>
+<p>Microsoft Agent Framework</p>
+<ul>
+<li>https://devblogs.microsoft.com/agent-framework/build-production-ready-agents-with-the-github-copilot-harness-and-agent-framework/</li>
+<li>https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/github-copilot</li>
+<li>https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/copilot-studio</li>
+<li>https://github.com/microsoft/agent-framework/releases</li>
+</ul>
+<p>Copilot Studio</p>
+<ul>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/harnesses-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/tools-available</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/skills-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/memory-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-add-other-agents</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/authoring-select-agent-model</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/billing-credit-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-channels-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-publish-agent</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/publication-fundamentals-publish-channels</li>
+<li>https://learn.microsoft.com/en-us/microsoft-copilot-studio/visual-studio-code-extension-overview</li>
+<li>https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs</li>
+<li>https://learn.microsoft.com/en-us/javascript/api/@microsoft/agents-copilotstudio-client/connectionsettings?view=agents-sdk-js-latest</li>
+<li>https://techcommunity.microsoft.com/blog/copilot-studio-blog/more-powerful-agents-and-workflows-for-autonomous-business-processes-introducing/4542969</li>
+<li>https://microsoft.github.io/mcscatblog/posts/copilot-studio-api-decision-guide/</li>
+<li>https://github.com/microsoft/copilot-studio-plugin (README, commands/chat.md, commands/migrate.md, agents/copilot-studio-init.md, scripts/src/chat-with-agent.js)</li>
+<li>https://github.com/microsoft/skills-for-copilot-studio</li>
+</ul>
+<p>This repository</p>
+<ul>
+<li><code>README.md</code> (live verifications of 5, 6, and 30 Aug 2026), <code>sidecars/AgentFrameworkGhcp/Program.cs</code>, <code>docs/ghcp-harness-bom-and-setup.html</code>, <code>docs/dynamics-sidepane-deployment.html</code></li>
+</ul>
+  </article>
+</div>
