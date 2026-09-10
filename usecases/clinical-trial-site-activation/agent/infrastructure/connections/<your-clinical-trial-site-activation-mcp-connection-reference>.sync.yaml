@@ -1,3 +1,0 @@
-connectionReferences:
-  - connectionReferenceLogicalName: <your-clinical-trial-site-activation-mcp-connection-reference>
-    connectorId: /providers/Microsoft.PowerApps/apis/<your-clinical-trial-site-activation-mcp-connector>

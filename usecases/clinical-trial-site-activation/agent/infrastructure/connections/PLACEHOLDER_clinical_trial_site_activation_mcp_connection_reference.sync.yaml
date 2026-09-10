@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: PLACEHOLDER_clinical_trial_site_activation_mcp_connection_reference
+    connectorId: /providers/Microsoft.PowerApps/apis/PLACEHOLDER_clinical_trial_site_activation_mcp_connector

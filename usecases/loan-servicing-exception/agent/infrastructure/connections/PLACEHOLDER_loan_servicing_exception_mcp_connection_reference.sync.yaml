@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: PLACEHOLDER_loan_servicing_exception_mcp_connection_reference
+    connectorId: /providers/Microsoft.PowerApps/apis/PLACEHOLDER_loan_servicing_exception_mcp_connector

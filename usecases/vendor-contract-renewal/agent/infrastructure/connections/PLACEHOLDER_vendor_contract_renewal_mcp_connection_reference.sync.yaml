@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: PLACEHOLDER_vendor_contract_renewal_mcp_connection_reference
+    connectorId: /providers/Microsoft.PowerApps/apis/PLACEHOLDER_vendor_contract_renewal_mcp_connector

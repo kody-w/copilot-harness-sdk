@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: PLACEHOLDER_claims_intake_reconciliation_mcp_connection_reference
+    connectorId: /providers/Microsoft.PowerApps/apis/PLACEHOLDER_claims_intake_reconciliation_mcp_connector

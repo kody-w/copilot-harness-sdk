@@ -3,6 +3,6 @@ mcs.metadata:
   description: "Records or lists compliance audit entries for clinical documentation. Use when the user asks to log or review a compliance audit entry."
 kind: McpTool
 authMode: Maker
-connectionReference: <your-clinical-trial-site-activation-mcp-connection-reference>
-connectorId: /providers/Microsoft.PowerApps/apis/<your-clinical-trial-site-activation-mcp-connector>
+connectionReference: PLACEHOLDER_clinical_trial_site_activation_mcp_connection_reference
+connectorId: /providers/Microsoft.PowerApps/apis/PLACEHOLDER_clinical_trial_site_activation_mcp_connector
 operationId: InvokeMCP

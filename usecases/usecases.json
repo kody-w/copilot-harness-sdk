@@ -67,8 +67,8 @@
         "name": "CiteRenewalClauses",
         "componentName": "Cite Renewal Clauses",
         "description": "Returns renewal, pricing, SLA and termination clauses for an agreement with citations. Use when the user asks which clauses apply or wants clause text quoted.",
-        "connectionReference": "<your-vendor-contract-renewal-mcp-connection-reference>",
-        "connectorId": "/providers/Microsoft.PowerApps/apis/<your-vendor-contract-renewal-mcp-connector>"
+        "connectionReference": "PLACEHOLDER_vendor_contract_renewal_mcp_connection_reference",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/PLACEHOLDER_vendor_contract_renewal_mcp_connector"
       },
       "proofExpect": {
         "compare": [
@@ -110,8 +110,8 @@
         "name": "VerifyInsurance",
         "componentName": "Verify Insurance",
         "description": "Verifies insurance coverage details for a member or policy. Use when the user asks to verify coverage or eligibility for a claim.",
-        "connectionReference": "<your-claims-intake-reconciliation-mcp-connection-reference>",
-        "connectorId": "/providers/Microsoft.PowerApps/apis/<your-claims-intake-reconciliation-mcp-connector>"
+        "connectionReference": "PLACEHOLDER_claims_intake_reconciliation_mcp_connection_reference",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/PLACEHOLDER_claims_intake_reconciliation_mcp_connector"
       },
       "proofExpect": {
         "compare": [
@@ -189,8 +189,8 @@
         "name": "LogComplianceAudit",
         "componentName": "Log Compliance Audit",
         "description": "Records or lists compliance audit entries for clinical documentation. Use when the user asks to log or review a compliance audit entry.",
-        "connectionReference": "<your-clinical-trial-site-activation-mcp-connection-reference>",
-        "connectorId": "/providers/Microsoft.PowerApps/apis/<your-clinical-trial-site-activation-mcp-connector>"
+        "connectionReference": "PLACEHOLDER_clinical_trial_site_activation_mcp_connection_reference",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/PLACEHOLDER_clinical_trial_site_activation_mcp_connector"
       },
       "proofExpect": {
         "compare": [
@@ -232,8 +232,8 @@
         "name": "EnrichAffordabilityData",
         "componentName": "Enrich Affordability Data",
         "description": "Returns affordability data for a borrower. Use when the user asks whether a borrower can afford modified terms.",
-        "connectionReference": "<your-loan-servicing-exception-mcp-connection-reference>",
-        "connectorId": "/providers/Microsoft.PowerApps/apis/<your-loan-servicing-exception-mcp-connector>"
+        "connectionReference": "PLACEHOLDER_loan_servicing_exception_mcp_connection_reference",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/PLACEHOLDER_loan_servicing_exception_mcp_connector"
       },
       "proofExpect": {
         "compare": [
