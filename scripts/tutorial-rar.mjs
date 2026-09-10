@@ -10,7 +10,8 @@
 //   node scripts/tutorial-rar.mjs --environment https://<org>.crm.dynamics.com/ \
 //     [--name "RAR Starter Agent"] [--publisher-prefix rapp] [--schema-name rapp_RARStarterAgent] \
 //     [--agents "@rapp/hacker_news,@kody-w/manage_memory_agent,@kody-w/context_memory_agent"] \
-//     [--wait-minutes 15] [--work-dir .deploy/tutorial] [--build-only]
+//     [--wait-minutes 15] [--work-dir .deploy/tutorial] [--build-only] [--fetch-only]
+//   --fetch-only stops after reading the agents (no pac/az/environment needed): a smoke test anyone can run.
 //
 // Prerequisites: pac auth profile for the environment, `az login` as the same user, python3.
 // Agents without a profile are still deployed, as reasoning-only skills that carry the agent.py.
@@ -27,7 +28,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CONTRACT_PY = "import sys, json, types, importlib.util, pathlib\nclass _Stub:\n    def __init__(self, *a, **k): pass\n    def __getattr__(self, n): return _Stub()\n    def __call__(self, *a, **k): return _Stub()\nclass BasicAgent:\n    def __init__(self, name=None, metadata=None, *a, **k):\n        self.name = name; self.metadata = metadata\ndef stub(name, attrs=None):\n    m = types.ModuleType(name)\n    m.__getattr__ = lambda n: _Stub\n    for k, v in (attrs or {}).items(): setattr(m, k, v)\n    sys.modules[name] = m\n    return m\npkg = stub('agents'); stub('agents.basic_agent', {'BasicAgent': BasicAgent}); pkg.basic_agent = sys.modules['agents.basic_agent']\nu = stub('utils'); \nfor sub in ('utils.storage_factory', 'utils.azure_file_storage', 'utils.local_storage', 'utils.storage'): stub(sub)\ntry:\n    p = pathlib.Path(sys.argv[1]); spec = importlib.util.spec_from_file_location('rar_agent', p); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n    found = None\n    for v in vars(m).values():\n        if isinstance(v, type) and issubclass(v, BasicAgent) and v is not BasicAgent:\n            try: inst = v()\n            except Exception as e: inst = None\n            md = getattr(inst, 'metadata', None) if inst is not None else None\n            found = {'class': v.__name__, 'name': getattr(inst, 'name', None) or v.__name__, 'description': (md or {}).get('description', ''), 'parameters': (md or {}).get('parameters')}\n            break\n    print(json.dumps(found or {'error': 'no BasicAgent subclass found'}))\nexcept Exception as e:\n    print(json.dumps({'error': f'{type(e).__name__}: {e}'}))\n";
 const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
-const environment = need('environment').replace(/\/+$/, '') + '/';
+const fetchOnly = args['fetch-only'] === 'true';
+const environment = fetchOnly ? (args.environment || 'https://example.crm.dynamics.com/').replace(/\/+$/, '') + '/' : need('environment').replace(/\/+$/, '') + '/';
 const name = args.name || 'RAR Starter Agent';
 const publisherPrefix = args['publisher-prefix'] || 'rapp';
 const schemaName = args['schema-name'] || `${publisherPrefix}_${name.replace(/[^A-Za-z0-9]/g, '')}`;
@@ -42,6 +44,7 @@ const dv = { environmentUrl: environment, getDataverseToken: getToken };
 const profilesDir = join(root, 'tutorial', 'profiles');
 rmSync(workDir, { recursive: true, force: true });
 mkdirSync(join(workDir, 'agents'), { recursive: true });
+if (!fetchOnly) preflight();
 
 step('1/6 fetch the agents from the RAR');
 const registry = await (await fetch(registryUrl)).json();
@@ -62,12 +65,15 @@ for (const spec of agentSpecs) {
 
 step('2/6 read each agent contract (name, description, parameters)');
 for (const a of agents) {
-  const r = spawnSync('python3', ['-c', CONTRACT_PY, a.file], { encoding: 'utf8' });
   let c = null;
-  try { c = JSON.parse(r.stdout.trim()); } catch { /* fall through */ }
+  for (const [cmd, pre] of [['python3', []], ['python', []], ['py', ['-3']]]) {
+    const r = spawnSync(cmd, [...pre, '-c', CONTRACT_PY, a.file], { encoding: 'utf8', shell: process.platform === 'win32' });
+    if (r.error || r.status !== 0) continue;
+    try { c = JSON.parse(r.stdout.trim()); break; } catch { /* try the next interpreter */ }
+  }
   if (!c || c.error) {
     const src = readFileSync(a.file, 'utf8');
-    c = { name: (src.match(/self\.name\s*=\s*["']([^"']+)/) || [])[1] || basename(a.file, '.py'), description: (src.match(/["']description["']\s*:\s*\(?\s*["']([^"']+)/) || [])[1] || a.entry.description || '', parameters: null, note: c?.error || 'python3 unavailable' };
+    c = { name: (src.match(/self\.name\s*=\s*["']([^"']+)/) || [])[1] || basename(a.file, '.py'), description: (src.match(/["']description["']\s*:\s*\(?\s*["']([^"']+)/) || [])[1] || a.entry.description || '', parameters: null, note: c?.error || 'no python3/python/py on PATH; parameters unknown' };
     console.log(`   ${c.name}: contract read statically (${c.note})`);
   } else {
     console.log(`   ${c.name}: ${Object.keys(c.parameters?.properties || {}).length} parameter(s) — ${c.description.slice(0, 80)}`);
@@ -87,6 +93,8 @@ for (const a of agents) {
   if (a.profile) { PROFILES[a.profile].needs.forEach((n) => needs.add(n)); console.log(`   ${a.contract.name} → ${a.profile}: ${PROFILES[a.profile].say}`); }
   else console.log(`   ${a.contract.name} → no profile: deployed as a reasoning-only skill that carries the agent.py (it cannot execute it)`);
 }
+
+if (fetchOnly) { console.log('\n--fetch-only: agents fetched, contracts read, profiles matched. Nothing touched in any environment.'); process.exit(0); }
 
 step('4/6 make sure the environment has what the profiles need');
 const envId = environmentIdFor(environment);
@@ -179,7 +187,7 @@ async function ensureConnection(connectorId, displayName, key) {
     }
     if (args['build-only'] === 'true') { console.log('   --build-only: continuing without it'); return null; }
     if (Date.now() > deadline) fail(`No connection for ${displayName} after ${waitMinutes} minutes. Create it in the maker portal and re-run.`);
-    spawnSync('sleep', ['20']);
+    sleepSync(20000);
   }
 }
 function listConnections() {
@@ -225,6 +233,19 @@ function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) { const a = argv[i]; if (a.startsWith('--')) { const k = a.slice(2); const v = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true'; out[k] = v; } }
   return out;
+}
+function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
+function tool(cmd, argv) { const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' }); return { ok: !r.error && r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim() }; }
+function preflight() {
+  const major = Number(process.versions.node.split('.')[0]);
+  if (major < 20) fail(`Node ${process.versions.node} is too old: needs Node 20.19+ or 22.12+.`);
+  if (!tool('pac', ['help']).ok) fail('Power Platform CLI (pac) is not on PATH. Install: dotnet tool install --global Microsoft.PowerApps.CLI.Tool, then pac auth create --environment <url>.');
+  const auth = tool('pac', ['auth', 'list']);
+  if (!auth.ok || !/\*/.test(auth.out)) fail('No active pac auth profile. Run: pac auth create --environment <environment url>.');
+  if (!args['token-command'] && !tool('az', ['--version']).ok) fail('Azure CLI (az) is not on PATH and no --token-command was given. Install https://aka.ms/azure-cli and az login as the pac user, or pass --token-command.');
+  try { execSync(tokenCommand, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { fail(`The token command failed: ${tokenCommand}\n   ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' ')}\n   Run az login --tenant <tenant of the environment> first, or pass --token-command.`); }
+  const py = ['python3', 'python', 'py'].find((c) => tool(c, c === 'py' ? ['-3', '--version'] : ['--version']).ok);
+  console.log(`   node ${process.versions.node}, pac ok, token command ok${py ? `, ${py} ok` : ', no python (agent parameters will be read statically)'}`);
 }
 function step(label) { console.log(`\n▶ ${label}`); }
 function fail(msg) { console.error(`\n✖ ${msg}`); process.exit(1); }

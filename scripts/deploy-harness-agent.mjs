@@ -3,13 +3,14 @@
 // infrastructure provisioned the way the reference pilots are built.
 //
 // The sequence, proven live on 2026-09-07 (harness) and 2026-09-10 (infrastructure) on kodyv8, pac 2.10.1:
+//    0. preflight: Node, pac CLI, and the Dataverse token command (az CLI by default) are present, or a clear message says what to install
 //    1. workspace: pac copilot init --authoring-mode cli-copilot, or copy a pre-authored workspace
 //       (--workspace-dir) and rename it to --name / --schema-name. Every agent-scoped connection
 //       reference (`<other>.cr.<suffix>`) is rebound to `<schemaName>.cr.<suffix>`.
 //    2. provision: connection references bound to a real connection, custom connectors verified,
 //       agent flows created/updated and activated (workspace `workflows/*/workflow.json`);
 //       WorkflowTool ids are reused when the flow exists in the environment, minted per agent otherwise
-//    3. pac copilot pack                                     (pac 2.10.1 writes <language>0</language>; fixed here)
+//    3. pac copilot pack                                     (pac 2.10.1 writes <language>0</language>; fixed via pac solution unpack/pack)
 //    4. guard: refuse the zip unless bot.xml says template=cliagent-*
 //    5. pac solution import --async --force-overwrite
 //    6. push WorkflowTools through a synced clone (pack cannot resolve them)
@@ -30,8 +31,8 @@
 // Token for the Dataverse steps: `az account get-access-token --resource <environment>` (same user as the pac auth profile).
 // Override with --token-command "<shell command that prints a bearer token>".
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 import { assertHarnessAgent, classifyBot, HARNESS_TEMPLATE } from '../src/harness-guard.js';
 import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF } from '../src/harness-provision.js';
@@ -62,6 +63,9 @@ if (args['authoring-mode'] && args['authoring-mode'] !== 'cli-copilot') {
 }
 let instructions = instructionsFile ? readFileSync(instructionsFile, 'utf8').trim() : '';
 
+step('0/10 preflight');
+preflight();
+
 const projectDir = join(workDir, 'workspace');
 const outDir = join(workDir, 'out');
 rmSync(workDir, { recursive: true, force: true });
@@ -72,7 +76,7 @@ const workspaceDir = args['workspace-dir'] ? resolve(args['workspace-dir']) : nu
 if (workspaceDir) {
   step('1/10 copy pre-authored harness workspace');
   if (!existsSync(join(workspaceDir, 'settings.mcs.yml'))) fail(`${workspaceDir} has no settings.mcs.yml`);
-  cpSync(workspaceDir, projectDir, { recursive: true, filter: (src) => !/\/\.mcs(\/|$)/.test(src) });
+  cpSync(workspaceDir, projectDir, { recursive: true, filter: (src) => !/[\\/]\.mcs([\\/]|$)/.test(src) });
   console.log(`   ${workspaceDir}`);
 } else {
   step('1/10 scaffold harness workspace');
@@ -168,8 +172,8 @@ if (!existsSync(zipPath)) fail(`pack did not produce ${zipPath}`);
 
 step('4/10 guard the packed solution');
 const unpacked = join(outDir, 'unpacked');
-sh('unzip', ['-q', '-o', zipPath, '-d', unpacked]);
-const botXmlPath = execSync(`find "${unpacked}/bots" -name bot.xml`, { encoding: 'utf8' }).trim().split('\n')[0];
+pac(['solution', 'unpack', '--zipfile', zipPath, '--folder', unpacked, '--packagetype', 'Unmanaged']);
+const botXmlPath = findFiles(join(unpacked, 'bots'), 'bot.xml')[0];
 if (!botXmlPath) fail('No bots/*/bot.xml in the packed solution.');
 let botXml = readFileSync(botXmlPath, 'utf8');
 const template = (botXml.match(/<template>([^<]+)<\/template>/) || [])[1] || '';
@@ -180,7 +184,7 @@ if (/<language>0<\/language>/.test(botXml)) {
   console.log(`   fixed <language>0</language> → ${language} (pac 2.10.1 pack bug)`);
 }
 const fixedZip = join(outDir, `${solutionName}_harness.zip`);
-sh('zip', ['-q', '-r', fixedZip, '.'], unpacked);
+pac(['solution', 'pack', '--zipfile', fixedZip, '--folder', unpacked, '--packagetype', 'Unmanaged']);
 console.log(`   template=${template} ✓`);
 
 step('5/10 import solution');
@@ -290,7 +294,7 @@ function deferWorkflowTools(dir, deferredDir) {
   const names = [];
   const toolsDir = join(dir, 'capabilities', 'tools');
   if (existsSync(toolsDir)) {
-    for (const f of execSync(`ls "${toolsDir}"`, { encoding: 'utf8' }).split('\n').filter((f) => f.endsWith('.mcs.yml'))) {
+    for (const f of readdirSync(toolsDir).filter((f) => f.endsWith('.mcs.yml')).sort()) {
       const src = join(toolsDir, f);
       if (/^kind:\s*WorkflowTool\s*$/m.test(readFileSync(src, 'utf8'))) {
         mkdirSync(join(deferredDir, 'capabilities', 'tools'), { recursive: true });
@@ -306,7 +310,7 @@ function mergeDeferred(deferredDir, synced) {
   const changed = [];
   const toolsDir = join(deferredDir, 'capabilities', 'tools');
   if (existsSync(toolsDir)) {
-    for (const f of execSync(`ls "${toolsDir}"`, { encoding: 'utf8' }).split('\n').filter((f) => f.endsWith('.mcs.yml'))) {
+    for (const f of readdirSync(toolsDir).filter((f) => f.endsWith('.mcs.yml')).sort()) {
       const src = readFileSync(join(toolsDir, f), 'utf8');
       const dst = join(synced, 'capabilities', 'tools', f);
       if (!existsSync(dst) || readFileSync(dst, 'utf8').replace(/^\uFEFF/, '').trim() !== src.replace(/^\uFEFF/, '').trim()) { mkdirSync(join(synced, 'capabilities', 'tools'), { recursive: true }); writeFileSync(dst, src); changed.push(`capabilities/tools/${f}`); }
@@ -314,9 +318,9 @@ function mergeDeferred(deferredDir, synced) {
   }
   const wfDir = join(deferredDir, 'workflows');
   if (existsSync(wfDir)) {
-    for (const folder of execSync(`ls "${wfDir}"`, { encoding: 'utf8' }).split('\n').filter(Boolean)) {
+    for (const folder of readdirSync(wfDir).filter((f) => statSync(join(wfDir, f)).isDirectory()).sort()) {
       const id = (folder.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) || [])[0];
-      const already = existsSync(join(synced, 'workflows')) && execSync(`ls "${join(synced, 'workflows')}"`, { encoding: 'utf8' }).split('\n').some((f) => id && f.toLowerCase().endsWith(id.toLowerCase()));
+      const already = existsSync(join(synced, 'workflows')) && readdirSync(join(synced, 'workflows')).some((f) => id && f.toLowerCase().endsWith(id.toLowerCase()));
       if (!already) { cpSync(join(wfDir, folder), join(synced, 'workflows', folder), { recursive: true }); changed.push(`workflows/${folder}`); }
     }
   }
@@ -340,9 +344,34 @@ function parseArgs(argv) {
   }
   return out;
 }
-function sh(cmd, argv, cwd) {
-  const r = spawnSync(cmd, argv, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', cwd });
-  if (r.status !== 0) fail(`${cmd} ${argv.join(' ')} failed: ${r.stderr || r.stdout}`);
+function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
+function findFiles(dir, name) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, e.name); if (e.isDirectory()) out.push(...findFiles(full, name)); else if (e.name === name) out.push(full); }
+  return out;
+}
+function tool(cmd, argv) {
+  // Windows: pac is pac.exe (found by spawnSync), az is az.cmd (needs a shell). Try both ways.
+  const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' });
+  return { ok: !r.error && r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim(), error: r.error };
+}
+function preflight() {
+  const major = Number(process.versions.node.split('.')[0]);
+  if (major < 20) fail(`Node ${process.versions.node} is too old: this script needs Node 20.19+ or 22.12+ (https://nodejs.org).`);
+  const pacv = tool('pac', ['help']);
+  if (!pacv.ok) fail('Power Platform CLI (pac) is not on PATH. Install: dotnet tool install --global Microsoft.PowerApps.CLI.Tool (https://aka.ms/PowerPlatformCLI), then pac auth create --environment <url>.');
+  const version = (pacv.out.match(/Version:\s*([\d.]+)/) || [])[1] || pacv.out.split('\n')[0];
+  const auth = tool('pac', ['auth', 'list']);
+  if (!auth.ok || !/\*/.test(auth.out)) fail('No active pac auth profile. Run: pac auth create --environment <environment url> (then pac auth select --index N).');
+  if (!args['token-command']) {
+    const az = tool('az', ['--version']);
+    if (!az.ok) fail('Azure CLI (az) is not on PATH and no --token-command was given. Install https://aka.ms/azure-cli and run az login as the same user as the pac profile, or pass --token-command "<command that prints a Dataverse bearer token>".');
+  }
+  let token = '';
+  try { token = execSync(tokenCommand, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); } catch (e) { fail(`The token command failed: ${tokenCommand}\n   ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' ')}\n   Sign in first (az login --tenant <tenant of the environment>) or pass --token-command.`); }
+  if (!/^ey/.test(token)) fail(`The token command did not print a bearer token: ${tokenCommand}`);
+  console.log(`   node ${process.versions.node}, pac ${version}, token command ok (${tokenCommand.split(' ')[0]})`);
 }
 async function retry(fn, attempts, delayMs) {
   for (let i = 1; ; i++) {
@@ -350,7 +379,7 @@ async function retry(fn, attempts, delayMs) {
       const transient = /fetch failed|EPIPE|ECONNRESET|ETIMEDOUT|socket hang up|HTTP 5\d\d|HTTP 429/.test(String(e?.message || e) + String(e?.cause?.message || e?.cause?.code || ''));
       if (!transient || i >= attempts) throw e;
       console.log(`   transient failure (${e?.cause?.code || e?.message?.slice(0, 60)}); retrying in ${delayMs / 1000}s`);
-      spawnSync('sleep', [String(delayMs / 1000)]);
+      sleepSync(delayMs);
     }
   }
 }
@@ -362,7 +391,7 @@ function pac(argv, { retries = 0, delayMs = 0 } = {}) {
     const out = (r.stdout || '') + (r.stderr || '');
     const failed = r.status !== 0 || /non-recoverable error|Error:/.test(out);
     // pac 2.10.1 `copilot publish` dies with "Invalid response format" while Dataverse is still provisioning a freshly imported bot.
-    if (failed && attempt < retries) { console.log(`   attempt ${attempt + 1} failed; retrying in ${delayMs / 1000}s`); spawnSync('sleep', [String(delayMs / 1000)]); continue; }
+    if (failed && attempt < retries) { console.log(`   attempt ${attempt + 1} failed; retrying in ${delayMs / 1000}s`); sleepSync(delayMs); continue; }
     const lines = out.split('\n').filter((l) => l.trim() && !/^Processing asynchronous/.test(l) && !/Online documentation|Feedback, Suggestions|^Microsoft PowerPlatform CLI|^Version:/.test(l));
     const reasons = lines.filter((l) => /reason given|FAILURE|already exists|must contain/i.test(l));
     console.log(`   ${[...new Set([...lines.slice(-4), ...reasons])].join('\n   ')}`);

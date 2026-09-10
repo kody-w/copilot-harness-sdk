@@ -15,12 +15,28 @@ Everything the matrix says is traceable to [`docs/ghcp-harness-copilot-sdk-refer
 ## Install
 
 ```bash
+git clone https://github.com/kody-w/copilot-harness-sdk.git && cd copilot-harness-sdk
 npm install
 npm test            # unit tests (no network, no credentials)
+npm run check       # syntax check + the tutorial's fetch-only smoke (public registry, no environment needed)
 npm run test:live   # also runs the real Copilot SDK turn (needs a Copilot login)
 ```
 
-Node `^20.19 || >=22.12` (the `@github/copilot-sdk` requirement).
+Or, once published to npm, without cloning: `npm install copilot-harness-sdk` for the library, and
+`npx -p copilot-harness-sdk copilot-harness-tutorial --environment https://<org>.crm.dynamics.com/` or
+`copilot-harness-deploy ...` for the two command-line entry points.
+
+### Prerequisites
+
+| For | You need | Checked by |
+| --- | --- | --- |
+| the library (`HarnessClient`) | Node `^20.19 \|\| >=22.12` (the `@github/copilot-sdk` requirement) | `npm install` |
+| `copilot-sdk` mode | GitHub Copilot CLI signed in | the adapter |
+| `copilot-studio-3p` / `standard` modes | an Entra app with delegated `CopilotStudio.Copilots.Invoke`; the agent published and shared with the user | `client.preflight()` |
+| deploying (`deploy:harness`, `tutorial`) | [Power Platform CLI](https://aka.ms/PowerPlatformCLI) 2.10+ with an auth profile for the environment (`pac auth create --environment <url>`), and a Dataverse bearer token: [Azure CLI](https://aka.ms/azure-cli) signed in as the same user (`az login --tenant <tenant>`) or any command that prints one (`--token-command`) | step 0 of each script prints what is missing and how to install it |
+| the tutorial's agent-contract read | `python3` (or `python` / `py -3`); without it parameters are read statically | step 0 |
+
+The deploy and tutorial scripts are plain Node with no shell dependencies: they run on macOS, Linux and Windows (PowerShell) with the same commands; the CI matrix runs the unit tests and the fetch-only smoke on all three.
 
 ## The one API
 
