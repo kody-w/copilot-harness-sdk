@@ -40,5 +40,24 @@
     "url": "https://github.com/kody-w/copilot-harness-sdk.git"
   },
   "license": "MIT",
-  "author": "Kody Wildfeuer"
+  "author": "Kody Wildfeuer",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "src/",
+    "README.md",
+    "LICENSE",
+    "docs/ghcp-harness-copilot-sdk-reference.md",
+    "docs/harness-capability-ledger.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "github-copilot",
+    "copilot-sdk",
+    "copilot-studio",
+    "harness",
+    "agents"
+  ]
 }
