@@ -1,0 +1,31 @@
+﻿jsonFileName: workflows/RAPPWeatherWorkflow-06769099-f203-4351-a16b-5bc872812c4a/workflow.json
+workflowId: 06769099-f203-4351-a16b-5bc872812c4a
+name: RAPP Weather Workflow
+type: 1
+description: Runs Weatheragent through connectionless Open-Meteo HTTP actions.
+subprocess: false
+category: 5
+mode: 0
+scope: 4
+onDemand: false
+triggerOnCreate: false
+triggerOnDelete: false
+asyncAutodelete: false
+syncWorkflowLogOnFailure: false
+stateCode: 1
+statusCode: 2
+runAs: 1
+isTransacted: true
+introducedVersion: 1.0
+isCustomizable:
+  value: true
+  canBeChanged: true
+  managedPropertyLogicalName: iscustomizableanddeletable
+businessProcessType: 0
+isCustomProcessingStepAllowedForOtherPublishers:
+  value: true
+  canBeChanged: true
+  managedPropertyLogicalName: canbedeleted
+modernFlowType: 0
+primaryEntity: none
+connectionReferences: []

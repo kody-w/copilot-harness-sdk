@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Retail Media Trafficking Data Agent"
+  description: "Fetches records by id (for example IO-7781-v1 or IO-7781-v2) from the system of record: the full contents needed to compare creative versions. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_RetailMediaCampaignDataAgent
+historyType:
+  kind: ConversationHistory

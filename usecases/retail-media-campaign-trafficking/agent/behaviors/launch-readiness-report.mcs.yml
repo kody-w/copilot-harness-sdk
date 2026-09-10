@@ -1,0 +1,35 @@
+mcs.metadata:
+  componentName: "launch-readiness-report"
+  description: "Produces the source-cited launch-readiness report for campaign creative changes. Use when the user asks for the launch-readiness report, a insertion order packet review, or a comparison summary for specific record ids. Requires two record ids."
+kind: InlineAgentSkill
+content: |
+  ---
+  name: launch-readiness-report
+  description: Produces the source-cited launch-readiness report for campaign creative changes. Use when the user asks for the launch-readiness report, a insertion order packet review, or a comparison summary for specific record ids. Requires two record ids.
+  ---
+  # Launch-readiness report
+  
+  ## Step 1 - Establish the inputs
+  You need the two record ids to compare (for example IO-7781-v1 and IO-7781-v2). If either is missing, ask for it before doing anything else.
+  
+  ## Step 2 - Gather
+  1. Ask the Retail Media Trafficking Data Agent for both records.
+  2. Search knowledge for the applicable policy or regulation.
+  3. Only if the user asks for weather at a site, call Site Weather.
+  
+  ## Step 3 - Write the report (max 180 words)
+  ```
+  LAUNCH-READINESS REPORT - <first id> -> <second id>
+  Changes: <each change on its own line with the old -> new value>  [source]
+  Missing items: <list or "none">  [source]
+  Flags: <added, resized, or expired assets>  [source]
+  Rating: Low | Medium | High - one sentence why
+  Recommended next step for Ad Ops: <one sentence>
+  ```
+  
+  ## Rules
+  - Lead with the differences; a list of things that are fine is noise.
+  - An item present in the first record but absent in the second is "missing".
+  - Never invent a value. If a lookup returns nothing, write "not found".
+  - Never say the insertion order packet is approved, released, or final. Final trafficking remain with Ad Ops.
+  

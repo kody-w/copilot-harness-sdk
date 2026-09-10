@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "eCFR Uniform Guidance (2 CFR 200)"
+  description: "Public eCFR text of 2 CFR Part 200 (Uniform Guidance) on allowable costs and grant reporting. Search it for cost allowability and documentation rules."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.ecfr.gov

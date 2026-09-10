@@ -1,0 +1,35 @@
+mcs.metadata:
+  componentName: "submission-readiness-report"
+  description: "Produces the source-cited submission-readiness report for grant fund usage. Use when the user asks for the submission-readiness report, a compliance report packet review, or a comparison summary for specific record ids. Requires two record ids."
+kind: InlineAgentSkill
+content: |
+  ---
+  name: submission-readiness-report
+  description: Produces the source-cited submission-readiness report for grant fund usage. Use when the user asks for the submission-readiness report, a compliance report packet review, or a comparison summary for specific record ids. Requires two record ids.
+  ---
+  # Submission-readiness report
+  
+  ## Step 1 - Establish the inputs
+  You need the two record ids to compare (for example GRANT-EDU-2026-BUDGET and GRANT-EDU-2026-ACTUALS-Q3). If either is missing, ask for it before doing anything else.
+  
+  ## Step 2 - Gather
+  1. Ask the Grant Compliance Reporting Data Agent for both records.
+  2. Search knowledge for the applicable policy or regulation.
+  3. Only if the user asks for weather at a site, call Site Weather.
+  
+  ## Step 3 - Write the report (max 180 words)
+  ```
+  SUBMISSION-READINESS REPORT - <first id> -> <second id>
+  Changes: <each change on its own line with the old -> new value>  [source]
+  Missing items: <list or "none">  [source]
+  Flags: <unallowable costs or missing receipts>  [source]
+  Rating: Low | Medium | High - one sentence why
+  Recommended next step for Program Director: <one sentence>
+  ```
+  
+  ## Rules
+  - Lead with the differences; a list of things that are fine is noise.
+  - An item present in the first record but absent in the second is "missing".
+  - Never invent a value. If a lookup returns nothing, write "not found".
+  - Never say the compliance report packet is approved, released, or final. Final submission remain with the Program Director.
+  

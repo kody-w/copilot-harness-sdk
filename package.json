@@ -1,0 +1,44 @@
+{
+  "name": "copilot-harness-sdk",
+  "version": "0.1.0",
+  "description": "One client for every way to reach a GitHub Copilot harness: the in-process Copilot SDK, Copilot Studio GitHub Copilot harness agents over the Agentic Runtime /3p route, standard-harness Copilot Studio agents, app-only S2S, and the no-auth agentic Direct Line diagnostic.",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:live": "COPILOT_HARNESS_LIVE=1 node --test",
+    "example:copilot-sdk": "node examples/copilot-sdk.mjs",
+    "example:studio-3p": "node examples/copilot-studio-3p.mjs",
+    "example:studio-standard": "node examples/copilot-studio-standard.mjs",
+    "example:studio-s2s": "node examples/copilot-studio-s2s.mjs",
+    "example:agentic-directline": "node examples/agentic-directline.mjs",
+    "deploy:harness": "node scripts/deploy-harness-agent.mjs",
+    "build:usecases": "node scripts/build-usecase-workspaces.mjs",
+    "deploy:usecases": "node scripts/deploy-usecases.mjs",
+    "prove:usecase": "node scripts/prove-usecase.mjs",
+    "export:usecases": "node scripts/export-usecases.mjs",
+    "compare:usecases": "node scripts/compare-solution.mjs --all",
+    "strip:exports": "node scripts/strip-connector-code.mjs usecases/*/exports/*.zip"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^5.5.0",
+    "@github/copilot-sdk": "^1.0.13",
+    "@microsoft/agents-copilotstudio-client": "^1.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kody-w/copilot-harness-sdk.git"
+  },
+  "license": "MIT",
+  "author": "Kody Wildfeuer"
+}

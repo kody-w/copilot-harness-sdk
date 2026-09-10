@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+.DS_Store
+.deploy/
+.review-tmp/
+usecases/usecases.local.json

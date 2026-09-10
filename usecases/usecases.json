@@ -1,0 +1,433 @@
+{
+  "$comment": "Ten 'packet copilot' use cases used to prove this SDK can deploy and drive GitHub Copilot harness agents with knowledge, tools (MCP, connector, agent flow), skills and connected agents. Each becomes a parent agent + a child data agent. Generated workspaces live next to this file.",
+  "publisherPrefix": "cr8c1",
+  "environmentUrl": "https://<org>.crm.dynamics.com/",
+  "environmentId": "<environment-id>",
+  "shared": {
+    "workflowTool": {
+      "name": "SiteWeather",
+      "componentName": "Site Weather",
+      "description": "Agent flow that returns the weather forecast for a location. Use only when the user asks about weather at a site, store, facility, or route. Requires a location.",
+      "workflowId": "06769099-f203-4351-a16b-5bc872812c4a",
+      "workflowFolder": "RAPPWeatherWorkflow-06769099-f203-4351-a16b-5bc872812c4a",
+      "inputs": [
+        {
+          "name": "location",
+          "description": "City, region, postal code, or place name."
+        },
+        {
+          "name": "forecast_days",
+          "description": "Forecast days from 1 through 10. Defaults to 3."
+        }
+      ],
+      "outputs": [
+        "status",
+        "message",
+        "location",
+        "timezone",
+        "current",
+        "forecast",
+        "source"
+      ]
+    },
+    "environmentMcp": {
+      "name": "EnvironmentData",
+      "componentName": "Environment Data (Dataverse MCP)",
+      "description": "Dataverse MCP server for the environment. Use only when the user explicitly asks to look up or list records in Dataverse tables. Never create, update or delete records.",
+      "connectionReference": "cr8c1_YourSolution.cr.shared_commondataserviceforapps",
+      "connectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+    }
+  },
+  "usecases": [
+    {
+      "slug": "vendor-contract-renewal",
+      "name": "Vendor Contract Renewal Copilot",
+      "teams": "Procurement and Legal",
+      "manages": "expiring vendor contracts",
+      "packet": "renewal packet",
+      "compare": "current vs. prior contract terms",
+      "flags": "pricing and SLA changes",
+      "validates": "missing signatures or riders",
+      "reviews": "the legal approval packet, checks required clauses, reconciles terms across amendments",
+      "report": "risk report",
+      "finalOwner": "Legal",
+      "finalAction": "final negotiation and signature",
+      "idA": "ACME-2023-014",
+      "idB": "ACME-2026-014-DRAFT",
+      "recordA": "vendor Acme Logistics, effective 2023-10-01, expires 2026-09-30, pricing $18.50/unit with tiered discount at 10k+ units/month, SLA 99.5% on-time delivery and 48h defect response, 36-month term, no auto-renew, signatories J. Alvarez (Acme CFO) and M. Chen (Buyer VP Procurement), riders: Data Processing Addendum v2, Insurance Certificate 2023",
+      "recordB": "vendor Acme Logistics, effective 2026-10-01, expires 2029-09-30, pricing $21.75/unit with tiered discount at 15k+ units/month, SLA 99.0% on-time delivery and 72h defect response, 36-month term, auto-renew ON, signatories J. Alvarez (Acme CFO) only, riders: Data Processing Addendum v3, Insurance Certificate 2023",
+      "sourcePrefix": "DMS://contracts/",
+      "knowledge": {
+        "name": "FederalAcquisitionRegulation",
+        "componentName": "Federal Acquisition Regulation",
+        "url": "https://www.acquisition.gov/far",
+        "description": "Public FAR text on acquisition.gov. Search it for required contract clauses, option-period and renewal rules, and termination language."
+      },
+      "domainMcp": {
+        "name": "CiteRenewalClauses",
+        "componentName": "Cite Renewal Clauses",
+        "description": "Returns renewal, pricing, SLA and termination clauses for an agreement with citations. Use when the user asks which clauses apply or wants clause text quoted.",
+        "connectionReference": "crda_contractrenewaldecisionassistant_9d4c90.cr.shared_crda-5fcite-2.2054b18afd44e4b15786236bfbe902",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/shared_crda-5fcite-20renewal-20clauses-20mcp-5f46f18f33b2ee8a8d"
+      },
+      "proofExpect": {
+        "compare": [
+          "21\\.75",
+          "99\\.0|72"
+        ],
+        "knowledge": [
+          "option|renew|clause",
+          "acquisition\\.gov|FAR|Federal Acquisition"
+        ],
+        "knowledgeQuestion": "Which clauses does the Federal Acquisition Regulation require for contract option periods and renewals? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "claims-intake-reconciliation",
+      "name": "Claims Intake Reconciliation Copilot",
+      "teams": "Claims Processing and SIU",
+      "manages": "incoming claims",
+      "packet": "adjuster review packet",
+      "compare": "submitted claim forms against policy coverage",
+      "flags": "missing documentation or inconsistent dates",
+      "validates": "required attachments",
+      "reviews": "claim packets, prioritizes fraud-flag mismatches",
+      "report": "readiness report",
+      "finalOwner": "the adjusters",
+      "finalAction": "final payout decisions",
+      "idA": "CLM-88213",
+      "idB": "POL-55021",
+      "recordA": "claim CLM-88213, claimant R. Patel, loss type water damage, date of loss 2026-08-14, reported 2026-08-20, claimed amount $14,200, attachments: photos (6), plumber invoice, police report MISSING, proof of ownership MISSING, fraud flag: prior claim within 12 months",
+      "recordB": "policy POL-55021, holder R. Patel, coverage water damage up to $25,000, deductible $1,000, exclusions: gradual seepage, flood; requires police report for theft only, proof of ownership for items over $2,500; effective 2026-01-01 to 2026-12-31",
+      "sourcePrefix": "ClaimsDB://",
+      "knowledge": {
+        "name": "NaicConsumerGuidance",
+        "componentName": "NAIC Insurance Guidance",
+        "url": "https://content.naic.org",
+        "description": "Public NAIC guidance on claims handling, documentation standards, and consumer protections. Search it for claim documentation and fair claims practice rules."
+      },
+      "domainMcp": {
+        "name": "VerifyInsurance",
+        "componentName": "Verify Insurance",
+        "description": "Verifies insurance coverage details for a member or policy. Use when the user asks to verify coverage or eligibility for a claim.",
+        "connectionReference": "intx_intelligentpatientintaketriageassistant_16e55f.cr.shared_intx-5fverify.eb1ac389c6194ac42439202",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/shared_intx-5fverify-20insurance-20mcp-5f46f18f33b2ee8a8d"
+      },
+      "proofExpect": {
+        "compare": [
+          "14,?200",
+          "police report|proof of ownership"
+        ],
+        "knowledge": [
+          "claim",
+          "naic"
+        ],
+        "knowledgeQuestion": "What does NAIC guidance say about documentation an insurer may require to process a claim? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "store-merchandising-reset",
+      "name": "Store Merchandising Reset Copilot",
+      "teams": "Merchandising and Store Ops",
+      "manages": "planogram changes",
+      "packet": "reset instruction packet",
+      "compare": "old vs. new planograms",
+      "flags": "added, relocated, or discontinued SKUs",
+      "validates": "fixture requirements",
+      "reviews": "store compliance photos against the plan, reconciles discrepancies",
+      "report": "execution report",
+      "finalOwner": "the district managers",
+      "finalAction": "final store sign-off",
+      "idA": "PLN-AISLE7-2026Q2",
+      "idB": "PLN-AISLE7-2026Q3",
+      "recordA": "planogram PLN-AISLE7-2026Q2, aisle 7 snacks, 4 shelves, SKUs: 10021 Crunch Mix (shelf 1, 4 facings), 10034 Salted Pretzels (shelf 2, 3 facings), 10077 Trail Blend (shelf 3, 2 facings), 10090 Veggie Chips (shelf 4, 2 facings); fixture: standard 48in gondola, no clip strip",
+      "recordB": "planogram PLN-AISLE7-2026Q3, aisle 7 snacks, 4 shelves, SKUs: 10021 Crunch Mix (shelf 2, 4 facings), 10034 Salted Pretzels (shelf 1, 3 facings), 10077 Trail Blend DISCONTINUED, 10112 Protein Bites NEW (shelf 3, 3 facings), 10090 Veggie Chips (shelf 4, 2 facings); fixture: standard 48in gondola PLUS clip strip on shelf 3",
+      "sourcePrefix": "PlanogramDB://",
+      "knowledge": {
+        "name": "NrfRetailResources",
+        "componentName": "NRF Retail Resources",
+        "url": "https://nrf.com",
+        "description": "Public National Retail Federation resources on store operations and merchandising practice. Search it for reset and compliance practices."
+      },
+      "proofExpect": {
+        "compare": [
+          "10112|Protein Bites",
+          "10077|Trail Blend"
+        ],
+        "knowledge": [
+          "retail|store|merchandis",
+          "nrf"
+        ],
+        "knowledgeQuestion": "What does the NRF say about store operations best practices for merchandising resets? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "clinical-trial-site-activation",
+      "name": "Clinical Trial Site Activation Copilot",
+      "teams": "Regulatory and Site Management",
+      "manages": "protocol amendments",
+      "packet": "site activation packet",
+      "compare": "protocol versions",
+      "flags": "changed inclusion/exclusion criteria or dosing",
+      "validates": "required IRB documents",
+      "reviews": "activation packets, prioritizes missing artifacts",
+      "report": "readiness report",
+      "finalOwner": "the Regulatory lead",
+      "finalAction": "final activation approval",
+      "idA": "PROTO-4471-v3",
+      "idB": "PROTO-4471-v4",
+      "recordA": "protocol PROTO-4471 v3, indication moderate asthma, inclusion age 18-65 and FEV1 60-85%, exclusion smokers in last 6 months, dosing 200mcg twice daily for 12 weeks, IRB approval 2026-03-02, site documents: 1572 signed, CV on file, IRB letter, informed consent v3",
+      "recordB": "protocol PROTO-4471 v4, indication moderate asthma, inclusion age 18-75 and FEV1 55-85%, exclusion smokers in last 12 months, dosing 200mcg twice daily for 16 weeks, IRB approval PENDING, site documents: 1572 signed, CV on file, IRB letter MISSING, informed consent v4 MISSING",
+      "sourcePrefix": "CTMS://",
+      "knowledge": {
+        "name": "FdaRegulatoryInformation",
+        "componentName": "FDA Regulatory Information",
+        "url": "https://www.fda.gov/regulatory-information",
+        "description": "Public FDA regulatory information including clinical trial and IRB requirements. Search it for informed consent and IRB documentation rules."
+      },
+      "domainMcp": {
+        "name": "LogComplianceAudit",
+        "componentName": "Log Compliance Audit",
+        "description": "Records or lists compliance audit entries for clinical documentation. Use when the user asks to log or review a compliance audit entry.",
+        "connectionReference": "clinx_clinicaldocumentationcodingassistant_0a1ba9.cr.shared_clinx-5flog-2.09efd9038a2e568f299547911",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/shared_clinx-5flog-20compliance-20audit-20mcp-5f46f18f33b2ee8a8d"
+      },
+      "proofExpect": {
+        "compare": [
+          "16 weeks|16-week",
+          "18-75|75"
+        ],
+        "knowledge": [
+          "consent|IRB",
+          "fda"
+        ],
+        "knowledgeQuestion": "What does the FDA require in an informed consent document for a clinical trial? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "loan-servicing-exception",
+      "name": "Loan Servicing Exception Copilot",
+      "teams": "Servicing and Compliance",
+      "manages": "loan modification requests",
+      "packet": "exception approval packet",
+      "compare": "original vs. modified loan terms",
+      "flags": "rate, term, or escrow changes",
+      "validates": "required disclosures",
+      "reviews": "packets, reconciles borrower documents, flags compliance exceptions",
+      "report": "exception report",
+      "finalOwner": "the underwriter",
+      "finalAction": "final approval",
+      "idA": "LN-204118",
+      "idB": "LN-204118-MOD1",
+      "recordA": "loan LN-204118, borrower T. Nguyen, original principal $312,000, rate 6.25% fixed, term 360 months, escrow $480/month, disclosures on file: TILA, RESPA servicing, hardship affidavit",
+      "recordB": "loan LN-204118-MOD1, borrower T. Nguyen, modified principal $318,400 (capitalized arrears), rate 5.50% fixed, term 480 months, escrow $530/month, disclosures on file: TILA, RESPA servicing; modification agreement UNSIGNED, updated escrow analysis MISSING",
+      "sourcePrefix": "LoanCore://",
+      "knowledge": {
+        "name": "CfpbMortgageServicing",
+        "componentName": "CFPB Mortgage Servicing",
+        "url": "https://www.consumerfinance.gov",
+        "description": "Public CFPB rules and guidance on mortgage servicing, loss mitigation and required borrower disclosures. Search it for servicing and modification rules."
+      },
+      "domainMcp": {
+        "name": "EnrichAffordabilityData",
+        "componentName": "Enrich Affordability Data",
+        "description": "Returns affordability data for a borrower. Use when the user asks whether a borrower can afford modified terms.",
+        "connectionReference": "loanx_loanoriginationcreditdecisioningassistant_bf5ecd.cr.shared_loanx-5fenric.bd48a26fda3f2e8cd7f8",
+        "connectorId": "/providers/Microsoft.PowerApps/apis/shared_loanx-5fenrich-20affordability-20data-20mcp-5f46f18f33b2ee8a8d"
+      },
+      "proofExpect": {
+        "compare": [
+          "5\\.50?%|5\\.5",
+          "480"
+        ],
+        "knowledge": [
+          "loss mitigation|servic|modif",
+          "consumerfinance|CFPB"
+        ],
+        "knowledgeQuestion": "What does the CFPB require a servicer to do when a borrower requests loss mitigation? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "supplier-onboarding-compliance",
+      "name": "Supplier Onboarding Compliance Copilot",
+      "teams": "Procurement and Supply Chain",
+      "manages": "new supplier setup",
+      "packet": "onboarding approval packet",
+      "compare": "supplier submissions against required certifications (insurance, ESG, tax)",
+      "flags": "certification gaps",
+      "validates": "attribute completeness",
+      "reviews": "packets, reconciles across documents",
+      "report": "go-live readiness report",
+      "finalOwner": "Procurement",
+      "finalAction": "final vendor activation",
+      "idA": "SUP-NORTHWIND-2026",
+      "idB": "REQ-SUPPLIER-STANDARD-2026",
+      "recordA": "supplier submission SUP-NORTHWIND-2026, Northwind Fasteners, W-9 received 2026-08-02, certificate of insurance $1M general liability expires 2026-11-30, ESG questionnaire MISSING, ISO 9001 certificate received, bank letter received, DUNS 08-123-4567",
+      "recordB": "requirement set REQ-SUPPLIER-STANDARD-2026: W-9 required, certificate of insurance minimum $2M general liability required, ESG questionnaire required, ISO 9001 optional, bank letter required, DUNS required",
+      "sourcePrefix": "SupplierHub://",
+      "knowledge": {
+        "name": "IrsFormsAndPublications",
+        "componentName": "IRS Forms and Publications",
+        "url": "https://www.irs.gov",
+        "description": "Public IRS information on Form W-9, taxpayer identification, and backup withholding. Search it for tax documentation requirements for new suppliers."
+      },
+      "proofExpect": {
+        "compare": [
+          "ESG",
+          "\\$2M|2,000,000|insurance"
+        ],
+        "knowledge": [
+          "W-9",
+          "irs"
+        ],
+        "knowledgeQuestion": "What is IRS Form W-9 used for and when must a business collect one from a supplier? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "retail-media-campaign-trafficking",
+      "name": "Retail Media Campaign Trafficking Copilot",
+      "teams": "Ad Ops and Yield",
+      "manages": "campaign creative changes",
+      "packet": "insertion order packet",
+      "compare": "creative versions",
+      "flags": "added, resized, or expired assets",
+      "validates": "placement specs",
+      "reviews": "IO packets, reconciles flight dates and budgets across documents",
+      "report": "launch-readiness report",
+      "finalOwner": "Ad Ops",
+      "finalAction": "final trafficking",
+      "idA": "IO-7781-v1",
+      "idB": "IO-7781-v2",
+      "recordA": "insertion order IO-7781 v1, advertiser Fresh Sparkle Beverages, flight 2026-10-01 to 2026-10-31, budget $120,000, placements: homepage banner 970x250, product page tile 300x250; creatives: FS-Banner-A (970x250, approved), FS-Tile-A (300x250, approved)",
+      "recordB": "insertion order IO-7781 v2, advertiser Fresh Sparkle Beverages, flight 2026-10-05 to 2026-11-05, budget $135,000, placements: homepage banner 970x250, product page tile 300x250, app interstitial 320x480; creatives: FS-Banner-A (970x250, approved), FS-Tile-B (300x250, replaces FS-Tile-A, pending review), FS-Interstitial-A (320x480, MISSING file), FS-Tile-A EXPIRED 2026-09-30",
+      "sourcePrefix": "AdServer://",
+      "knowledge": {
+        "name": "IabAdStandards",
+        "componentName": "IAB Ad Standards",
+        "url": "https://www.iab.com",
+        "description": "Public IAB standards for display ad units, sizes, and creative specifications. Search it for placement and creative spec requirements."
+      },
+      "proofExpect": {
+        "compare": [
+          "135,?000",
+          "320x480|interstitial"
+        ],
+        "knowledge": [
+          "ad|creative|standard",
+          "iab"
+        ],
+        "knowledgeQuestion": "What are the IAB standard display ad unit sizes? Say which knowledge source you used."
+      },
+      "schemaBase": "RetailMediaCampaign",
+      "childDisplayName": "Retail Media Trafficking Data Agent"
+    },
+    {
+      "slug": "hr-policy-change-rollout",
+      "name": "HR Policy Change Rollout Copilot",
+      "teams": "HR and People Ops",
+      "manages": "policy updates",
+      "packet": "manager communication packet",
+      "compare": "old vs. new policy language",
+      "flags": "added, removed, or reworded clauses",
+      "validates": "jurisdiction-specific requirements",
+      "reviews": "rollout packets, reconciles regional exceptions",
+      "report": "communication-readiness report",
+      "finalOwner": "HR leadership",
+      "finalAction": "final approval",
+      "idA": "POL-PTO-v4",
+      "idB": "POL-PTO-v5",
+      "recordA": "policy POL-PTO-v4 (paid time off), accrual 1.25 days/month, carryover max 5 days, payout on separation per state law, notice for planned leave 2 weeks, regional exceptions: California unlimited carryover, none for Texas",
+      "recordB": "policy POL-PTO-v5 (paid time off), accrual 1.5 days/month, carryover max 10 days, payout on separation per state law, notice for planned leave 1 week, NEW clause: mandatory 5 consecutive days per year, regional exceptions: California unlimited carryover, Texas exception REMOVED, Illinois exception MISSING (required by state law)",
+      "sourcePrefix": "HRIS://policies/",
+      "knowledge": {
+        "name": "DolWorkerRights",
+        "componentName": "US Department of Labor",
+        "url": "https://www.dol.gov",
+        "description": "Public US Department of Labor guidance on leave, wage and hour rules. Search it for federal leave requirements and state-law pointers."
+      },
+      "proofExpect": {
+        "compare": [
+          "1\\.5",
+          "10 days|carryover"
+        ],
+        "knowledge": [
+          "leave|FMLA|wage",
+          "dol"
+        ],
+        "knowledgeQuestion": "What does the Department of Labor say employers must provide under the FMLA? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "manufacturing-bom-change",
+      "name": "Manufacturing BOM Change Copilot",
+      "teams": "Engineering and Supply Chain",
+      "manages": "bill-of-materials revisions",
+      "packet": "ECO approval packet",
+      "compare": "BOM versions",
+      "flags": "added, substituted, or obsolete parts",
+      "validates": "supplier lead times",
+      "reviews": "ECO packets, reconciles cost impacts across documents",
+      "report": "readiness report",
+      "finalOwner": "Engineering",
+      "finalAction": "final release",
+      "idA": "BOM-PUMP-X200-revC",
+      "idB": "BOM-PUMP-X200-revD",
+      "recordA": "BOM BOM-PUMP-X200-revC, pump assembly X200, parts: P-1001 impeller (qty 1, $42.00, lead 3 weeks), P-1002 seal kit (qty 1, $8.50, lead 1 week), P-1003 motor 1.5kW (qty 1, $210.00, lead 6 weeks), P-1004 housing (qty 1, $75.00, lead 4 weeks); unit cost $335.50",
+      "recordB": "BOM BOM-PUMP-X200-revD, pump assembly X200, parts: P-1001 impeller (qty 1, $42.00, lead 3 weeks), P-1002 seal kit OBSOLETE replaced by P-1002B seal kit v2 (qty 1, $9.75, lead 2 weeks), P-1003 motor 1.5kW (qty 1, $210.00, lead 10 weeks SUPPLIER DELAY), P-1004 housing (qty 1, $75.00, lead 4 weeks), P-1005 vibration damper NEW (qty 2, $6.00, lead 1 week); unit cost $348.75",
+      "sourcePrefix": "PLM://",
+      "knowledge": {
+        "name": "NistManufacturing",
+        "componentName": "NIST Manufacturing",
+        "url": "https://www.nist.gov",
+        "description": "Public NIST resources on manufacturing standards and engineering change practice. Search it for standards references relevant to engineering changes."
+      },
+      "proofExpect": {
+        "compare": [
+          "348\\.75",
+          "P-1005|damper"
+        ],
+        "knowledge": [
+          "standard|manufactur",
+          "nist"
+        ],
+        "knowledgeQuestion": "What does NIST provide for manufacturers regarding standards and measurement? Say which knowledge source you used."
+      }
+    },
+    {
+      "slug": "grant-compliance-reporting",
+      "name": "Grant Compliance Reporting Copilot",
+      "teams": "Finance and Program",
+      "manages": "grant fund usage",
+      "packet": "compliance report packet",
+      "compare": "budgeted vs. actual spend",
+      "flags": "unallowable costs or missing receipts",
+      "validates": "reporting attribute completeness",
+      "reviews": "compliance packets, reconciles data across systems",
+      "report": "submission-readiness report",
+      "finalOwner": "the Program Director",
+      "finalAction": "final submission",
+      "idA": "GRANT-EDU-2026-BUDGET",
+      "idB": "GRANT-EDU-2026-ACTUALS-Q3",
+      "recordA": "grant GRANT-EDU-2026 approved budget: personnel $180,000, travel $12,000, equipment $25,000, supplies $8,000, indirect 10% of direct; reporting requires receipts over $500 and a signed effort certification each quarter",
+      "recordB": "grant GRANT-EDU-2026 Q3 actuals: personnel $61,200, travel $6,900 (includes $1,400 alcohol at a reception, UNALLOWABLE), equipment $19,800 (receipt for $4,300 laptop MISSING), supplies $2,100, indirect $8,990; effort certification for Q3 UNSIGNED",
+      "sourcePrefix": "GrantsLedger://",
+      "knowledge": {
+        "name": "EcfrUniformGuidance",
+        "componentName": "eCFR Uniform Guidance (2 CFR 200)",
+        "url": "https://www.ecfr.gov",
+        "description": "Public eCFR text of 2 CFR Part 200 (Uniform Guidance) on allowable costs and grant reporting. Search it for cost allowability and documentation rules."
+      },
+      "proofExpect": {
+        "compare": [
+          "1,?400|alcohol",
+          "4,?300|receipt"
+        ],
+        "knowledge": [
+          "allowab|cost",
+          "ecfr|CFR"
+        ],
+        "knowledgeQuestion": "Under 2 CFR 200, are alcoholic beverages an allowable cost on a federal grant? Say which knowledge source you used."
+      }
+    }
+  ]
+}

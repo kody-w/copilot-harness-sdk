@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Claims Intake Reconciliation Data Agent"
+  description: "Fetches records by id (for example CLM-88213 or POL-55021) from the system of record: the full contents needed to compare submitted claim forms against policy coverage. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_ClaimsIntakeReconciliationDataAgent
+historyType:
+  kind: ConversationHistory

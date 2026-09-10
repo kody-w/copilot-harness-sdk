@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Manufacturing BOM Change Data Agent"
+  description: "Fetches records by id (for example BOM-PUMP-X200-revC or BOM-PUMP-X200-revD) from the system of record: the full contents needed to compare BOM versions. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_ManufacturingBOMChangeDataAgent
+historyType:
+  kind: ConversationHistory

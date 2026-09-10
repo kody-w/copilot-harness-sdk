@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Clinical Trial Site Activation Data Agent"
+  description: "Fetches records by id (for example PROTO-4471-v3 or PROTO-4471-v4) from the system of record: the full contents needed to compare protocol versions. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_ClinicalTrialSiteActivationDataAgent
+historyType:
+  kind: ConversationHistory

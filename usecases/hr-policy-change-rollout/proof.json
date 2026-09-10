@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_HRPolicyChangeRolloutCopilot",
+  "childSchemaName": "cr8c1_HRPolicyChangeRolloutDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What does the Department of Labor say employers must provide under the FMLA? Say which knowledge source you used.",
+      "expect": [
+        "leave|FMLA|wage",
+        "dol"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare POL-PTO-v4 against POL-PTO-v5 and flag added, removed, or reworded clauses.",
+      "expect": [
+        "1\\.5",
+        "10 days|carryover"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the communication-readiness report for POL-PTO-v4 -> POL-PTO-v5.",
+      "expect": [
+        "Recommended next step for HR leadership",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

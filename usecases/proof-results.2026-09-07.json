@@ -1,0 +1,1479 @@
+[
+  {
+    "schemaName": "cr8c1_ClaimsIntakeReconciliationCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does NAIC guidance say about documentation an insurer may require to process a claim? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "claim",
+            "ok": true
+          },
+          {
+            "rx": "naic",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 39126,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "**Knowledge source used:** NAIC Model Law MO903 — *Unfair Life, Accident and Health Claims Settlement Practices Model Regulation* [1], and NAIC Model Regulation MO910 — *Market Conduct Record Retention and Production Model Regulation* [2].\n\n---\n\nHere is what NAIC guidance says about required claim documentation:\n\n### Proof of Loss (MO903, Section 3J)[1]\n**\"Proof of loss\"** is defined as written proofs ordinarily required of all insureds or beneficiaries, including:\n- **Claim forms**\n- **Medical bills**\n- **Medical authorizations**\n- **Other reasonable evidence of the claim**\n\n### Documentation in the Claim File (MO903, Section 3F)[1]\n**\"Documentation\"** includes, but is not limited to:\n- All pertinent **communications** and **transactions**\n- **Notes** and **work papers**\n- **Claim forms**\n- **Bills**\n- **Explanation of Benefits (EOB) forms** relative to the claim\n\n### Insurer Obligations on Receipt (MO903, Section 4)[1]\n- Within **15 days** of notification, the insurer must provide necessary **claim forms, instructions, and reasonable assistance** so the insured can comply with filing requirements.\n- Investigation must begin within **15 days** of receiving proof of loss.\n- Liability must be affirmed or denied within a **reasonable time**, with payment offered within **30 days** of affirmation.\n\n### Claim File Record Requirements (MO910, Section 6)[2]\nThe claim file must show clearly the **inception, handling, and disposition** of each claim, with sufficient detail to reconstruct pertinent events and dates. Files must be retained for the **calendar year the claim is closed plus 3 years**.\n\n---\nIn short, NAIC guidance requires insurers to accept standard claim forms, medical bills, and reasonable written evidence as proof of loss — and prohibits denying claims based on undocumented phone calls or interviews."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare CLM-88213 against POL-55021 and flag missing documentation or inconsistent dates.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "14,?200",
+            "ok": true
+          },
+          {
+            "rx": "police report|proof of ownership",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 42306,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n**READINESS REPORT — CLM-88213 → POL-55021**\n\n**Changes / Mismatches:**\n- Claimed amount $14,200.00 vs. coverage limit $25,000 → within limit ✅\n- Deductible $1,000 not yet reflected in net payout on claim record [ClaimsDB://CLM-88213]\n- Date of Loss: 2026-08-14 | Date Reported: 2026-08-20 (6-day lag) → within standard window; policy active 2026-01-01 – 2026-12-31 ✅ [ClaimsDB://POL-55021]\n\n**Missing Items:**\n- **Proof of Ownership** — absent from CLM-88213; required under POL-55021 for items valued over $2,500; itemized breakdown not present to confirm applicability [ClaimsDB://CLM-88213, ClaimsDB://POL-55021]\n- **Police Report** — absent, but POL-55021 limits this requirement to theft claims only; **waivable** for this water damage claim [ClaimsDB://POL-55021]\n\n**Flags:**\n- ⚠️ **Fraud Flag — HIGH PRIORITY:** Prior claim filed within the last 12 months [ClaimsDB://CLM-88213]. NAIC Antifraud Plan Guideline GDL-1690 requires insurers to prioritize detection and investigation of suspected fraud [1]. SIU referral should be evaluated.\n- ⚠️ **Proof of Ownership gap** unresolved pending itemized breakdown confirmation.\n\n**Rating: Medium-High** — Claim is within coverage limits and dates are consistent, but the active fraud flag and missing proof of ownership require SIU review before this packet can advance.\n\n**Recommended next step for adjusters:** Obtain an itemized breakdown of claimed items to determine whether Proof of Ownership is required, and formally evaluate SIU referral given the active fraud flag per NAIC Antifraud Plan standards [1]."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the readiness report for CLM-88213 -> POL-55021.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for adjusters",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 12848,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have all the data from the records and knowledge retrieved in the previous turn. Here is the formal report:\n\n---\n\n```\nREADINESS REPORT - CLM-88213 -> POL-55021\nSource: ClaimsDB://CLM-88213, ClaimsDB://POL-55021, NAIC GDL-1690 [1], NAIC MO903 [2]\n\nChanges:\n  Claimed Amount $14,200.00 vs. Coverage Limit $25,000 → within limit  [ClaimsDB://POL-55021]\n  Deductible $1,000 not reflected as net deduction in claim record     [ClaimsDB://CLM-88213]\n\nMissing items:\n  Proof of Ownership — required by POL-55021 for items >$2,500;\n    absent from CLM-88213; itemized breakdown not on file to\n    confirm applicability                    [ClaimsDB://CLM-88213, ClaimsDB://POL-55021]\n  Police Report — absent but WAIVABLE; POL-55021 limits this\n    requirement to theft claims only;\n    this is a water damage claim             [ClaimsDB://POL-55021]\n\nFlags:\n  ⚠️  FRAUD FLAG: Prior claim filed within 12 months  [ClaimsDB://CLM-88213]\n      NAIC GDL-1690 requires insurers to make detection and\n      investigation of suspected fraud a priority — SIU referral\n      must be evaluated before packet advances          [1]\n  ⚠️  Proof of Ownership gap unresolved pending itemized breakdown\n  ℹ️  Date of Loss 2026-08-14 → Reported 2026-08-20 (6 days);\n      policy active 2026-01-01–2026-12-31 → no date inconsistency\n                                             [ClaimsDB://CLM-88213, ClaimsDB://POL-55021]\n\nRating: High — Active fraud flag on a prior-claim pattern requires\n  SIU review; Proof of Ownership cannot be waived until\n  itemized values are confirmed.\n\nRecommended next step for adjusters: Secure an itemized loss\n  breakdown to resolve the Proof of Ownership trigger, and make\n  a formal SIU referral decision on the fraud flag before\n  advancing this packet.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 10320,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the 2-day weather forecast for **Monterrey, Nuevo León, Mexico** (Source: Open-Meteo):\n\n**Current Conditions**\n- 🌤️ Clear sky | **93.5°F** (feels like 98.6°F)\n- Humidity: 45% | Wind: 12.1 mph\n\n| Date | Condition | High | Low | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.6°F | 10% |\n\nHot and overcast both days with very low precipitation probability. No weather-related site disruptions expected."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Verify Insurance tool and tell me what it can do; list the tools it exposes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 12102,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Based on the tools available in this environment, the **Verify Insurance Eligibility** agent exposes the following three tools:\n\n---\n\n### 🔍 Verify Insurance Eligibility Agent — Exposed Tools\n\n| Tool | What It Does |\n|---|---|\n| **`list_intelligentpatientintaketriageverifyinsuranceeligibilityag`** | Returns **all** Verify Insurance Eligibility records — call it with no arguments to get a full listing. |\n| **`search_intelligentpatientintaketriageverifyinsuranceeligibility`** | **Text-searches** across every field of every record — pass any keyword (name, status, date, plan, etc.) to find matching records. Case-insensitive. |\n| **`get_intelligentpatientintaketriageverifyinsuranceeligibilityage`** | Looks up **one specific record** by its `intake_id` (e.g. `IN-41001`) or by a partial name match — returns every field for that record. |\n\n---\n\n### What the Agent Does Overall\nIt **verifies insurance eligibility** for incoming patients by checking:\n- **Payer coverage** — is the patient covered?\n- **Plan details** — which plan applies?\n- **Co-pay** — what is the patient's cost share?\n- **Pre-authorization requirements** — does the treatment require prior auth?\n- **Coverage gaps** — flags any gaps to the admissions team before intake proceeds.\n\nWould you like me to list all records, search for a specific patient, or look up a specific intake ID?"
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_ClinicalTrialSiteActivationCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does the FDA require in an informed consent document for a clinical trial? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "consent|IRB",
+            "ok": true
+          },
+          {
+            "rx": "fda",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 32794,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Based on the **FDA Regulatory Information** knowledge source — specifically the *Informed Consent Guidance for IRBs, Clinical Investigators, and Sponsors* (August 2023)[1] and the *IRBs Frequently Asked Questions* guidance[2] — the FDA requires the following in an informed consent document under **21 CFR Part 50**:\n\n### 8 Basic Required Elements (21 CFR § 50.25(a))\n1. A statement that the study involves research, an explanation of its purpose, expected duration, and procedures to be followed.\n2. A description of **reasonably foreseeable risks or discomforts**.\n3. A description of **expected benefits** to the subject or others.\n4. **Disclosure of alternatives** to participation.\n5. A statement describing the extent to which **confidentiality** will be maintained.\n6. For research involving more than minimal risk: an explanation of whether **compensation or medical treatment** is available if injury occurs[2].\n7. Contact information for questions about the research and subject rights, and whom to contact in the event of a research-related injury.\n8. A statement that **participation is voluntary**, refusal involves no penalty, and the subject may discontinue at any time.\n\n### Additional Requirements\n- The document must **begin with a \"Key Information\" section** — a concise summary of the most important elements to facilitate understanding, per the 21st Century Cures Act and 21 CFR § 50.25(c)[3].\n- The signed consent form must be **posted on ClinicalTrials.gov** per 21 CFR § 50.25(c)[4].\n- The document must be **IRB-approved** before use[1].\n- Electronic informed consent is permissible if it meets 21 CFR Parts 11, 50, and 56[5].\n\n**Knowledge source used:** FDA Regulatory Information (connected website), primarily the August 2023 *Informed Consent* final guidance and the *IRBs FAQ* guidance."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare PROTO-4471-v3 against PROTO-4471-v4 and flag changed inclusion/exclusion criteria or dosing.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "16 weeks|16-week",
+            "ok": true
+          },
+          {
+            "rx": "18-75|75",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 30884,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n**READINESS REPORT — PROTO-4471-v3 → PROTO-4471-v4**\n\n**Changes:**\n- Inclusion: Age upper limit → 65 → **75 years** [CTMS://PROTO-4471-v4]\n- Inclusion: FEV1 lower bound → 60% → **55%** [CTMS://PROTO-4471-v4]\n- Exclusion: Smoking window → 6 months → **12 months** [CTMS://PROTO-4471-v4]\n- Dosing: Treatment duration → 12 weeks → **16 weeks** [CTMS://PROTO-4471-v4]\n\n**Missing items:**\n- IRB Letter (present in v3, absent in v4) [CTMS://PROTO-4471-v4]\n- Informed Consent v4 (present as v3, not updated for v4) [CTMS://PROTO-4471-v4]\n- IRB Approval — status **PENDING** (was approved 2026-03-02 in v3) [CTMS://PROTO-4471-v4]\n\n**Flags:**\n- ⚠️ All four criteria/dosing fields changed — broader patient population (age, FEV1), stricter smoking exclusion, and longer dosing duration require fresh IRB review and an updated Informed Consent form reflecting the new parameters.\n\n**Rating: High** — Three activation blockers (pending IRB approval, missing IRB letter, missing updated consent form) prevent site activation.\n\n**Recommended next step for Regulatory lead:** Prioritize obtaining IRB approval for v4, then collect the updated IRB letter and Informed Consent v4 before proceeding with site activation review."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the readiness report for PROTO-4471-v3 -> PROTO-4471-v4.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Regulatory lead",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 9224,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already retrieved both records in the previous turn — no need to re-fetch. Here is the formal readiness report:\n\n---\n\n**READINESS REPORT — PROTO-4471-v3 → PROTO-4471-v4**\n\n**Changes:**\n- Inclusion — Age upper limit: 65 → **75 years** [CTMS://PROTO-4471-v4]\n- Inclusion — FEV1 lower bound: 60% → **55%** [CTMS://PROTO-4471-v4]\n- Exclusion — Smoking window: 6 months → **12 months** [CTMS://PROTO-4471-v4]\n- Dosing — Treatment duration: 12 weeks → **16 weeks** [CTMS://PROTO-4471-v4]\n- IRB Approval: ✅ 2026-03-02 → ⚠️ **Pending** [CTMS://PROTO-4471-v4]\n\n**Missing items:**\n- IRB Letter [CTMS://PROTO-4471-v4]\n- Informed Consent v4 [CTMS://PROTO-4471-v4]\n\n**Flags:**\n- ⚠️ All inclusion/exclusion criteria and dosing duration changed — expanded eligibility (age, FEV1) and stricter smoking exclusion require updated IRB review and a revised Informed Consent document per 21 CFR § 50.25 [1]\n- ⚠️ IRB approval not yet granted for v4; site cannot activate until approval is confirmed\n\n**Rating: High** — Two missing documents plus pending IRB approval are hard blockers to site activation.\n\n**Recommended next step for Regulatory lead:** Secure IRB approval for v4 amendments, then obtain the updated IRB letter and Informed Consent v4 before authorizing site activation."
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 9162,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the 2-day forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n| Date | Condition | High | Low | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.6°F | 10% |\n\n**Current conditions:** Clear sky, 93.5°F (feels like 98.6°F), 45% humidity, winds at 12.1 mph. Hot and mostly overcast with very low precipitation risk over the next two days."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Log Compliance Audit tool and tell me what it can do; list the tools it exposes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 10517,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "The **Log Compliance Audit** tool (for the Clinical Documentation Coding Log) exposes **3 functions**:\n\n| Tool | What it does |\n|---|---|\n| `list_clinicaldocumentationcodinglogcomplianceauditagent` | Returns **every** audit record in the log — call with no arguments. |\n| `search_clinicaldocumentationcodinglogcomplianceauditagent` | **Full-text search** across all fields of every record (case-insensitive). Useful for finding records by status, date, name, or any field value. |\n| `get_clinicaldocumentationcodinglogcomplianceauditagent` | Fetches a **single record** by its `audit_id` (e.g. `AUD-88021`); a partial name match also works. Returns every field of that record. |\n\n**Purpose (from tool description):** Records immutable audit events for AI suggestions, clinician decisions, overrides, and system actions — including monthly compliance audit logs for clinical documentation coding.\n\nWould you like me to list all records, search for something specific, or look up a particular audit ID?"
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_GrantComplianceReportingCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "Under 2 CFR 200, are alcoholic beverages an allowable cost on a federal grant? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "allowab|cost",
+            "ok": true
+          },
+          {
+            "rx": "ecfr|CFR",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 25061,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "**No — alcoholic beverages are an unallowable cost under federal grants.**\n\n**2 CFR § 200.423** states plainly: *\"The cost of alcoholic beverages is unallowable.\"*[1] There are no exceptions, waivers, or circumstances listed under which this cost could be permitted.\n\n**Source used:** eCFR Uniform Guidance (2 CFR 200) — specifically § 200.423, Subpart E (Cost Principles), as published on eCFR.gov (current as of 9/03/2026)[1].\n\nAny line item in a grant budget that includes alcoholic beverages should be flagged as an unallowable cost and removed or reclassified to a non-federal funding source before submission."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare GRANT-EDU-2026-BUDGET against GRANT-EDU-2026-ACTUALS-Q3 and flag unallowable costs or missing receipts.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "1,?400|alcohol",
+            "ok": true
+          },
+          {
+            "rx": "4,?300|receipt",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 37169,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n**SUBMISSION-READINESS REPORT — GRANT-EDU-2026-BUDGET → GRANT-EDU-2026-ACTUALS-Q3**\n\n**Changes (Budget vs. Q3 Actuals):**\n- Travel: $12,000 budgeted → $6,900 spent (includes $1,400 unallowable alcohol) [GRANT-EDU-2026-ACTUALS-Q3]\n- Equipment: $25,000 budgeted → $19,800 spent ($4,300 laptop receipt absent) [GRANT-EDU-2026-ACTUALS-Q3]\n- Supplies: $8,000 budgeted → $2,100 spent [GRANT-EDU-2026-ACTUALS-Q3]\n- Personnel: $180,000 budgeted → $61,200 Q3 actuals [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Missing items:**\n- Receipt for $4,300 laptop (equipment) — required per grant terms (threshold: >$500) [GRANT-EDU-2026-BUDGET]\n- Signed Q3 effort certification — past due per quarterly requirement [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Flags:**\n- 🔴 $1,400 alcohol charge within Travel — **unallowable**; must be removed or charged to non-federal funds [2 CFR § 200.423][1]\n- 🔴 $4,300 laptop receipt not on file — **documentation deficiency** under 2 CFR § 200.403(g)[2]\n- 🔴 Q3 effort certification unsigned — **compliance deficiency** [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Rating: High Risk** — Three open findings, including a regulatory unallowable cost and two missing documentation items, all of which must be resolved before Q3 close.\n\n**Recommended next step for Program Director:** Disallow and remove the $1,400 alcohol charge from the Travel line, obtain the $4,300 laptop receipt, and collect the signed Q3 effort certification before authorizing Q3 submission."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the submission-readiness report for GRANT-EDU-2026-BUDGET -> GRANT-EDU-2026-ACTUALS-Q3.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Program Director",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 10552,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already retrieved both records and policy in the previous turn — here is the formal report:\n\n---\n\n**SUBMISSION-READINESS REPORT — GRANT-EDU-2026-BUDGET → GRANT-EDU-2026-ACTUALS-Q3**\n\n**Changes:**\n- Travel: $12,000 → $6,900 (includes $1,400 unallowable alcohol charge) [GRANT-EDU-2026-ACTUALS-Q3]\n- Equipment: $25,000 → $19,800 ($4,300 laptop receipt missing) [GRANT-EDU-2026-ACTUALS-Q3]\n- Supplies: $8,000 → $2,100 [GRANT-EDU-2026-ACTUALS-Q3]\n- Personnel: $180,000 budgeted → $61,200 Q3 actuals [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Missing items:**\n- Receipt for $4,300 laptop — required per grant terms (>$500 threshold) [GRANT-EDU-2026-BUDGET]\n- Signed Q3 effort certification — past due [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Flags:**\n- 🔴 $1,400 alcohol — unallowable per 2 CFR § 200.423; must be removed or redirected to non-federal funds [1]\n- 🔴 $4,300 laptop receipt absent — documentation deficiency per 2 CFR § 200.403(g) [2]\n- 🔴 Q3 effort certification unsigned — compliance deficiency [GRANT-EDU-2026-ACTUALS-Q3]\n\n**Rating: High Risk** — Three unresolved findings spanning an unallowable cost and two missing documentation items required for Q3 close.\n\n**Recommended next step for Program Director:** Remove or reallocate the $1,400 alcohol charge, obtain the $4,300 laptop receipt, and secure the signed Q3 effort certification before authorizing submission."
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 9887,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the 2-day forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n| Date | Condition | High | Low | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.6°F | 10% |\n\n**Current conditions:** Clear sky, 93.5°F (feels like 98.6°F), 45% humidity, winds at 12.1 mph.\n\nHot and overcast both days with very low precipitation risk. Plan accordingly for any outdoor site activities."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 24626,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a read-only summary of what the **Environment Data (Dataverse MCP)** tool exposes:\n\n---\n\n### Tools Available (Read-Only Used Here)\n\n| Tool | Purpose |\n|---|---|\n| **`describe`** | Get full details for any path — table schemas, skill definitions, skill resources, scope metadata, or catalog listings (`tables/`, `skills/`, `scopes/`) |\n| **`search`** | Keyword search across table schemas, skills, and scopes by name or concept |\n| **`read_query`** | Execute read-only SQL `SELECT` queries against Dataverse tables (supports TOP, WHERE, JOIN, GROUP BY, ORDER BY) |\n| **`create_table`** | Create a new Dataverse table with defined columns |\n| **`update_table`** | Add columns to or rename an existing table |\n| **`delete_table`** | Delete a table (requires explicit user approval) |\n| **`create_record`** | Insert a row into a table |\n| **`update_record`** | Update a row in a table |\n| **`delete_record`** | Delete a row (requires explicit user approval) |\n| **`upsert_skill`** | Create or update a Business Skill |\n| **`create_skill_resource`** | Attach a file resource to a skill |\n| **`delete_skill`** | Delete a Business Skill by name or ID |\n| **`init_file_upload`** | Step 1 of file upload — generates a SAS URL |\n| **`commit_file_upload`** | Step 3 of file upload — commits the upload |\n| **`file_download`** | Generate a SAS URL to download a file from a Dataverse record |\n\n---\n\n### What's in the Environment\n- **Tables:** Thousands of Dataverse tables are available (standard, `msdyn_*`, `mspp_*`, `msdynmkt_*`, and custom tables)\n- **Scopes:** 30+ app scopes detected (e.g., Sales Hub, Customer Service Workspace, Field Service, Omnichannel, Power Pages, etc.)\n- **Skills:** Business Skills feature is currently **disabled** in this environment (403 returned)\n\nNo data was modified."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_HRPolicyChangeRolloutCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does the Department of Labor say employers must provide under the FMLA? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "leave|FMLA|wage",
+            "ok": true
+          },
+          {
+            "rx": "dol",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 35254,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "**Knowledge source used:** U.S. Department of Labor (DOL) Wage and Hour Division — specifically **Fact Sheet #28D** (March 2025) and **Fact Sheet #28** (revised March 2025), both from dol.gov.\n\n---\n\nHere is what the DOL says covered employers must provide under the FMLA:\n\n**Leave Entitlement**\n- Up to **12 workweeks** of unpaid, job-protected leave per 12-month period for qualifying reasons[1]\n- Up to **26 workweeks** in a single 12-month period for military caregiver leave[1]\n\n**Qualifying reasons** include: birth/adoption/foster placement of a child; care for a spouse, child, or parent with a serious health condition; the employee's own serious health condition; and qualifying military exigency[2]\n\n**Benefits Continuation**\n- Continuation of **group health benefits** under the same conditions as if the employee had not taken leave[3]\n\n**Job Restoration**\n- Restoration to the **same or virtually identical position** upon return[4]\n\n**Required Notices** — employers must provide four specific notices[4]:\n1. **General Notice** (FMLA poster displayed + written notice upon hire)\n2. **Eligibility Notice** — within 5 business days of a leave request\n3. **Rights & Responsibilities Notice** — in writing, each time eligibility notice is given\n4. **Designation Notice** — in writing, confirming whether leave qualifies as FMLA and how much time will count"
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare POL-PTO-v4 against POL-PTO-v5 and flag added, removed, or reworded clauses.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "1\\.5",
+            "ok": true
+          },
+          {
+            "rx": "10 days|carryover",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 23305,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the clause-by-clause comparison between **POL-PTO-v4** and **POL-PTO-v5**, sourced from `HRIS://policies/POL-PTO-v4` and `HRIS://policies/POL-PTO-v5`:\n\n---\n\n## POL-PTO-v4 → POL-PTO-v5: Change Summary\n\n| Field | v4 | v5 | Change |\n|---|---|---|---|\n| Accrual Rate | 1.25 days/month | 1.50 days/month | ✏️ **Reworded / Increased** |\n| Carryover Maximum | 5 days | 10 days | ✏️ **Reworded / Increased** |\n| Payout on Separation | Per state law | Per state law | ✅ Unchanged |\n| Notice for Planned Leave | 2 weeks | 1 week | ✏️ **Reworded / Reduced** |\n| Mandatory Consecutive Days | *(none)* | 5 consecutive days/calendar year | ➕ **Added** |\n\n---\n\n## Regional Exception Changes\n\n| Region | v4 | v5 | Change |\n|---|---|---|---|\n| California | Unlimited carryover | Unlimited carryover | ✅ Unchanged |\n| Texas | No exception | Removed | ➖ **Removed** |\n| Illinois | *(not present)* | *(not present)* | ⚠️ **Compliance Gap** |\n\n---\n\n## ⚠️ Compliance Flag\n\n**Illinois** has a state-law requirement for a regional exception that is absent from both versions. This gap must be resolved before v5 is rolled out to Illinois employees.\n\n---\n\n**Recommended next step for HR leadership:** Confirm the Illinois regional exception language with legal counsel, add it to POL-PTO-v5 before distribution, and validate the new mandatory consecutive-days clause against any applicable state restrictions."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the communication-readiness report for POL-PTO-v4 -> POL-PTO-v5.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for HR leadership",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 32608,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n```\nCOMMUNICATION-READINESS REPORT — POL-PTO-v4 → POL-PTO-v5\nSources: HRIS://policies/POL-PTO-v4, HRIS://policies/POL-PTO-v5,\n         U.S. DOL (dol.gov/general/topic/benefits-leave/vacation_leave)\n\nCHANGES\n- Accrual Rate: 1.25 days/month → 1.50 days/month  [POL-PTO-v4, POL-PTO-v5]\n- Carryover Maximum: 5 days → 10 days  [POL-PTO-v4, POL-PTO-v5]\n- Notice for Planned Leave: 2 weeks → 1 week  [POL-PTO-v4, POL-PTO-v5]\n- Mandatory Consecutive Days: (none) → 5 consecutive days/calendar year\n  required  [POL-PTO-v5 — added clause]\n- Texas Regional Exception: present (no exception stated) → removed\n  entirely  [POL-PTO-v4, POL-PTO-v5]\n\nMISSING ITEMS\n- Illinois Regional Exception: absent from both v4 and v5; the HR\n  Policy Change Rollout Data Agent flagged this as required by state\n  law. The DOL confirms vacation/PTO terms beyond the FLSA minimum\n  are governed by state law [turn3doc5], so Illinois-specific language\n  must be drafted before rollout.\n\nFLAGS\n➕ ADDED — Mandatory 5 consecutive days/calendar year clause (new\n   operational requirement; manager communication needed)  [POL-PTO-v5]\n➕ ADDED — Carryover increase from 5 → 10 days (employee-favorable;\n   low friction expected)  [POL-PTO-v4, POL-PTO-v5]\n✏️ REWORDED — Accrual rate raised (1.25 → 1.50 days/month)\n   [POL-PTO-v4, POL-PTO-v5]\n✏️ REWORDED — Notice period shortened (2 weeks → 1 week)\n   [POL-PTO-v4, POL-PTO-v5]\n➖ REMOVED — Texas regional exception dropped with no documented\n   rationale  [POL-PTO-v4, POL-PTO-v5]\n⚠️  COMPLIANCE GAP — Illinois exception missing; state law requires\n   it [turn3doc5]\n\nRATING: High — the missing Illinois exception is a compliance\nblocker, and the new mandatory consecutive-days clause requires\ntargeted manager communication before rollout.\n\nRecommended next step for HR leadership: Engage legal counsel to\ndraft the Illinois regional exception and confirm the mandatory\nconsecutive-days clause is permissible in all operating\njurisdictions before approving v5 for distribution.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 9491,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's the 2-day forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n| Date | Condition | High | Low | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0 °F | 75.5 °F | 8% |\n| Sep 8, 2026 | Overcast | 95.9 °F | 74.6 °F | 10% |\n\n**Current conditions:** Clear sky, 93.5 °F (feels like 98.6 °F), 45% humidity, winds at 12.1 mph.\n\nOverall: hot and overcast with very low precipitation risk both days. No weather-related disruptions expected at the Monterrey site."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 21003,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a summary of the read-only tools the **Dataverse MCP** exposes in this environment:\n\n---\n\n### 🔍 Read Tools (used — no data changed)\n| Tool | Purpose |\n|---|---|\n| **`search`** | Find table schemas, skills, and scopes by keyword |\n| **`describe`** | Get full schema details for a table, record, skill, scope, or catalog listing |\n| **`read_query`** | Run a read-only `SELECT` SQL query against any Dataverse table |\n\n### ✏️ Write Tools (available but not invoked)\n| Tool | Purpose |\n|---|---|\n| `create_table` | Create a new table with defined columns |\n| `update_table` | Add columns to an existing table |\n| `delete_table` | Delete a table (requires explicit user consent) |\n| `create_record` | Insert a new row into a table |\n| `update_record` | Update an existing row |\n| `delete_record` | Delete a row (requires explicit user consent) |\n\n### 📁 File Tools (available but not invoked)\n| Tool | Purpose |\n|---|---|\n| `init_file_upload` | Step 1 of uploading a file to a record |\n| `commit_file_upload` | Step 3 — commits the upload after PUT to SAS URL |\n| `file_download` | Generate a SAS URL to download a file from a record |\n| `create_skill_resource` | Link a file resource to a Business Skill |\n\n### 📋 Skill Tools (available but not invoked)\n| Tool | Purpose |\n|---|---|\n| `upsert_skill` | Create or update a Business Skill |\n| `delete_skill` | Delete a Business Skill |\n\n---\n\n**Note:** The `describe('scopes/')` call returned 30+ app scopes (e.g., Sales Hub, Field Service, Customer Service Workspace) and `describe('tables/')` returned hundreds of available Dataverse tables. Business Skills (`describe('skills/')`) returned a 403 — that feature is currently disabled in this environment. No data was read, written, or modified."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_LoanServicingExceptionCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does the CFPB require a servicer to do when a borrower requests loss mitigation? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "loss mitigation|servic|modif",
+            "ok": true
+          },
+          {
+            "rx": "consumerfinance|CFPB",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 33926,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is what the CFPB requires, drawn from **§ 1024.39** and **§ 1024.41** of Regulation X (12 CFR Part 1024) — **CFPB Mortgage Servicing** knowledge source.\n\n---\n\n### CFPB Servicer Requirements When a Borrower Requests Loss Mitigation\n\n**1. Early Intervention (§ 1024.39)**[1]\n- Attempt **live contact** with the delinquent borrower no later than **day 36** of delinquency, and again no later than 36 days after each missed payment due date.\n- Promptly inform the borrower about the **availability of loss mitigation options** after establishing live contact, if appropriate.\n- Send a **written notice** no later than **45 calendar days** after delinquency with examples of loss mitigation options available and application instructions.[2]\n\n**2. Continuity of Contact (§ 1024.40)**[2]\n- Assign personnel as a **point of contact** within 45 days of delinquency. Those personnel must be reachable by phone, respond to inquiries, provide accurate information on options, and track the borrower's application status.\n\n**3. Loss Mitigation Application Review (§ 1024.41)**[3]\n- Upon receiving a **complete loss mitigation application** more than 37 days before a scheduled foreclosure sale, the servicer must evaluate it and respond **in writing within 30 days**.[4]\n- The servicer must either: **(a)** offer a loss mitigation option, **(b)** deny the application with specific written reasons, or **(c)** request additional documentation.\n- If the application is received **at least 90 days** before a foreclosure sale and a loan modification is denied, the borrower has the right to **appeal**.[4]\n\n> **Note:** § 1024.41 imposes no duty on a servicer to offer any *specific* loss mitigation option — only to evaluate and respond.[3]\n\n**Source used:** CFPB Mortgage Servicing (Website) — *§ 1024.39*, *§ 1024.41* of Regulation X (12 CFR Part 1024), consumerfinance.gov."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare LN-204118 against LN-204118-MOD1 and flag rate, term, or escrow changes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "5\\.50?%|5\\.5",
+            "ok": true
+          },
+          {
+            "rx": "480",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 36352,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n```\nEXCEPTION REPORT — LN-204118 → LN-204118-MOD1\nBorrower: T. Nguyen\n──────────────────────────────────────────────────────\n\nCHANGES\n  Interest Rate:    6.25% fixed → 5.50% fixed  [LoanCore://LN-204118 & LN-204118-MOD1]\n  Loan Term:        360 months (30 yr) → 480 months (40 yr)  [LoanCore://LN-204118-MOD1]\n  Principal Balance:$312,000.00 → $318,400.00 (capitalized arrears)  [LoanCore://LN-204118-MOD1]\n  Escrow Payment:   $480.00/mo → $530.00/mo (+$50.00/mo)  [LoanCore://LN-204118-MOD1]\n\nMISSING ITEMS\n  • Hardship Affidavit — present in LN-204118, absent in LN-204118-MOD1  [LoanCore://LN-204118-MOD1]\n  • Signed Modification Agreement — unsigned per system of record  [LoanCore://LN-204118-MOD1]\n  • Updated Escrow Analysis — flagged missing in system of record  [LoanCore://LN-204118-MOD1]\n\nFLAGS\n  ⚑ RATE CHANGE — rate reduced 75 bps (6.25% → 5.50%)  [LoanCore]\n  ⚑ TERM CHANGE — term extended 120 months (30 yr → 40 yr)  [LoanCore]\n  ⚑ ESCROW CHANGE — payment increased $50/mo; updated escrow analysis required under\n    Regulation X § 1024.17  [CFPB Mortgage Servicing][1]\n  ⚑ PRINCIPAL INCREASE — $6,400 in capitalized arrears raises note balance  [LoanCore]\n\nRATING: High — three material loan term changes (rate, term, escrow) combined with\ntwo missing required documents (unsigned modification agreement, missing escrow analysis)\npresent compliance exposure under Regulation X §§ 1024.17 and 1024.41.\n\nRecommended next step for underwriter: Obtain borrower's signed Modification Agreement,\ncomplete a new escrow analysis per § 1024.17, and confirm the re-filed Hardship Affidavit\nis on record before advancing this packet.\n```"
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the exception report for LN-204118 -> LN-204118-MOD1.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for underwriter",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 15791,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have both records from this session — no need to re-fetch. Here is the formal report:\n\n---\n\n```\nEXCEPTION REPORT — LN-204118 → LN-204118-MOD1\nBorrower: T. Nguyen\n\nChanges:\n  Interest Rate:     6.25% fixed → 5.50% fixed (-75 bps)      [LoanCore://LN-204118 & MOD1]\n  Loan Term:         360 months (30 yr) → 480 months (40 yr)   [LoanCore://LN-204118-MOD1]\n  Principal Balance: $312,000.00 → $318,400.00 (capitalized arrears) [LoanCore://LN-204118-MOD1]\n  Escrow Payment:    $480.00/mo → $530.00/mo (+$50.00/mo)      [LoanCore://LN-204118-MOD1]\n\nMissing items:\n  • Hardship Affidavit (present in LN-204118, absent in MOD1)   [LoanCore://LN-204118-MOD1]\n  • Signed Modification Agreement (unsigned)                     [LoanCore://LN-204118-MOD1]\n  • Updated Escrow Analysis                                      [LoanCore://LN-204118-MOD1]\n\nFlags:\n  ⚑ RATE CHANGE   — 6.25% → 5.50%                              [LoanCore]\n  ⚑ TERM CHANGE   — 30 yr → 40 yr                              [LoanCore]\n  ⚑ ESCROW CHANGE — $480 → $530/mo; updated escrow analysis\n                    required under Reg X § 1024.17              [CFPB Mortgage Servicing][1]\n\nRating: High — three material term changes plus two missing\nrequired documents create compliance exposure under\nRegulation X §§ 1024.17 and 1024.41.\n\nRecommended next step for underwriter: Obtain the borrower's\nsigned Modification Agreement, complete a new escrow analysis\nper § 1024.17, and re-file the Hardship Affidavit before\nadvancing this packet.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 10732,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's the 2-day forecast for **Monterrey, Nuevo León, Mexico** (Source: Open-Meteo):\n\n| Date | Condition | High °F | Low °F | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0° | 75.5° | 8% |\n| Sep 8, 2026 | Overcast | 95.9° | 74.9° | 10% |\n\n**Current conditions (as of 2:30 PM local):** Clear sky, 93.5°F, feels like 98.3°F, humidity 44%, winds at 12.1 mph.\n\nHot and mostly overcast both days with very low precipitation chances. Note that weather is outside the scope of loan servicing work — let me know if there's anything else I can help with on the exception packet!"
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Enrich Affordability Data tool and tell me what it can do; list the tools it exposes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 13206,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I have direct access to the Enrich Affordability Data tools. Here is what they expose — three operations in total:\n\n---\n\n### Enrich Affordability Data — Available Tools\n\n| # | Tool | What it does |\n|---|---|---|\n| 1 | **List All Records** | Returns every record in the Enrich Affordability Data agent — no arguments needed. Use to get a full inventory of applications. |\n| 2 | **Search Records** | Case-insensitive text search matched against every field of every record (e.g. by name, status, date, or any field value). |\n| 3 | **Get Record by Application Ref** | Looks up a single record by its `application_ref` (e.g. `LN-2026-4472`). Also resolves partial name matches. Returns all fields. |\n\n---\n\n### Purpose\nPer the tool description, this agent **enriches affordability data** for a customer as part of a loan origination / credit decisioning workflow. Specifically it:\n\n- 📋 Records **Open Banking consent**\n- 🏦 Retrieves **12 months of transaction history**\n- 📊 Calculates **verified income, expenditure, and debt**\n\n---\n\n> ⚠️ Per my operating rules, I will only **read** from these Dataverse tools — I will not write to them unless explicitly directed. Would you like me to list or search the current records?"
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_ManufacturingBOMChangeCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does NIST provide for manufacturers regarding standards and measurement? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "standard|manufactur",
+            "ok": true
+          },
+          {
+            "rx": "nist",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 32228,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a summary drawn from the **NIST Manufacturing** knowledge source (NIST website — nist.gov):\n\n---\n\n**What NIST provides for manufacturers:**\n\n1. **Calibration Services** — NIST calibrates measurement equipment to the highest accuracy, creating an unbroken traceability chain from primary standards to manufacturers. A single NIST calibration can affect \"hundreds of millions of dollars of manufactured test and measurement equipment\"[1].\n\n2. **Standard Reference Materials (SRMs) & Instruments (SRIs)** — Physical reference materials and instruments labs and manufacturers use to verify their own equipment is measuring accurately — sometimes called \"truth in a bottle\"[2].\n\n3. **Metrological Traceability** — As the U.S. National Measurement Institute (NMI), NIST maintains all seven primary measurement units and provides the traceability basis for the entire U.S. measurement system[3].\n\n4. **Laboratory Accreditation (NVLAP)** — NIST's National Voluntary Laboratory Accreditation Program validates the competence of commercial, in-house, and government labs[1].\n\n5. **Smart Manufacturing Programs** — Including measurement science for additive manufacturing, robotics/autonomous systems, and model-based enterprise to advance production efficiency and competitiveness[4].\n\n6. **Manufacturing Extension Partnership (MEP)** — Facilitates technology transfer to small and medium-sized manufacturers across all 50 states[5].\n\n**Knowledge source used:** NIST Manufacturing website (nist.gov), retrieved via the connected **NIST Manufacturing** web knowledge source."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare BOM-PUMP-X200-revC against BOM-PUMP-X200-revD and flag added, substituted, or obsolete parts.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "348\\.75",
+            "ok": true
+          },
+          {
+            "rx": "P-1005|damper",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 42380,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n**READINESS REPORT — BOM-PUMP-X200-revC → BOM-PUMP-X200-revD**\n\n**Changes:**\n- Line 2: P-1002 Seal Kit $8.50, 1 wk → **P-1002B Seal Kit v2 $9.75, 2 wks** — P-1002 marked OBSOLETE [PLM://BOM-PUMP-X200-revD]\n- Line 3: P-1003 Motor 1.5kW lead time **6 wks → 10 wks** (supplier delay flag) [PLM://BOM-PUMP-X200-revD]\n- Line 5: P-1005 Vibration Damper (qty 2 × $6.00 = $12.00, 1 wk) — **NEW line item added** [PLM://BOM-PUMP-X200-revD]\n- Unit cost: $335.50 → **$348.75 (+$13.25)** [PLM://BOM-PUMP-X200-revD]\n\n**Missing items:** None — all revC lines carried forward.\n\n**Flags:**\n- 🔴 **Obsolete:** P-1002 (Seal Kit) replaced by P-1002B\n- 🟡 **Substituted:** P-1002B (Seal Kit v2) — verify form/fit/function equivalency per documentary standards [1]\n- 🟢 **Added:** P-1005 Vibration Damper (new line)\n- 🔴 **Supply risk:** P-1003 Motor lead time extended to 10 weeks — may impact schedule [PLM://BOM-PUMP-X200-revD]\n\n**Rating: Medium** — The part substitution and motor lead-time extension each require independent verification before production release.\n\n**Recommended next step for Engineering:** Validate P-1002B form/fit/function equivalency against P-1002, confirm P-1003 supplier commitment on the 10-week lead time, and obtain sign-off on the P-1005 addition before advancing the ECO packet."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the readiness report for BOM-PUMP-X200-revC -> BOM-PUMP-X200-revD.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Engineering",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 12055,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have all the data from the previous lookup. Here is the formal report:\n\n---\n\n**READINESS REPORT — BOM-PUMP-X200-revC → BOM-PUMP-X200-revD**\n\n**Changes:**\n- Line 2: P-1002 Seal Kit $8.50 / 1 wk → P-1002B Seal Kit v2 $9.75 / 2 wks — P-1002 marked OBSOLETE [PLM://BOM-PUMP-X200-revD]\n- Line 3: P-1003 Motor 1.5kW lead time 6 wks → 10 wks — SUPPLIER DELAY flag [PLM://BOM-PUMP-X200-revD]\n- Line 5: P-1005 Vibration Damper qty 2 × $6.00 = $12.00 / 1 wk — NEW line item [PLM://BOM-PUMP-X200-revD]\n- Unit cost: $335.50 → $348.75 (+$13.25) [PLM://BOM-PUMP-X200-revD]\n\n**Missing items:** None — all revC lines carried forward [PLM://BOM-PUMP-X200-revC]\n\n**Flags:**\n- 🔴 **Obsolete:** P-1002 Seal Kit — superseded by P-1002B; verify no open inventory or WIP exposure [PLM://BOM-PUMP-X200-revD]\n- 🟡 **Substituted:** P-1002B Seal Kit v2 — form/fit/function equivalency must be confirmed per documentary standards requirements [1]\n- 🟢 **Added:** P-1005 Vibration Damper — new line, no predecessor; confirm design validation complete [PLM://BOM-PUMP-X200-revD]\n- 🔴 **Supply risk:** P-1003 Motor lead time +4 wks (6 → 10 wks) — critical path risk if schedule unchanged [PLM://BOM-PUMP-X200-revD]\n\n**Rating: Medium** — Two open risks (P-1002B substitution validation and P-1003 lead-time extension) must be resolved before production release; no structural BOM integrity issues detected.\n\n**Recommended next step for Engineering:** Confirm P-1002B form/fit/function equivalency, obtain a revised supplier commitment on P-1003, verify P-1005 design validation is on record, and assess inventory disposition of obsolete P-1002 stock before advancing the ECO packet."
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 10538,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the 2-day forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n| Date | Condition | High °F | Low °F | Precip. Chance |\n|------------|-----------|---------|--------|----------------|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.9°F | 10% |\n\n**Current conditions (as of 2:30 PM local):** Clear sky, 93.5°F, feels like 98.3°F, humidity 44%, winds at 12.1 mph.\n\nHot and overcast with very low precipitation risk both days — no weather disruptions expected for site operations."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 22507,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a read-only inventory of what the **Dataverse MCP** environment exposes:\n\n---\n\n### 📋 Dataverse MCP — Exposed Tools\n\n| Tool | Purpose |\n|---|---|\n| `read_query` | Run read-only SELECT SQL queries against Dataverse tables |\n| `describe` | Inspect table schemas, skill definitions, scope details, or individual records by path |\n| `search` | Keyword search across table schemas, skills, and scopes |\n| `create_table` | Create a new Dataverse table with columns |\n| `update_table` | Add columns or rename an existing table |\n| `delete_table` | Delete a table (requires explicit user consent) |\n| `create_record` | INSERT a row into a table |\n| `update_record` | UPDATE an existing row by GUID |\n| `delete_record` | DELETE a row (requires explicit user consent) |\n| `upsert_skill` | Create or update a Business Skill record |\n| `create_skill_resource` | Attach a file resource to a Skill |\n| `delete_skill` | Delete a Business Skill by name or ID |\n| `init_file_upload` | Step 1 of file upload — generates a SAS URL |\n| `commit_file_upload` | Step 3 of file upload — commits the upload |\n| `file_download` | Generate a SAS download URL for a file on a record |\n\n---\n\n### 📦 Available Data\n- **Tables:** Hundreds of Dataverse tables (accounts, contacts, opportunities, work orders, BOM-related custom tables, skill/skillresource, etc.)\n- **Scopes:** 30+ app scopes (Sales Hub, Field Service, Customer Service Workspace, Omnichannel, Power Platform Settings, etc.)\n- **Skills:** Business Skills feature is currently **disabled** in this environment (Power Platform admin center enablement required)\n\n> No data was modified. All calls were read-only `describe` operations."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_RetailMediaCampaignCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What are the IAB standard display ad unit sizes? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "ad|creative|standard",
+            "ok": true
+          },
+          {
+            "rx": "iab",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 32194,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here are the IAB standard fixed-size display ad units from the **IAB New Ad Portfolio — Fixed Size Ad Specifications** [1]:\n\n| Ad Unit Name | Fixed Size (px) | Initial Load Max (kB) | Subload Max (kB) |\n|---|---|---|---|\n| Billboard | 970×250 | 250 | 500 |\n| Leaderboard | 728×90 | 150 | 300 |\n| Super Leaderboard / Pushdown | 970×90 | 200 | 400 |\n| Medium Rectangle | 300×250 | 150 | 300 |\n| Portrait | 300×1050 | 250 | 500 |\n| Skyscraper | 160×600 | 150 | 300 |\n| Smartphone Banner | 300×50 or 320×50 | 50 | 100 |\n| Mobile Phone Interstitial | 640×1136, 750×1334, or 1080×1920 | 300 | 600 |\n| 120×60 | 120×60 | 50 | 100 |\n| Feature Phone Small Banner | 120×20 | 5 | N/A |\n| Feature Phone Medium Banner | 168×28 | 5 | N/A |\n| Feature Phone Large Banner | 216×36 | 5 | N/A |\n\n**Knowledge source used:** IAB Ad Standards — *Fixed Size Ad Specifications* (IAB New Ad Portfolio, published April 2019), retrieved via the **IAB Ad Standards** connected knowledge source [1].\n\n> Note: The IAB New Ad Portfolio (2017) also introduced **flexible/aspect-ratio-based** formats as the preferred direction, moving away from fixed pixel sizes for cross-screen compatibility [2]. Let me know if you'd like details on those as well."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare IO-7781-v1 against IO-7781-v2 and flag added, resized, or expired assets.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "135,?000",
+            "ok": true
+          },
+          {
+            "rx": "320x480|interstitial",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 47620,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n```\nLAUNCH-READINESS REPORT — IO-7781-v1 → IO-7781-v2\nAdvertiser: Fresh Sparkle Beverages\n\nChanges:\n  Flight Start:  2026-10-01 → 2026-10-05  [RetailMediaTraffickingDataAgent]\n  Flight End:    2026-10-31 → 2026-11-05  [RetailMediaTraffickingDataAgent]\n  Budget:        $120,000 → $135,000 (+$15,000)  [RetailMediaTraffickingDataAgent]\n  Placements:    2 → 3 (App Interstitial 320×480 added)  [RetailMediaTraffickingDataAgent]\n  Creative:      FS-Tile-A (approved) → FS-Tile-B (pending review)  [RetailMediaTraffickingDataAgent]\n\nMissing items:\n  FS-Interstitial-A — file not uploaded (MISSING FILE)  [RetailMediaTraffickingDataAgent]\n\nFlags:\n  🆕 ADDED — FS-Interstitial-A (320×480) added for new App Interstitial placement; note IAB\n     standard mobile interstitial sizes are 640×1136 / 750×1334 / 1080×1920 — 320×480\n     does not match an IAB standard fixed size  [RetailMediaTraffickingDataAgent / doc:turn1doc1]\n  ⏳ PENDING — FS-Tile-B has not completed creative review  [RetailMediaTraffickingDataAgent]\n  ⛔ EXPIRED — FS-Tile-A expired 2026-09-30; still present in v2 asset list  [RetailMediaTraffickingDataAgent]\n  🚨 MISSING FILE — FS-Interstitial-A has no file attached  [RetailMediaTraffickingDataAgent]\n\nRating: High — three blocking issues (expired asset, missing creative file, non-standard\ninterstitial size) must be resolved before the 2026-10-05 flight start.\n\nRecommended next step for Ad Ops: Upload the FS-Interstitial-A file, confirm its size\nconforms to an IAB standard interstitial dimension, complete review of FS-Tile-B, and\nretire FS-Tile-A before activating the campaign.\n```"
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the launch-readiness report for IO-7781-v1 -> IO-7781-v2.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Ad Ops",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 11980,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already retrieved both records and policy references in your previous request — no new lookups needed. Here is the formal report:\n\n---\n\n```\nLAUNCH-READINESS REPORT — IO-7781-v1 → IO-7781-v2\nAdvertiser: Fresh Sparkle Beverages\n\nChanges:\n  Flight Start:  2026-10-01 → 2026-10-05  [RetailMediaTraffickingDataAgent]\n  Flight End:    2026-10-31 → 2026-11-05  [RetailMediaTraffickingDataAgent]\n  Budget:        $120,000 → $135,000 (+$15,000)  [RetailMediaTraffickingDataAgent]\n  Placements:    2 → 3 (App Interstitial 320×480 added)  [RetailMediaTraffickingDataAgent]\n  Creative swap: FS-Tile-A (approved) → FS-Tile-B (pending review)  [RetailMediaTraffickingDataAgent]\n\nMissing items:\n  FS-Interstitial-A — file not uploaded  [RetailMediaTraffickingDataAgent]\n\nFlags:\n  🆕 ADDED   — FS-Interstitial-A (320×480) new asset for App Interstitial placement;\n               320×480 is NOT an IAB standard fixed interstitial size (standard:\n               640×1136, 750×1334, or 1080×1920) [1]\n  ⏳ PENDING  — FS-Tile-B has not completed creative review  [RetailMediaTraffickingDataAgent]\n  ⛔ EXPIRED  — FS-Tile-A expired 2026-09-30; still present in v2 asset list  [RetailMediaTraffickingDataAgent]\n  🚨 MISSING  — FS-Interstitial-A file is absent; placement cannot serve  [RetailMediaTraffickingDataAgent]\n\nRating: High — three blocking issues (expired asset, missing creative file,\nnon-standard interstitial size) must be resolved before the 2026-10-05 flight start.\n\nRecommended next step for Ad Ops: Upload a conforming FS-Interstitial-A file at an\nIAB-standard mobile interstitial size, complete review of FS-Tile-B, and remove or\nreplace the expired FS-Tile-A before activating the IO.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 11311,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's the 2-day weather forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n**Current Conditions**\n- 🌤️ Clear sky | **93.5°F** (feels like 98.3°F)\n- Humidity: 44% | Wind: 12.1 mph\n\n| Date | Condition | High | Low | Precip. Chance |\n|---|---|---|---|---|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.9°F | 10% |\n\nHot and overcast both days with very low precipitation risk. No weather concerns anticipated for site operations."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 21713,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a read-only summary of what the **Environment Data (Dataverse MCP)** tool exposes:\n\n---\n\n### Tools the Dataverse MCP Exposes\n\n| Tool | Purpose |\n|---|---|\n| **`describe`** | Get full details for any path — tables catalog, a specific table schema, skill details, scope metadata, or individual records |\n| **`search`** | Find table schemas, skills, and scopes by keyword; optionally filtered to a scope |\n| **`read_query`** | Execute read-only SQL SELECT queries against Dataverse tables |\n| **`create_table`** | Create a new Dataverse table with specified columns |\n| **`update_table`** | Add columns or rename an existing table |\n| **`delete_table`** | Delete a table (requires explicit user consent) |\n| **`create_record`** | Insert a new row into a table |\n| **`update_record`** | Update an existing row by GUID |\n| **`delete_record`** | Delete a row (requires explicit user consent) |\n| **`upsert_skill`** | Create or update a Business Skill record |\n| **`create_skill_resource`** | Attach a resource file to a skill |\n| **`delete_skill`** | Remove a Business Skill by name or ID |\n| **`init_file_upload`** | Step 1 of file upload — generates a SAS URL |\n| **`commit_file_upload`** | Step 3 of file upload — commits the upload |\n| **`file_download`** | Generate a SAS URL to download a file from a record |\n\n### What's in this environment\n- **Tables:** Thousands of Dataverse tables (standard + custom), including the full Dynamics 365 / Power Platform catalog\n- **Scopes:** 30+ app scopes (e.g., Sales Hub, Field Service, Customer Service Workspace, Omnichannel, Power Pages, etc.)\n- **Skills:** Business Skills feature is currently **disabled** in this environment (403 returned)\n\nNo data was modified."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_StoreMerchandisingResetCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What does the NRF say about store operations best practices for merchandising resets? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "retail|store|merchandis",
+            "ok": true
+          },
+          {
+            "rx": "nrf",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 39921,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's what the **NRF (National Retail Federation)** says, drawn from their public resources — **Source: NRF Retail Resources (Website)**:\n\n---\n\n**On Merchandising Execution** [1]:\n- How products are *presented* matters as much as what you sell — merchandising transforms the store into a \"storytelling platform.\"\n- Place best-selling items toward the **rear of the store** to drive customers through the full floor.\n- Use props, signage, and lighting to highlight new arrivals or hero items.\n- Use the cash wrap area to display impulse/add-on items and increase basket size.\n\n**On Assortment & Inventory (directly supporting reset planning)** [1]​[2]:\n- Consistently evaluate the assortment — monitor sales, track markdowns, listen to customer feedback, and **cut underperforming products without hesitation**.\n- Use an open-to-buy (OTB) plan to control SKU counts by category; reserve **10–15% of OTB budget** for in-season replenishment or trends.\n- Stockouts cost retailers nearly **$1 trillion worldwide annually** — real-time shelf visibility tools (e.g., computer vision) are emerging best practice to combat this [2].\n\n---\n\n**Knowledge source used:** NRF Retail Resources (Website), specifically the *Five to Thrive: Retail Fundamentals for Growth* article (Dec 2025) and the *How Retailers Can Master Inventory Challenges* blog post (Dec 2024)."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare PLN-AISLE7-2026Q2 against PLN-AISLE7-2026Q3 and flag added, relocated, or discontinued SKUs.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "10112|Protein Bites",
+            "ok": true
+          },
+          {
+            "rx": "10077|Trail Blend",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 35750,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n**EXECUTION REPORT — PLN-AISLE7-2026Q2 → PLN-AISLE7-2026Q3**\n\n**Changes:**\n- SKU 10034 Salted Pretzels: Shelf 2 → Shelf 1 [PlanogramDB://PLN-AISLE7-2026Q3]\n- SKU 10021 Crunch Mix: Shelf 1 → Shelf 2 [PlanogramDB://PLN-AISLE7-2026Q3]\n- Clip Strip: None → Added on Shelf 3 [PlanogramDB://PLN-AISLE7-2026Q3]\n\n**Missing items:**\n- SKU 10077 Trail Blend (present on Shelf 3, Q2; absent in Q3) [PlanogramDB://PLN-AISLE7-2026Q2 / PLN-AISLE7-2026Q3]\n\n**Flags:**\n- ➕ **Added:** SKU 10112 Protein Bites — Shelf 3, 3 facings [PlanogramDB://PLN-AISLE7-2026Q3]\n- 🔀 **Relocated:** SKU 10034 Salted Pretzels (Shelf 2→1), SKU 10021 Crunch Mix (Shelf 1→2) [PlanogramDB://PLN-AISLE7-2026Q3]\n- ❌ **Discontinued:** SKU 10077 Trail Blend [PlanogramDB://PLN-AISLE7-2026Q3]\n- 🔧 **Fixture change:** Clip strip hardware required on Shelf 3 — verify availability before reset [PlanogramDB://PLN-AISLE7-2026Q3]\n\n**Rating: Medium** — Two SKU relocations and one discontinuation are straightforward, but the new clip strip hardware requirement on Shelf 3 must be confirmed in-store before the reset begins.\n\n**Recommended next step for district managers:** Confirm clip strip hardware is on-hand at the store level and verify SKU 10077 Trail Blend has been fully cleared from Shelf 3 inventory before authorizing the Q3 reset execution."
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the execution report for PLN-AISLE7-2026Q2 -> PLN-AISLE7-2026Q3.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for district managers",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 12807,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have both records from the previous lookup — producing the report now.\n\n---\n\n```\nEXECUTION REPORT — PLN-AISLE7-2026Q2 → PLN-AISLE7-2026Q3\nLocation: Aisle 7 — Snacks | Fixture: Standard 48in Gondola | Shelves: 4\n\nCHANGES:\n  SKU 10034 Salted Pretzels  Shelf 2 → Shelf 1          [PlanogramDB://PLN-AISLE7-2026Q3]\n  SKU 10021 Crunch Mix       Shelf 1 → Shelf 2          [PlanogramDB://PLN-AISLE7-2026Q3]\n  Clip Strip                 None    → Shelf 3 (new)    [PlanogramDB://PLN-AISLE7-2026Q3]\n\nMISSING ITEMS:\n  SKU 10077 Trail Blend — present Q2 (Shelf 3, 2 facings), absent Q3\n                                                         [PlanogramDB://PLN-AISLE7-2026Q2 & Q3]\n\nFLAGS:\n  ➕ ADDED       SKU 10112 Protein Bites — Shelf 3, 3 facings\n                                                         [PlanogramDB://PLN-AISLE7-2026Q3]\n  🔀 RELOCATED   SKU 10034 Salted Pretzels (Shelf 2 → 1) [PlanogramDB://PLN-AISLE7-2026Q3]\n  🔀 RELOCATED   SKU 10021 Crunch Mix     (Shelf 1 → 2) [PlanogramDB://PLN-AISLE7-2026Q3]\n  ❌ DISCONTINUED SKU 10077 Trail Blend                  [PlanogramDB://PLN-AISLE7-2026Q3]\n  🔧 FIXTURE     Clip strip hardware required on Shelf 3 [PlanogramDB://PLN-AISLE7-2026Q3]\n\nUNCHANGED:\n  SKU 10090 Veggie Chips — Shelf 4, 2 facings            [PlanogramDB://PLN-AISLE7-2026Q2 & Q3]\n\nRating: MEDIUM — SKU swaps are minor, but the new clip strip\nhardware and incoming SKU 10112 require confirmed stock before\nreset day.\n\nRecommended next step for district managers: Verify clip strip\nhardware availability and SKU 10112 Protein Bites inbound stock\nat store level, and confirm SKU 10077 Trail Blend is cleared from\nShelf 3 inventory before authorizing reset execution.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 11454,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's the 2-day forecast for **Monterrey, Nuevo León, Mexico** (Source: Open-Meteo):\n\n**Current Conditions**\n- 🌤️ Clear sky | **93.5°F** (feels like 98.3°F) | Humidity: 44% | Wind: 12.1 mph\n\n| Date | Condition | High | Low | Rain Chance |\n|------|-----------|------|-----|-------------|\n| Sep 7, 2026 | Overcast | 94.0°F | 75.5°F | 8% |\n| Sep 8, 2026 | Overcast | 95.9°F | 74.9°F | 10% |\n\nHot and overcast both days with minimal precipitation risk. If any reset crew is traveling to a Monterrey site, plan for high-heat conditions on the floor."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 23318,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's a summary of the **read-only** Dataverse MCP tools exposed in this environment:\n\n---\n\n### Tools the Dataverse MCP Exposes\n\n| Tool | Purpose |\n|---|---|\n| **`read_query`** | Run a `SELECT` SQL query against any Dataverse table (read-only) |\n| **`describe`** | Get schema details for tables, records, scopes, or skills by path (e.g. `tables/`, `tables/account`, `scopes/`) |\n| **`search`** | Find table schemas, skills, and scopes by keyword |\n| **`create_table`** | Create a new table with defined columns |\n| **`update_table`** | Add columns to an existing table |\n| **`delete_table`** | Delete a table (requires explicit user consent) |\n| **`create_record`** | Insert a row into a table |\n| **`update_record`** | Update an existing row |\n| **`delete_record`** | Delete a row (requires explicit user consent) |\n| **`upsert_skill`** | Create or update a Business Skill |\n| **`create_skill_resource`** | Attach a resource file to a skill |\n| **`delete_skill`** | Delete a Business Skill |\n| **`init_file_upload`** | Step 1 of file upload — generates a SAS URL |\n| **`commit_file_upload`** | Step 3 of file upload — commits the upload |\n| **`file_download`** | Generate a SAS URL to download a file from a record |\n\n**What was found in this environment:**\n- **Tables:** Hundreds of standard Dataverse/Dynamics 365 tables (e.g. `account`, `contact`, `opportunity`, `skill`, `skillresource`, etc.) [ReferenceId: turn5doc3]\n- **Scopes:** Multiple app-model scopes including Sales Hub, Field Service, Customer Service Workspace, Omnichannel, and others [ReferenceId: turn5doc1]\n- **Skills:** Business Skills feature is currently **disabled** in this environment (403 returned) [ReferenceId: turn5doc2]\n\n> ⚠️ No data was modified. All calls were read-only (`describe` only)."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_SupplierOnboardingComplianceCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "What is IRS Form W-9 used for and when must a business collect one from a supplier? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "W-9",
+            "ok": true
+          },
+          {
+            "rx": "irs",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 41840,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is what the IRS sources say:\n\n---\n\n**What is Form W-9?**\nForm W-9 (*Request for Taxpayer Identification Number and Certification*) is used by a supplier (payee) to provide their correct Taxpayer Identification Number (TIN) — either a Social Security Number (SSN) or Employer Identification Number (EIN) — to the business (payer) that is required to file an information return with the IRS[1]​[2]. The supplier also certifies that they are a U.S. person and are not subject to backup withholding.\n\n**When must a business collect one from a supplier?**\nA business must collect a W-9 before making reportable payments to an independent contractor or other non-employee payee[3]. Specifically:\n\n- **Collect it before paying** any supplier/contractor whose payments will be reported on an information return (e.g., Form 1099-NEC for nonemployee compensation, 1099-MISC, 1099-S, etc.)[2].\n- **Retain it for four years** for reference in case of questions from the worker or the IRS[3].\n- **Consequence of not collecting:** If a supplier fails to furnish a TIN, the payer must deduct and withhold **24% backup withholding** from all reportable payments to that payee[4]​[5].\n\n---\n\n**Knowledge source used:** IRS Forms and Publications (Website) — specifically *About Form W-9* (irs.gov)[1], *Form W-9 Rev. March 2024* (irs.gov)[2], *Instructions for the Requester of Form W-9 Rev. March 2024* (irs.gov)[4], and *Forms and Associated Taxes for Independent Contractors* (irs.gov)[3]."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare SUP-NORTHWIND-2026 against REQ-SUPPLIER-STANDARD-2026 and flag certification gaps.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "ESG",
+            "ok": true
+          },
+          {
+            "rx": "\\$2M|2,000,000|insurance",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 35238,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Both records retrieved. Here is the report:\n\n---\n\n```\nGO-LIVE READINESS REPORT — SUP-NORTHWIND-2026 → REQ-SUPPLIER-STANDARD-2026\n\nChanges:\n  - General Liability Coverage: $1,000,000 → $2,000,000 required\n    [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n\nMissing items:\n  - ESG Questionnaire: not submitted (required)\n    [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n\nFlags:\n  ⚠️ INSURANCE SHORTFALL — GL coverage is $1M; minimum required is $2M.\n  ⚠️ ESG QUESTIONNAIRE — absent; mandatory per REQ-SUPPLIER-STANDARD-2026.\n\nItems verified complete: W-9 (2026-08-02), Bank Letter, DUNS #08-123-4567.\nISO 9001 Certificate on file (optional per requirements — no gap).\n\nRating: HIGH RISK — two mandatory compliance items are unresolved (insurance \nundercoverage and missing ESG questionnaire) before go-live can be considered.\n\nRecommended next step for Procurement: Request an updated Certificate of \nInsurance showing $2M General Liability coverage and obtain the completed \nESG Questionnaire from Northwind Fasteners before advancing this packet.\n```"
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the go-live readiness report for SUP-NORTHWIND-2026 -> REQ-SUPPLIER-STANDARD-2026.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Procurement",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 14082,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have both records from the previous lookup — no need to re-fetch. Here is the full report:\n\n---\n\n```\nGO-LIVE READINESS REPORT — SUP-NORTHWIND-2026 → REQ-SUPPLIER-STANDARD-2026\nSupplier: Northwind Fasteners\n\nCHANGES (supplier value → required value):\n  - General Liability Coverage: $1,000,000 → $2,000,000 minimum required\n    [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n\nMISSING ITEMS:\n  - ESG Questionnaire: not submitted — mandatory\n    [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n\nFLAGS (certification gaps):\n  ⚠️  INSURANCE SHORTFALL — GL coverage $1M is 50% below the $2M required minimum.\n      COI expiration on file: 2026-11-30.\n      [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n  ⚠️  ESG QUESTIONNAIRE MISSING — required submission; none on file.\n      [SupplierHub://SUP-NORTHWIND-2026 | SupplierHub://REQ-SUPPLIER-STANDARD-2026]\n\nVERIFIED COMPLETE (no gaps):\n  ✅ W-9 received 2026-08-02     [SupplierHub://SUP-NORTHWIND-2026]\n  ✅ Bank Letter received         [SupplierHub://SUP-NORTHWIND-2026]\n  ✅ DUNS #08-123-4567 on file   [SupplierHub://SUP-NORTHWIND-2026]\n  ✅ ISO 9001 Certificate on file (optional per REQ-SUPPLIER-STANDARD-2026 — not a gap)\n\nRATING: HIGH RISK — two mandatory requirements are unresolved: the GL insurance\ncoverage is $1M short of the $2M threshold, and the ESG Questionnaire has not\nbeen submitted.\n\nRecommended next step for Procurement: Return the packet to Northwind Fasteners\nand require (1) an updated Certificate of Insurance reflecting at least $2,000,000\nin General Liability coverage and (2) a completed ESG Questionnaire before this\nsubmission is advanced further.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 12838,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is the 2-day weather forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n**Current Conditions** *(as of 2026-09-07, 2:45 PM local)*\n- 🌤️ Clear sky | **93.7°F** (feels like 97.9°F) | Humidity: 43% | Wind: 12.3 mph\n\n---\n\n| Date | Condition | High | Low | Rain Chance |\n|---|---|---|---|---|\n| **Sep 7** | Overcast | 94.0°F | 75.5°F | 8% |\n| **Sep 8** | Overcast | 95.9°F | 74.9°F | 10% |\n\n**Summary:** Hot and overcast both days with minimal precipitation risk. If any supplier site visits or deliveries are planned in Monterrey, conditions should not pose operational disruptions."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 26824,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "text.final",
+          "status",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a summary of what the **Dataverse MCP (Environment Data)** tool exposes — read-only, no data was changed:\n\n---\n\n### 📋 Dataverse MCP — Exposed Capabilities\n\n#### 1. 🗄️ Tables (`describe('tables/')`)\nA very large catalog of Dataverse tables is available — covering the full breadth of the environment, including:\n\n| Category | Examples |\n|---|---|\n| **Core CRM** | `account`, `contact`, `lead`, `opportunity`, `invoice`, `quote`, `salesorder` |\n| **Field Service** | `msdyn_workorder`, `msdyn_agreement`, `msdyn_warehouse`, `msdyn_customerasset` |\n| **Customer Service / Omnichannel** | `msdyn_livechatconfig`, `msdyn_ocsession`, `msdyn_ocliveworkitem` |\n| **AI & Copilot** | `aiplugin`, `msdyn_aimodel`, `msdyn_copilotskill`, `msdyn_aiconfiguration` |\n| **Skills / Knowledge** | `skill`, `skillresource`, `skillmetadata`, `knowledgearticle` |\n| **Power Pages** | `mspp_webpage`, `mspp_webform`, `mspp_entitylist` |\n| **Supplier-specific (custom)** | `rapp_supplier7ee2_supplierqualityescape*`, `sqrr_supplier034c_supplierqualityriskr*` |\n| **Flow / Automation** | `flowmachine`, `flowrun`, `flowsession`, `desktopflowbinary` |\n| **Scheduling** | `bookableresource`, `bookableresourcebooking`, `msdyn_scheduleboardsetting` |\n\n#### 2. 🔭 Scopes (`describe('scopes/')`)\nMultiple app-model scopes are registered, including:\n\n- `msdyn_SolutionHealthHub` — rules-based org health validation\n- `mspp_PowerPageManagement` — manage online/portal platform\n- `PowerPlatformEnvironmentSettings` — environment settings\n- `msdyn_CustomerServiceWorkspace` — multisession Copilot Service\n- `msdynce_saleshub` — Sales Hub with AI/Copilot insights\n- `msdyn_FieldService` — end-to-end field service management\n- `msdyn_OCAPP` — Omnichannel for Customer Service\n- `msdyn_ResourceScheduling` — resource scheduling solution\n- `OmniChannelEngagementHub` — unified agent engagement hub\n\n#### 3. 📚 Skills (`describe('skills/')`)\n> ⚠️ **Business Skills feature is currently disabled** in this environment's Power Platform admin center — the skills catalog could not be listed (Error 403).\n\n---\n\nNo data was read, written, or modified beyond this structural listing."
+      }
+    ]
+  },
+  {
+    "schemaName": "cr8c1_VendorContractRenewalCopilot",
+    "preflight": 200,
+    "components": null,
+    "turns": [
+      {
+        "component": "knowledge",
+        "prompt": "Which clauses does the Federal Acquisition Regulation require for contract option periods and renewals? Say which knowledge source you used.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "option|renew|clause",
+            "ok": true
+          },
+          {
+            "rx": "acquisition\\.gov|FAR|Federal Acquisition",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 51766,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here is a comprehensive summary of the FAR clauses required for contract option periods and renewals, drawn from the **Federal Acquisition Regulation (FAR) on acquisition.gov** — specifically **FAR Subpart 17.2** and **FAR 17.208** (effective FAC 2026-01, 03/13/2026):\n\n---\n\n## FAR Required Clauses — Option Periods & Renewals\n\n### Solicitation Provisions (FAR 17.208)\n\n| Clause | When Required |\n|---|---|\n| **52.217-3** – Evaluation Exclusive of Options | When a solicitation includes an option clause but does NOT use 52.217-4 or 52.217-5[1] |\n| **52.217-4** – Evaluation of Options Exercised at Time of Contract Award | When options may be exercised at time of award and are likely to be exercised[1] |\n| **52.217-5** – Evaluation of Options | When options are not exercised at award, for firm-fixed-price or fixed-price with EPA contracts, and exercise is reasonably likely[1] |\n\n### Contract Clauses (FAR 17.208)\n\n| Clause | When Required |\n|---|---|\n| **52.217-6** – Option for Increased Quantity | Non-service contracts where the option quantity is a percentage of the base quantity[1] |\n| **52.217-7** – Option for Increased Quantity – Separately Priced Line Item | Non-service contracts where the option is a separately priced line item[1] |\n| **52.217-8** – Option to Extend Services | **Service contracts** where an option is appropriate; total extension **shall not exceed 6 months**[2] |\n| **52.217-9** – Option to Extend the Term of the Contract | When a term extension option is appropriate and the contract needs: (1) a preliminary written notice of intent to extend (default: **60 days** before expiry), (2) a statement that extensions include the option clause, and/or (3) a cap on total contract duration[3] |\n\n---\n\n### Key Structural Rules (FAR 17.204)[4]\n- Contract **shall** specify limits on duration or quantity, including any extension.\n- Contract **shall** state the period within which the option may be exercised.\n- Total basic + option periods **shall not exceed 5 years** for services or supplies (IT contracts are exempt).\n\n### Exercise of Options (FAR 17.207)[5]\n- Written notice to contractor **within the time period specified in the contract**.\n- Contracting Officer must confirm: funds are available, the need exists, exercise is the most advantageous method, and contractor performance has been acceptable.\n\n---\n\n**Knowledge source used:** The **Federal Acquisition Regulation (FAR)** as published on **acquisition.gov** — specifically FAR 17.208, 17.204, 17.207, 52.217-3 through 52.217-9, and Subpart 17.2. All citations are to FAC 2026-01 (effective 03/13/2026)."
+      },
+      {
+        "component": "connected-agent",
+        "prompt": "Compare ACME-2023-014 against ACME-2026-014-DRAFT and flag pricing and SLA changes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "21\\.75",
+            "ok": true
+          },
+          {
+            "rx": "99\\.0|72",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 47561,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "---\n\n```\nRISK REPORT — ACME-2023-014 → ACME-2026-014-DRAFT\nGenerated: 2026-09-07 | Expiry of current contract: 2026-09-30 (23 days)\n\nCHANGES\n  Unit Price:              $18.50 → $21.75/unit (+17.6%)  [ACME-2026-014-DRAFT]\n  Tiered Discount Threshold: 10,000 → 15,000 units/month (+50%)  [ACME-2026-014-DRAFT]\n  On-Time Delivery SLA:   99.5% → 99.0% (loosened)  [ACME-2026-014-DRAFT]\n  Defect Response SLA:    48 hrs → 72 hrs (loosened)  [ACME-2026-014-DRAFT]\n  Auto-Renew:             OFF → ON  [ACME-2026-014-DRAFT]\n  Data Processing Addendum: v2 → v3  [ACME-2026-014-DRAFT]\n\nMISSING ITEMS\n  Buyer countersignature (M. Chen present in ACME-2023-014; blank in draft)\n  Insurance Certificate not refreshed (still dated 2023)\n  Uplift/escalation clauses, notice periods, termination provisions —\n    absent from both records; must be sourced from underlying documents\n\nFLAGS\n  🔴 PRICING: +17.6% unit price increase; discount threshold raised 50%,\n     making tiered savings harder to reach  [ACME-2026-014-DRAFT]\n  🔴 SLA: Both delivery and defect-response targets relaxed — combined\n     regression weakens vendor accountability  [ACME-2026-014-DRAFT]\n  🔴 AUTO-RENEW: Newly switched ON — without a governed notice period\n     on record, the team risks unintentional lock-in  [ACME-2026-014-DRAFT]\n\nRATING: High — simultaneous price hike, SLA regression, auto-renew\nactivation, and a missing buyer signature create compounded execution\nand performance risk with only 23 days to contract expiry.\n\nRecommended next step for Legal: Obtain and review the full draft\ndocument to confirm uplift/notice/termination language, negotiate the\nSLA targets back toward current levels, refresh the Insurance Certificate,\nand obtain the buyer countersignature before the 2026-09-30 deadline.\n```"
+      },
+      {
+        "component": "skill",
+        "prompt": "Produce the risk report for ACME-2023-014 -> ACME-2026-014-DRAFT.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Recommended next step for Legal",
+            "ok": true
+          },
+          {
+            "rx": "Rating|REPORT",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 18407,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "I already have both records from the previous lookup — no need to re-fetch. Here is the formal report:\n\n---\n\n```\nRISK REPORT — ACME-2023-014 → ACME-2026-014-DRAFT\nGenerated: 2026-09-07 | Current contract expires: 2026-09-30 (23 days)\nVendor: Acme Logistics | Status: DRAFT (unsigned)\n\n──────────────────────────────────────────────\nCHANGES\n──────────────────────────────────────────────\n  Unit Price:               $18.50 → $21.75/unit (+17.6%)\n                            [ACME-2023-014 / ACME-2026-014-DRAFT]\n  Tiered Discount Threshold:10,000 → 15,000 units/month (+50%,\n                            harder to reach)\n                            [ACME-2023-014 / ACME-2026-014-DRAFT]\n  On-Time Delivery SLA:     99.5% → 99.0% (loosened -0.5 pp)\n                            [ACME-2023-014 / ACME-2026-014-DRAFT]\n  Defect Response SLA:      48 hrs → 72 hrs (loosened +24 hrs)\n                            [ACME-2023-014 / ACME-2026-014-DRAFT]\n  Auto-Renew:               OFF → ON (newly activated)\n                            [ACME-2026-014-DRAFT]\n  Data Processing Addendum: v2 → v3\n                            [ACME-2023-014 / ACME-2026-014-DRAFT]\n\n──────────────────────────────────────────────\nMISSING ITEMS\n──────────────────────────────────────────────\n  • Buyer countersignature — blank in draft (M. Chen signed ACME-2023-014)\n                            [ACME-2026-014-DRAFT]\n  • Insurance Certificate not refreshed — still dated 2023\n                            [ACME-2026-014-DRAFT]\n  • Uplift/escalation clauses — absent from both records\n  • Notice periods — absent from both records\n  • Termination provisions — absent from both records\n    ↳ All three must be sourced from the underlying contract documents\n\n──────────────────────────────────────────────\nFLAGS\n──────────────────────────────────────────────\n  🔴 PRICING: Unit price up 17.6%; discount threshold up 50% —\n     buyer must spend 50% more volume to unlock tiered savings,\n     compounding the effective cost increase.\n                            [ACME-2026-014-DRAFT]\n\n  🔴 SLA REGRESSION: Both KPIs weakened simultaneously —\n     delivery tolerance widens by 0.5 pp and defect response\n     slows by 24 hrs, materially reducing vendor accountability.\n                            [ACME-2026-014-DRAFT]\n\n  🔴 AUTO-RENEW ACTIVATION: Switching from OFF → ON without a\n     recorded notice period creates unintentional lock-in risk;\n     FAR 52.217-9 requires a specified preliminary written notice\n     period (default 60 days) before expiry.\n                            [ACME-2026-014-DRAFT / FAR 52.217-9]\n\n  🟡 DPA VERSION CHANGE: v2 → v3 — data processing obligations\n     may have changed; requires Legal/Privacy review.\n                            [ACME-2026-014-DRAFT]\n\n──────────────────────────────────────────────\nRATING: HIGH\n──────────────────────────────────────────────\n  Simultaneous 17.6% price increase, dual SLA regressions,\n  newly activated auto-renew with no notice period on record,\n  a missing buyer countersignature, and a stale Insurance\n  Certificate — all with 23 days to expiry.\n\n──────────────────────────────────────────────\nRecommended next step for Legal: Retrieve the full draft document\nto verify uplift, notice, and termination language; negotiate\nSLA targets back to current levels and clarify the auto-renew\nnotice period; refresh the Insurance Certificate; and secure\nthe buyer countersignature before the 2026-09-30 hard deadline.\n```"
+      },
+      {
+        "component": "workflow-tool",
+        "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "Monterrey",
+            "ok": true
+          },
+          {
+            "rx": "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 11607,
+        "eventKinds": [
+          "raw",
+          "status",
+          "text.delta",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Here's the 2-day forecast for **Monterrey, Nuevo León, Mexico** (source: Open-Meteo):\n\n| Date | Condition | High °F | Low °F | Precip. Chance |\n|---|---|---|---|---|\n| Mon Sep 7 | Overcast | 94.0°F | 75.5°F | 8% |\n| Tue Sep 8 | Overcast | 95.9°F | 74.9°F | 10% |\n\n**Current conditions (as of 2:45 PM local):** Clear sky, 93.7°F — feels like 97.9°F, humidity 43%, wind 12.3 mph.\n\nHot and mostly overcast both days with minimal precipitation risk. If any vendor site visits or logistics operations are planned in Monterrey, heat management for personnel should be considered."
+      },
+      {
+        "component": "mcp-tool",
+        "prompt": "Use the Cite Renewal Clauses tool and tell me what it can do; list the tools it exposes.",
+        "ok": true,
+        "error": null,
+        "expect": [
+          {
+            "rx": "tool|list|search|get|verify|log|enrich|table|record",
+            "ok": true
+          }
+        ],
+        "elapsedMs": 14138,
+        "eventKinds": [
+          "raw",
+          "text.delta",
+          "status",
+          "text.final",
+          "idle"
+        ],
+        "rawTypes": [
+          "typing",
+          "event"
+        ],
+        "text": "Based on the tools registered in this environment, here is what the **Cite Renewal Clauses** agent exposes — three operations:\n\n---\n\n### 🔧 Tools Exposed by \"Cite Renewal Clauses\"\n\n| Tool | What it does |\n|---|---|\n| **`list_contractrenewaldecisionagentciterenewalclausesagent`** | Returns **all** records in the Cite Renewal Clauses dataset. Call with no arguments. |\n| **`search_contractrenewaldecisionagentciterenewalclausesagent`** | **Full-text search** across every field of every record — pass any keyword (name, status, date, clause text, etc.) to find matching records. Case-insensitive. |\n| **`get_contractrenewaldecisionagentciterenewalclausesagent`** | **Look up a single record by `agreement_id`** (e.g. `AGR-26041`). A partial name match also resolves. Returns every field for that record. |\n\n---\n\n### 📋 Purpose\nThe Cite Renewal Clauses agent **retrieves and quotes the specific agreement clauses** governing:\n- **Notice periods** (how far in advance a party must notify of intent to renew or not renew)\n- **Uplift / price escalation** (the mechanism and cap for rate increases at renewal)\n- **Termination for convenience** (either party's right to exit without cause)\n- **Minimum commitments** (volume, spend, or duration floors that survive into a renewal period)\n\nIt is designed to give the Procurement and Legal team verbatim clause text from the system of record — grounding renewal decisions in actual contract language rather than summaries.\n\n---\n\nWould you like me to list all available records or look up a specific agreement ID?"
+      }
+    ]
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_VendorContractRenewalCopilot",
+  "childSchemaName": "cr8c1_VendorContractRenewalDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "Which clauses does the Federal Acquisition Regulation require for contract option periods and renewals? Say which knowledge source you used.",
+      "expect": [
+        "option|renew|clause",
+        "acquisition\\.gov|FAR|Federal Acquisition"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare ACME-2023-014 against ACME-2026-014-DRAFT and flag pricing and SLA changes.",
+      "expect": [
+        "21\\.75",
+        "99\\.0|72"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the risk report for ACME-2023-014 -> ACME-2026-014-DRAFT.",
+      "expect": [
+        "Recommended next step for Legal",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Cite Renewal Clauses tool and tell me what it can do; list the tools it exposes.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

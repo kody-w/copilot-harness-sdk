@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Loan Servicing Exception Data Agent"
+  description: "Fetches records by id (for example LN-204118 or LN-204118-MOD1) from the system of record: the full contents needed to compare original vs. modified loan terms. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_LoanServicingExceptionDataAgent
+historyType:
+  kind: ConversationHistory

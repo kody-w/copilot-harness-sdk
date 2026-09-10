@@ -1,0 +1,45 @@
+{
+  "schemaName": "cr8c1_SupplierOnboardingComplianceCopilot",
+  "childSchemaName": "cr8c1_SupplierOnboardingComplianceDataAgent",
+  "turns": [
+    {
+      "component": "knowledge",
+      "prompt": "What is IRS Form W-9 used for and when must a business collect one from a supplier? Say which knowledge source you used.",
+      "expect": [
+        "W-9",
+        "irs"
+      ]
+    },
+    {
+      "component": "connected-agent",
+      "prompt": "Compare SUP-NORTHWIND-2026 against REQ-SUPPLIER-STANDARD-2026 and flag certification gaps.",
+      "expect": [
+        "ESG",
+        "\\$2M|2,000,000|insurance"
+      ]
+    },
+    {
+      "component": "skill",
+      "prompt": "Produce the go-live readiness report for SUP-NORTHWIND-2026 -> REQ-SUPPLIER-STANDARD-2026.",
+      "expect": [
+        "Recommended next step for Procurement",
+        "Rating|REPORT"
+      ]
+    },
+    {
+      "component": "workflow-tool",
+      "prompt": "Use the Site Weather tool: what is the weather in Monterrey, Mexico for the next 2 days?",
+      "expect": [
+        "Monterrey",
+        "°|degrees|rain|cloud|clear|sunny|forecast|humid|wind"
+      ]
+    },
+    {
+      "component": "mcp-tool",
+      "prompt": "Use the Environment Data (Dataverse MCP) tool to list the tools it exposes; do not change any data.",
+      "expect": [
+        "tool|list|search|get|verify|log|enrich|table|record"
+      ]
+    }
+  ]
+}

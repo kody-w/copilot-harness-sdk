@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "IAB Ad Standards"
+  description: "Public IAB standards for display ad units, sizes, and creative specifications. Search it for placement and creative spec requirements."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.iab.com

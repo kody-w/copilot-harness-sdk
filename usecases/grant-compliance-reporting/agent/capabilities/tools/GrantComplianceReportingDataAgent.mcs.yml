@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Grant Compliance Reporting Data Agent"
+  description: "Fetches records by id (for example GRANT-EDU-2026-BUDGET or GRANT-EDU-2026-ACTUALS-Q3) from the system of record: the full contents needed to compare budgeted vs. actual spend. Use for any question that needs the actual contents of a record. Do not use for policy or regulation questions; search knowledge for those."
+kind: ConnectedAgentTool
+botSchemaName: cr8c1_GrantComplianceReportingDataAgent
+historyType:
+  kind: ConversationHistory

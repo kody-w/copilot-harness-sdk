@@ -1,0 +1,35 @@
+mcs.metadata:
+  componentName: "risk-report"
+  description: "Produces the source-cited risk report for expiring vendor contracts. Use when the user asks for the risk report, a renewal packet review, or a comparison summary for specific record ids. Requires two record ids."
+kind: InlineAgentSkill
+content: |
+  ---
+  name: risk-report
+  description: Produces the source-cited risk report for expiring vendor contracts. Use when the user asks for the risk report, a renewal packet review, or a comparison summary for specific record ids. Requires two record ids.
+  ---
+  # Risk report
+  
+  ## Step 1 - Establish the inputs
+  You need the two record ids to compare (for example ACME-2023-014 and ACME-2026-014-DRAFT). If either is missing, ask for it before doing anything else.
+  
+  ## Step 2 - Gather
+  1. Ask the Vendor Contract Renewal Data Agent for both records.
+  2. Search knowledge for the applicable policy or regulation.
+  3. Only if the user asks for weather at a site, call Site Weather.
+  
+  ## Step 3 - Write the report (max 180 words)
+  ```
+  RISK REPORT - <first id> -> <second id>
+  Changes: <each change on its own line with the old -> new value>  [source]
+  Missing items: <list or "none">  [source]
+  Flags: <pricing and SLA changes>  [source]
+  Rating: Low | Medium | High - one sentence why
+  Recommended next step for Legal: <one sentence>
+  ```
+  
+  ## Rules
+  - Lead with the differences; a list of things that are fine is noise.
+  - An item present in the first record but absent in the second is "missing".
+  - Never invent a value. If a lookup returns nothing, write "not found".
+  - Never say the renewal packet is approved, released, or final. Final negotiation and signature remain with Legal.
+  

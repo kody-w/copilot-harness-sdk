@@ -1,0 +1,7 @@
+mcs.metadata:
+  componentName: "Federal Acquisition Regulation"
+  description: "Public FAR text on acquisition.gov. Search it for required contract clauses, option-period and renewal rules, and termination language."
+kind: KnowledgeSourceConfiguration
+source:
+  kind: WebsiteKnowledgeSource
+  siteUrl: https://www.acquisition.gov/far
