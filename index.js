@@ -22,7 +22,8 @@ import { createCopilotSdkAdapter } from './src/adapters/copilot-sdk.js';
 import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
 import { classifyBot, assertHarnessBot, inspectAgentHarness, assertHarnessAgent, ClassicAgentError, HARNESS_TEMPLATE, HARNESS_RECOGNIZERS } from './src/harness-guard.js';
-import { resolveHarnessBot, shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents, ACCESS_CONTROL_POLICY, CHANNELS } from './src/harness-admin.js';
+import { resolveHarnessBot, shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents, dataverse, ACCESS_CONTROL_POLICY, CHANNELS } from './src/harness-admin.js';
+import { scanWorkspace, scopedReferenceName, rebindConnectionReferences, workflowIdFor, rebindWorkflows, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF } from './src/harness-provision.js';
 
 export {
   MODES,
@@ -58,6 +59,25 @@ export {
   setChannels,
   upsertEnvironmentVariable,
   listComponents,
+  dataverse,
+  scanWorkspace,
+  scopedReferenceName,
+  rebindConnectionReferences,
+  workflowIdFor,
+  rebindWorkflows,
+  findBot,
+  findConnectionReference,
+  resolveConnection,
+  ensureConnectionReference,
+  connectorExists,
+  findWorkflow,
+  ensureWorkflow,
+  listBotComponents,
+  linkComponentConnectionReference,
+  linkComponentWorkflow,
+  deleteStaleComponents,
+  expectedComponents,
+  AGENT_SCOPED_REF,
   ACCESS_CONTROL_POLICY,
   CHANNELS
 };

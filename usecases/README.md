@@ -61,3 +61,4 @@ Regenerate the exports with `node scripts/export-usecases.mjs && node scripts/st
 - Agent display names longer than 42 characters never finish provisioning. Use `childDisplayName` / `schemaBase` in `usecases.json` to shorten.
 - Solution unique names must be under 50 characters (the scripts truncate to 49).
 - The MCP tools need connection references that already exist in the target environment; create the connections once in the portal, then point `usecases.json` at their logical names.
+- Connection references named `<schema>.cr.<suffix>` are agent-scoped: the deploy script rebinds them to the agent being deployed and creates them bound to a connection it resolves from the environment (or `--connections`). References without `.cr.` (the MCP ones above) are shared and must already exist.

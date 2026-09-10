@@ -22,6 +22,10 @@ export const CHANNELS = /** @type {const} */ ({ Teams: 'MsTeams', Microsoft365Co
 /**
  * @param {DataverseOptions} opts
  */
+export function dataverse(opts) {
+  return api(opts);
+}
+
 function api(opts) {
   if (!opts?.environmentUrl) throw new Error('environmentUrl is required (https://<org>.crm.dynamics.com/).');
   if (typeof opts.getDataverseToken !== 'function') throw new Error('getDataverseToken is required.');

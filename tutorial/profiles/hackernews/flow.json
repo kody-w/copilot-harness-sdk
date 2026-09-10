@@ -1,0 +1,108 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "{{HN_API_NAME}}": {
+        "runtimeSource": "invoker",
+        "connection": {
+          "connectionReferenceLogicalName": "{{SCHEMA_NAME}}.cr.shared_rapp_hn"
+        },
+        "api": {
+          "name": "{{HN_API_NAME}}"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Skills",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "title": "count",
+                  "type": "string",
+                  "description": "How many top Hacker News stories to return. Default 10, max 30.",
+                  "x-ms-dynamically-added": true,
+                  "x-ms-content-hint": "NUMBER"
+                }
+              },
+              "required": []
+            }
+          }
+        }
+      },
+      "actions": {
+        "Get_formatted_top_Hacker_News_stories": {
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "{{HN_API_NAME}}",
+              "operationId": "GetTopStoriesFormatted",
+              "apiId": "/providers/Microsoft.PowerApps/apis/{{HN_API_NAME}}"
+            },
+            "parameters": {
+              "count": "@int(if(equals(triggerBody()?['count'], null), 10, triggerBody()?['count']))"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Respond_to_agent": {
+          "runAfter": {
+            "Get_formatted_top_Hacker_News_stories": [
+              "Succeeded"
+            ]
+          },
+          "type": "Response",
+          "kind": "Skills",
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "status": "@body('Get_formatted_top_Hacker_News_stories')?['status']",
+              "message": "@body('Get_formatted_top_Hacker_News_stories')?['message']",
+              "stories": "@body('Get_formatted_top_Hacker_News_stories')?['stories']",
+              "summary": "@body('Get_formatted_top_Hacker_News_stories')?['summary']",
+              "data_slush": "@body('Get_formatted_top_Hacker_News_stories')?['data_slush']"
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "stories": {
+                  "type": "array"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "data_slush": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": ""
+  },
+  "schemaVersion": "1.0.0.0"
+}

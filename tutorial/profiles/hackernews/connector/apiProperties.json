@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#ff6600",
+    "capabilities": [],
+    "scriptOperations": [
+      "GetTopStoriesFormatted"
+    ],
+    "publisher": "RAPP",
+    "stackOwner": "RAPP"
+  }
+}

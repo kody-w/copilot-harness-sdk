@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: {{SCHEMA_NAME}}.cr.shared_rapp_hn
+    connectorId: /providers/Microsoft.PowerApps/apis/{{HN_API_NAME}}

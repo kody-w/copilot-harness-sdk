@@ -1,0 +1,192 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "RAPP Hacker News",
+    "description": "Read-only access to the public Hacker News Firebase API.",
+    "version": "1.0"
+  },
+  "host": "hacker-news.firebaseio.com",
+  "basePath": "/v0",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/rapp/top-stories": {
+      "get": {
+        "summary": "Get formatted top Hacker News stories",
+        "description": "Runs the RAPP HackerNews agent algorithm and returns its exact structured output contract.",
+        "operationId": "GetTopStoriesFormatted",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 30,
+            "description": "How many top stories to return. Default 10, max 30."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RAPP HackerNews result.",
+            "schema": {
+              "$ref": "#/definitions/RappHackerNewsResult"
+            }
+          }
+        }
+      }
+    },
+    "/topstories.json": {
+      "get": {
+        "summary": "Get top Hacker News story IDs",
+        "description": "Returns the current ranked Hacker News top-story IDs.",
+        "operationId": "GetTopStories",
+        "x-ms-visibility": "important",
+        "responses": {
+          "200": {
+            "description": "Ranked top-story IDs.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/item/{id}.json": {
+      "get": {
+        "summary": "Get a Hacker News story",
+        "description": "Returns a Hacker News item by numeric ID.",
+        "operationId": "GetStory",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64",
+            "description": "Hacker News item ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hacker News item.",
+            "schema": {
+              "$ref": "#/definitions/HackerNewsItem"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "RappHackerNewsResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "stories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RappHackerNewsStory"
+          }
+        },
+        "summary": {
+          "type": "string"
+        },
+        "data_slush": {
+          "$ref": "#/definitions/RappHackerNewsDataSlush"
+        }
+      }
+    },
+    "RappHackerNewsStory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "author": {
+          "type": "string"
+        },
+        "comments": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "RappHackerNewsDataSlush": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "top_url": {
+          "type": "string"
+        }
+      }
+    },
+    "HackerNewsItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "score": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "by": {
+          "type": "string"
+        },
+        "descendants": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "type": "string"
+        },
+        "time": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {},
+  "security": []
+}

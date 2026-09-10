@@ -23,6 +23,7 @@
     "example:studio-s2s": "node examples/copilot-studio-s2s.mjs",
     "example:agentic-directline": "node examples/agentic-directline.mjs",
     "deploy:harness": "node scripts/deploy-harness-agent.mjs",
+    "tutorial": "node scripts/tutorial-rar.mjs",
     "build:usecases": "node scripts/build-usecase-workspaces.mjs",
     "deploy:usecases": "node scripts/deploy-usecases.mjs",
     "prove:usecase": "node scripts/prove-usecase.mjs",

@@ -1,0 +1,8 @@
+mcs.metadata:
+  componentName: Add a new row to selected environment
+  description: Create a new row in a table in a Power Platform environment.
+kind: ConnectorTool
+authMode: Invoker
+connectionReference: {{SCHEMA_NAME}}.cr.shared_commondataserviceforapps
+connectorId: /providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps
+operationId: CreateRecordWithOrganization

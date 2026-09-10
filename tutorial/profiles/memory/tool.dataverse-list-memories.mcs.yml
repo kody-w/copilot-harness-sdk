@@ -1,0 +1,8 @@
+mcs.metadata:
+  componentName: List rows from selected environment
+  description: List rows from a table in a Power Platform environment.
+kind: ConnectorTool
+authMode: Invoker
+connectionReference: {{SCHEMA_NAME}}.cr.shared_commondataserviceforapps
+connectorId: /providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps
+operationId: ListRecordsWithOrganization

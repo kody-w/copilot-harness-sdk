@@ -170,6 +170,39 @@ try {
 
 Reaching a harness agent from code still needs an Entra app with the delegated `CopilotStudio.Copilots.Invoke` permission (the Azure CLI's own app only carries `CopilotStudio.Copilots.Test`, which the `/3p` route rejects with `InsufficientDelegatedPermissions`).
 
+## Infrastructure by default: every deploy comes out like the reference pilot
+
+`npm run deploy:harness` does not stop at skills. Since 10 September 2026 it provisions, binds and verifies the infrastructure a harness workspace declares, the way the reference pilot (`RAPP News Memory Pilot`) was built, so an agent with connector tools and agent flows comes out of the script working, not "skills only":
+
+| Workspace declares | The script does, before `pack` | After `push` |
+| --- | --- | --- |
+| `ConnectorTool` bound to `<other>.cr.<suffix>` | rebinds it to **`<schemaName>.cr.<suffix>`**, creates that connection reference bound to a real connection (from `--connections`, the reference it was copied from, or any bound reference for the same connector in the environment) | links the component to the reference on the live record (`pac push` leaves that empty) |
+| `WorkflowTool` + `workflows/<Name>-<id>/workflow.json` | reuses the flow when it exists in the environment, otherwise mints a per-agent id (UUID v5 of schema name + folder; `--fork-workflows` always mints), rewrites the tool and folder, creates or updates the flow from the definition and **activates** it | links the component to exactly that flow |
+| a shared reference without `.cr.` (the use cases' MCP references) | verifies it exists and is bound, fails early with the reason otherwise | — |
+| custom connectors (`connectors/`, or a `.cr.` reference to `shared_<name>-5f…`) | verifies the connector exists in the environment; creating one is `pac connector create` (see the tutorial) | — |
+| components no longer in the workspace | — | deletes them (`--keep-extra-components` to skip) |
+| everything | — | reads the record back: harness template, instructions, published, every component with its kind and its reference/flow link, or exits non-zero |
+
+```bash
+# a workspace cloned from another agent, deployed as a new agent with its own references and flow
+npm run deploy:harness -- --name "Brainstem Core" --publisher-prefix aibast --schema-name aibast_BrainstemCore \
+  --workspace-dir ./brainstem-core --environment https://<org>.crm.dynamics.com/ [--connections ./connections.json] [--fork-workflows]
+```
+
+`connections.json` maps a reference suffix, connector id or source logical name to a connection id (`pac connection list`) for references the script cannot resolve from the environment. The same operations are exported for your own scripts: `rebindConnectionReferences`, `rebindWorkflows`, `workflowIdFor`, `resolveConnection`, `ensureConnectionReference`, `connectorExists`, `ensureWorkflow`, `listBotComponents`, `linkComponentConnectionReference`, `linkComponentWorkflow`, `deleteStaleComponents`, `expectedComponents` (all Dataverse Web API, `{ environmentUrl, getDataverseToken }` like the admin operations).
+
+Proof (10 September 2026, kodyv8, pac 2.10.1): `aibast_BrainstemCore`, three RAPP agents (Hacker News, ManageMemory, ContextMemory) as three skills, one `WorkflowTool` on a custom-connector flow and two Dataverse `ConnectorTool`s, deployed and re-deployed through this script (references `existing`, flow `updated` in place, no stale components), and the Studio test pane answered all three prompts through the real tools: live Hacker News stories from the flow, a memory row written to Dataverse, the same row recalled by keyword.
+
+### Try it with nothing of your own: the RAR tutorial
+
+```bash
+npm run tutorial -- --environment https://<org>.crm.dynamics.com/ --name "RAR Starter Agent" --publisher-prefix rapp
+```
+
+[`tutorial/README.md`](tutorial/README.md): pulls the three agents above from the public RAPP Agent Registry (sha256-verified), reads their contracts, matches them to the proven infrastructure profiles, creates the custom connector when it is missing, waits for you to create the two connections it cannot create for you, builds the workspace and deploys it through the script above. Any other RAR agent you name is deployed as a reasoning-only skill that carries its `agent.py`.
+
+Proof (10 September 2026, a second environment with none of this in it, `kodyv4`): the tutorial created the custom connector with `pac connector create`, waited for the two connections, built the workspace, and the deploy created both agent-scoped references, created and activated the flow, imported, pushed, bound and published `rapp_RARStarterAgent`; a re-run reported everything `existing`/`updated` with nothing to push. The Studio test pane answered the three prompts through the new connector, flow and Dataverse rows. Two more pac 2.10.1 behaviours the script now works around: `copilot push` crashes with `ArgumentException: An item with the same key has already been added` when a workspace carries the same flow under two folder names (pac names the folder after the flow's display name), and a long publish wait leaves the next Dataverse read with `EPIPE`, so every Dataverse call retries transient network failures.
+
 ## Sample use cases: ten harness agents, every component, proved through the SDK
 
 [`usecases/usecases.json`](usecases/usecases.json) describes ten "packet copilots" (vendor contract renewal, claims intake, store resets, clinical trial activation, loan servicing exceptions, supplier onboarding, retail media trafficking, HR policy rollout, manufacturing BOM changes, grant compliance). `npm run build:usecases` turns each into a parent harness agent plus a child data agent, all carrying the same component set:
@@ -197,7 +230,7 @@ await upsertEnvironmentVariable({ ...dv, schemaName: 'cr8c1_RenewalNoticeDays', 
 console.log(await listComponents({ ...dv, schemaName }));                                 // [{ name: 'tool.SiteWeather', kind: 'WorkflowTool' }, …]
 ```
 
-Every one of them resolves the bot first and throws `ClassicAgentError` for a classic agent.
+Every one of them resolves the bot first and throws `ClassicAgentError` for a classic agent. `dataverse({ environmentUrl, getDataverseToken })` returns the same authenticated Web API caller they use.
 
 ## Choosing a mode without guessing
 

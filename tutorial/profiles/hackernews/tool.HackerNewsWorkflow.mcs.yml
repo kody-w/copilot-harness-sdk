@@ -1,0 +1,15 @@
+mcs.metadata:
+  componentName: Run RAPP Hacker News workflow
+  description: Runs the exact RAPP HackerNews algorithm and returns status, stories, summary, and data_slush.
+kind: WorkflowTool
+workflowId: {{HN_WORKFLOW_ID}}
+toolOutputs:
+  - name: status
+  - name: message
+  - name: stories
+  - name: summary
+  - name: data_slush
+toolInputs:
+  - name: count
+    displayName: count
+    description: How many top stories to return. Default 10, max 30.

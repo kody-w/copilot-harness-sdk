@@ -328,3 +328,35 @@ export declare function setAccessControl(opts: DataverseOptions & AgentRef & { p
 export declare function setChannels(opts: DataverseOptions & AgentRef & { channels: Array<keyof typeof CHANNELS> }): Promise<{ botId: string; channels: string[] }>;
 export declare function upsertEnvironmentVariable(opts: DataverseOptions & { schemaName: string; displayName?: string; type?: 'String' | 'Number' | 'Boolean' | 'JSON' | 'DataSource' | 'Secret'; defaultValue?: string; value?: string; description?: string }): Promise<{ schemaName: string; definitionId: string; valueId: string | null }>;
 export declare function listComponents(opts: DataverseOptions & AgentRef): Promise<Array<{ schemaName: string; name: string; displayName: string; kind: string; componentType: number }>>;
+
+// Infrastructure provisioning for a harness workspace (agent-scoped connection references, agent
+// flows, component links, stale-component cleanup). Dataverse Web API, see src/harness-provision.js.
+export interface DataverseOptions { environmentUrl: string; getDataverseToken: () => Promise<string>; fetchImpl?: typeof fetch }
+export declare function dataverse(opts: DataverseOptions): (path: string, init?: RequestInit) => Promise<{ status: number; body: any; headers: Headers }>;
+export declare const AGENT_SCOPED_REF: RegExp;
+export interface WorkspaceScan {
+  tools: { file: string; name: string; kind?: string; connectionReference?: string; connectorId?: string; workflowId?: string }[];
+  behaviors: { file: string; name: string; kind?: string }[];
+  knowledge: { file: string; name: string; kind?: string }[];
+  connectionRefs: Map<string, { connectorId?: string; sources: string[] }>;
+  workflows: { folder: string; id?: string; name: string; description: string; connectionRefs: { api: string; logical?: string }[]; definition: any; hasMetadata: boolean }[];
+  customConnectors: { folder: string; connectorId?: string; internalId?: string; name?: string; displayName?: string }[];
+}
+export declare function scanWorkspace(dir: string): WorkspaceScan;
+export declare function scopedReferenceName(logical: string, schemaName: string): string;
+export declare function rebindConnectionReferences(dir: string, schemaName: string): Record<string, string>;
+export declare function workflowIdFor(schemaName: string, folder: string): string;
+export declare function rebindWorkflows(dir: string, resolveId: (wf: { folder: string; id?: string; name: string }) => string): (WorkspaceScan['workflows'][number] & { oldId?: string; id: string })[];
+export declare function expectedComponents(dir: string, schemaName: string): { schemaName: string; kind?: string }[];
+export declare function findBot(opts: DataverseOptions & { schemaName: string }): Promise<any | null>;
+export declare function findConnectionReference(opts: DataverseOptions & { logicalName: string }): Promise<any | null>;
+export declare function resolveConnection(opts: DataverseOptions & { sourceLogicalName?: string; connectorId?: string; suffix?: string; connections?: Record<string, string> }): Promise<{ connectionId: string; connectorId?: string; via: string } | null>;
+export declare function ensureConnectionReference(opts: DataverseOptions & { logicalName: string; displayName?: string; connectorId: string; connectionId: string }): Promise<{ operation: 'created' | 'updated' | 'existing'; id: string }>;
+export declare function connectorExists(opts: DataverseOptions & { connectorId: string }): Promise<{ custom: boolean; exists: boolean; internal: string; connectorId?: string; displayName?: string }>;
+export declare function findWorkflow(opts: DataverseOptions & { workflowId: string }): Promise<any | null>;
+export declare function ensureWorkflow(opts: DataverseOptions & { workflowId: string; name: string; description?: string; definition: any }): Promise<{ operation: 'created' | 'updated'; workflowId: string; name: string }>;
+export interface BotComponent { id: string; schemaName: string; displayName: string; componentType: number; kind: string; workflows: { id: string; name: string; statecode: number }[]; connectionReferences: { id: string; logicalName: string }[] }
+export declare function listBotComponents(opts: DataverseOptions & { botId: string }): Promise<BotComponent[]>;
+export declare function linkComponentConnectionReference(opts: DataverseOptions & { component: BotComponent; logicalName: string }): Promise<{ operation: 'linked' | 'existing'; logicalName: string }>;
+export declare function linkComponentWorkflow(opts: DataverseOptions & { component: BotComponent; workflowId: string }): Promise<{ operation: string; workflowId: string }>;
+export declare function deleteStaleComponents(opts: DataverseOptions & { botId: string; keep: Set<string> | string[] }): Promise<{ schemaName: string; kind: string }[]>;
