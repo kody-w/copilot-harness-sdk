@@ -43,6 +43,8 @@ ENTRA_CLIENT_ID=<app with delegated CopilotStudio.Copilots.Invoke> ENTRA_TENANT_
 node scripts/prove-usecase.mjs $(for p in usecases/*/proof.json; do echo --spec $p; done) --out proof-results.json
 ```
 
+PowerShell: `$env:ENTRA_CLIENT_ID='...'; $env:ENTRA_TENANT_ID='...'; $env:COPILOT_ENVIRONMENT_ID='...'; node scripts/prove-usecase.mjs $(Get-ChildItem usecases/*/proof.json | ForEach-Object { '--spec'; $_.FullName }) --out proof-results.json`.
+
 One device-code sign-in, then five turns per agent: knowledge, connected agent, skill, agent-flow tool, MCP tool. A turn passes only when the answer matches every regex in `proof.json`; the weather turn, for instance, must contain live temperatures that only the flow can produce.
 
 ## Using this as the regression suite

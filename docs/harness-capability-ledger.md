@@ -126,7 +126,7 @@ CHANGES
   Interest Rate:    6.25% fixed → 5.50% fixed  [LoanCore://LN-204118 & LN-204118-MOD1]
   Loan Term:        360 months (30…
 
-Full transcript: `scripts/prove-usecase.mjs --out` JSON (not committed; regenerate with the command above).
+Full transcript: [`usecases/proof-results.2026-09-07.json`](https://github.com/kody-w/copilot-harness-sdk/blob/main/usecases/proof-results.2026-09-07.json) (regenerate with the command above). The use-case scripts and `usecases/` are in the repository, not in the npm package: run them from a clone of https://github.com/kody-w/copilot-harness-sdk.
 
 ## What still needs a person or the portal
 

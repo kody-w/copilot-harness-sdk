@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: <your-claims-intake-reconciliation-mcp-connection-reference>
+    connectorId: /providers/Microsoft.PowerApps/apis/<your-claims-intake-reconciliation-mcp-connector>

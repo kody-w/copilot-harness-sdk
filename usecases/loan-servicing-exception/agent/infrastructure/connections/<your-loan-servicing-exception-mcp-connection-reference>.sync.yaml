@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: <your-loan-servicing-exception-mcp-connection-reference>
+    connectorId: /providers/Microsoft.PowerApps/apis/<your-loan-servicing-exception-mcp-connector>

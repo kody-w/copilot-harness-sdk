@@ -3,6 +3,6 @@ mcs.metadata:
   description: "Verifies insurance coverage details for a member or policy. Use when the user asks to verify coverage or eligibility for a claim."
 kind: McpTool
 authMode: Maker
-connectionReference: intx_intelligentpatientintaketriageassistant_16e55f.cr.shared_intx-5fverify.eb1ac389c6194ac42439202
-connectorId: /providers/Microsoft.PowerApps/apis/shared_intx-5fverify-20insurance-20mcp-5f46f18f33b2ee8a8d
+connectionReference: <your-claims-intake-reconciliation-mcp-connection-reference>
+connectorId: /providers/Microsoft.PowerApps/apis/<your-claims-intake-reconciliation-mcp-connector>
 operationId: InvokeMCP

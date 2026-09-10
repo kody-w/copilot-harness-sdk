@@ -3,6 +3,6 @@ mcs.metadata:
   description: "Returns renewal, pricing, SLA and termination clauses for an agreement with citations. Use when the user asks which clauses apply or wants clause text quoted."
 kind: McpTool
 authMode: Maker
-connectionReference: crda_contractrenewaldecisionassistant_9d4c90.cr.shared_crda-5fcite-2.2054b18afd44e4b15786236bfbe902
-connectorId: /providers/Microsoft.PowerApps/apis/shared_crda-5fcite-20renewal-20clauses-20mcp-5f46f18f33b2ee8a8d
+connectionReference: <your-vendor-contract-renewal-mcp-connection-reference>
+connectorId: /providers/Microsoft.PowerApps/apis/<your-vendor-contract-renewal-mcp-connector>
 operationId: InvokeMCP

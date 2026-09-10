@@ -96,7 +96,7 @@ export {
 /** The sentence every classic-agent refusal carries. */
 export const CLASSIC_REFUSAL =
   'copilot-studio-standard targets a classic (standard-harness) agent, which this SDK treats as deprecated: ' +
-  'build the agent on the GitHub Copilot harness (scripts/deploy-harness-agent.mjs) and use copilot-studio-3p. ' +
+  'build the agent on the GitHub Copilot harness (the copilot-harness-deploy bin, scripts/deploy-harness-agent.mjs in the repo) and use copilot-studio-3p. ' +
   'Only for a legacy agent that cannot be recreated yet, pass copilotStudio.allowClassicAgent: true.';
 
 export function validateConfig(config) {

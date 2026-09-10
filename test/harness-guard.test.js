@@ -51,7 +51,7 @@ function fakeDataverse(record, { status = 200 } = {}) {
 }
 
 test('inspectAgentHarness reads the live record by schemaName or botId with the Dataverse token', async () => {
-  const live = { botid: 'ea35ebfd-50cc-4c59-9f76-231a2d042925', name: 'H', publishedon: '2026-09-07T18:23:12Z', authenticationmode: 2, ...HARNESS_BOT };
+  const live = { botid: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'H', publishedon: '2026-09-07T18:23:12Z', authenticationmode: 2, ...HARNESS_BOT };
   const { fetchImpl, calls } = fakeDataverse(live);
   const info = await inspectAgentHarness({ environmentUrl: 'https://org.crm.dynamics.com/', schemaName: "cr8c1_Harness'Agent", getDataverseToken: async () => 'dv-token', fetchImpl });
   assert.equal(info.harness, 'github-copilot');
@@ -59,7 +59,7 @@ test('inspectAgentHarness reads the live record by schemaName or botId with the 
   assert.match(calls[0].url, /bots\?\$filter=schemaname eq 'cr8c1_Harness''Agent'/);
   assert.equal(calls[0].auth, 'Bearer dv-token');
   const byId = await inspectAgentHarness({ environmentUrl: 'https://org.crm.dynamics.com', botId: live.botid, getDataverseToken: async () => 't', fetchImpl });
-  assert.match(calls[1].url, /^https:\/\/org\.crm\.dynamics\.com\/api\/data\/v9\.2\/bots\(ea35ebfd/);
+  assert.match(calls[1].url, /^https:\/\/org\.crm\.dynamics\.com\/api\/data\/v9\.2\/bots\(aaaaaaaa/);
   assert.equal(byId.template, 'cliagent-1.0.0');
   await assert.rejects(inspectAgentHarness({ environmentUrl: 'https://org.crm.dynamics.com/', schemaName: 'x', getDataverseToken: async () => 't', fetchImpl: fakeDataverse(null).fetchImpl }), /No bot with schemaname x/);
   await assert.rejects(inspectAgentHarness({ environmentUrl: 'https://org.crm.dynamics.com/', schemaName: 'x', getDataverseToken: async () => 't', fetchImpl: fakeDataverse(live, { status: 403 }).fetchImpl }), /HTTP 403/);

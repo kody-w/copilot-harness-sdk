@@ -45,7 +45,7 @@ function buildPermissionHandler(permissions, sdk, sink) {
             resolve({ kind: 'denied-no-approval-rule-and-could-not-request-from-user' });
           }
         }, PERMISSION_EMIT_TIMEOUT_MS);
-        timer.unref?.();
+        // ref'd on purpose: a pending permission request is work the process must stay alive for
         sink.deliver({
           type: 'permission.request',
           source: 'copilot-sdk',
@@ -231,7 +231,6 @@ export async function createCopilotSdkAdapter(config = {}, deps = {}) {
             unsub();
             resolve(undefined);
           }, 5_000);
-          t.unref?.();
         });
         try {
           await session.abort();
@@ -257,8 +256,9 @@ export async function createCopilotSdkAdapter(config = {}, deps = {}) {
           push(mapped);
           if (done) finishWithReason(undefined);
         });
+        // ref'd on purpose: with an unref'd timer a process whose only pending work is a stalled turn exits
+        // silently instead of emitting TURN_TIMEOUT (seen on Node 20/22; the timer is cleared when the turn ends)
         timer = setTimeout(() => finishWithReason('TURN_TIMEOUT', true, new Error(`Turn timed out after ${timeoutMs} ms`)), timeoutMs);
-        timer.unref?.();
         /** @type {any} */
         const message = { prompt };
         if (sendOpts.attachments) message.attachments = sendOpts.attachments;

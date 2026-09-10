@@ -154,8 +154,8 @@ async function* withTurnGuard(inner, timeoutMs, abortFlag) {
       /** @type {ReturnType<typeof setTimeout> | undefined} */
       let timer;
       const timeout = new Promise((_, reject) => {
+        // ref'd on purpose (see copilot-sdk.js): the guard must fire even when nothing else keeps the loop alive
         timer = setTimeout(() => reject(Object.assign(new Error(`Turn timed out after ${timeoutMs} ms`), { code: 'TURN_TIMEOUT' })), timeoutMs);
-        timer.unref?.();
       });
       let result;
       try {

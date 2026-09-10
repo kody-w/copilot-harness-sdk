@@ -10,27 +10,31 @@
 //   node scripts/tutorial-rar.mjs --environment https://<org>.crm.dynamics.com/ \
 //     [--name "RAR Starter Agent"] [--publisher-prefix rapp] [--schema-name rapp_RARStarterAgent] \
 //     [--agents "@rapp/hacker_news,@kody-w/manage_memory_agent,@kody-w/context_memory_agent"] \
-//     [--wait-minutes 15] [--work-dir .deploy/tutorial] [--build-only] [--fetch-only]
+//     [--wait-minutes 15] [--work-dir .deploy/tutorial] [--build-only] [--fetch-only] [--token-command "..."]
+//   --build-only stops after the workspace is written; it still needs pac/az and creates the custom connector if it is missing.
+//   --key=value is accepted too. --work-dir: only agents/, workspace/, deploy/ and connections.json inside it are recreated.
 //   --fetch-only stops after reading the agents (no pac/az/environment needed): a smoke test anyone can run.
 //
 // Prerequisites: pac auth profile for the environment, `az login` as the same user, python3.
 // Agents without a profile are still deployed, as reasoning-only skills that carry the agent.py.
 import { spawnSync, execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync, readdirSync } from 'node:fs';
-import { join, resolve, dirname, basename } from 'node:path';
+import { join, resolve, dirname, basename, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { dataverse } from '../src/harness-admin.js';
 import { workflowIdFor } from '../src/harness-provision.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-// Python snippet that imports one RAPP agent.py in a sandbox (stub BasicAgent + storage modules) and prints its metadata.
+// Python snippet that imports one RAPP agent.py in a throwaway python process with the Brainstem modules stubbed and prints its
+// metadata. The file's module-level code runs: naming an agent with --agents means trusting that code from the registry.
 const CONTRACT_PY = "import sys, json, types, importlib.util, pathlib\nclass _Stub:\n    def __init__(self, *a, **k): pass\n    def __getattr__(self, n): return _Stub()\n    def __call__(self, *a, **k): return _Stub()\nclass BasicAgent:\n    def __init__(self, name=None, metadata=None, *a, **k):\n        self.name = name; self.metadata = metadata\ndef stub(name, attrs=None):\n    m = types.ModuleType(name)\n    m.__getattr__ = lambda n: _Stub\n    for k, v in (attrs or {}).items(): setattr(m, k, v)\n    sys.modules[name] = m\n    return m\npkg = stub('agents'); stub('agents.basic_agent', {'BasicAgent': BasicAgent}); pkg.basic_agent = sys.modules['agents.basic_agent']\nu = stub('utils'); \nfor sub in ('utils.storage_factory', 'utils.azure_file_storage', 'utils.local_storage', 'utils.storage'): stub(sub)\ntry:\n    p = pathlib.Path(sys.argv[1]); spec = importlib.util.spec_from_file_location('rar_agent', p); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n    found = None\n    for v in vars(m).values():\n        if isinstance(v, type) and issubclass(v, BasicAgent) and v is not BasicAgent:\n            try: inst = v()\n            except Exception as e: inst = None\n            md = getattr(inst, 'metadata', None) if inst is not None else None\n            found = {'class': v.__name__, 'name': getattr(inst, 'name', None) or v.__name__, 'description': (md or {}).get('description', ''), 'parameters': (md or {}).get('parameters')}\n            break\n    print(json.dumps(found or {'error': 'no BasicAgent subclass found'}))\nexcept Exception as e:\n    print(json.dumps({'error': f'{type(e).__name__}: {e}'}))\n";
 const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
 const fetchOnly = args['fetch-only'] === 'true';
 const environment = fetchOnly ? (args.environment || 'https://example.crm.dynamics.com/').replace(/\/+$/, '') + '/' : need('environment').replace(/\/+$/, '') + '/';
 const name = args.name || 'RAR Starter Agent';
+if (name.length > 42) { console.error(`Refusing --name "${name}" (${name.length} chars): agent display names over 42 characters never finish provisioning.`); process.exit(2); }
 const publisherPrefix = args['publisher-prefix'] || 'rapp';
 const schemaName = args['schema-name'] || `${publisherPrefix}_${name.replace(/[^A-Za-z0-9]/g, '')}`;
 const agentSpecs = (args.agents || '@rapp/hacker_news,@kody-w/manage_memory_agent,@kody-w/context_memory_agent').split(',').map((s) => s.trim()).filter(Boolean);
@@ -42,7 +46,7 @@ const tokenCommand = args['token-command'] || `az account get-access-token --res
 const getToken = async () => execSync(tokenCommand, { encoding: 'utf8' }).trim();
 const dv = { environmentUrl: environment, getDataverseToken: getToken };
 const profilesDir = join(root, 'tutorial', 'profiles');
-rmSync(workDir, { recursive: true, force: true });
+guardWorkDir(workDir, ['agents', 'workspace', 'deploy', 'connections.json']);
 mkdirSync(join(workDir, 'agents'), { recursive: true });
 if (!fetchOnly) preflight();
 
@@ -67,7 +71,7 @@ step('2/6 read each agent contract (name, description, parameters)');
 for (const a of agents) {
   let c = null;
   for (const [cmd, pre] of [['python3', []], ['python', []], ['py', ['-3']]]) {
-    const r = spawnSync(cmd, [...pre, '-c', CONTRACT_PY, a.file], { encoding: 'utf8', shell: process.platform === 'win32' });
+    const r = spawnSync(cmd, [...pre, '-c', CONTRACT_PY, a.file], { encoding: 'utf8' });   // no shell: the -c program is multi-line
     if (r.error || r.status !== 0) continue;
     try { c = JSON.parse(r.stdout.trim()); break; } catch { /* try the next interpreter */ }
   }
@@ -183,7 +187,7 @@ async function ensureConnection(connectorId, displayName, key) {
       told = true;
       const url = envId ? `https://make.powerapps.com/environments/${envId}/connections/available?apiName=${key}` : 'https://make.powerapps.com → Connections → New connection';
       console.log(`\n   ACTION NEEDED: no connection for ${displayName} in this environment.`);
-      console.log(`   Create one (no credentials are needed for these connectors):\n     ${url}\n   This script polls pac connection list every 20s for up to ${waitMinutes} minutes.`);
+      console.log(`   Create one in the maker portal (${key === 'shared_commondataserviceforapps' ? 'Dataverse: sign in with the same account, no other credentials' : 'this connector needs no credentials: just click Create'}):\n     ${url}\n   This script polls pac connection list every 20s for up to ${waitMinutes} minutes (per connection).`);
     }
     if (args['build-only'] === 'true') { console.log('   --build-only: continuing without it'); return null; }
     if (Date.now() > deadline) fail(`No connection for ${displayName} after ${waitMinutes} minutes. Create it in the maker portal and re-run.`);
@@ -192,8 +196,10 @@ async function ensureConnection(connectorId, displayName, key) {
 }
 function listConnections() {
   const r = spawnSync('pac', ['connection', 'list', '--environment', environment], { encoding: 'utf8' });
+  const out = (r.stdout || '') + (r.stderr || '');
+  if (r.error || r.status !== 0) fail(`pac connection list failed for ${environment}:\n   ${out.trim().split('\n').slice(-3).join('\n   ')}\n   Fix the pac auth profile (pac auth create --environment ${environment}) and re-run.`);
   // Fixed-width table; a name as wide as its column leaves a single space before the API id, so do not split on whitespace runs.
-  return ((r.stdout || '') + (r.stderr || '')).split('\n').filter((l) => l.includes('/providers/Microsoft.PowerApps/apis/')).map((l) => {
+  return out.split('\n').filter((l) => l.includes('/providers/Microsoft.PowerApps/apis/')).map((l) => {
     const m = l.trim().match(/^(\S+)\s+(.*?)\s*(\/providers\/Microsoft\.PowerApps\/apis\/\S+)\s+(\S+)\s*$/);
     return m ? { id: m[1], name: m[2], apiId: m[3], status: m[4] } : { id: '', name: '', apiId: '', status: '' };
   });
@@ -231,17 +237,35 @@ function environmentIdFor(envUrl) {
 }
 function parseArgs(argv) {
   const out = {};
-  for (let i = 0; i < argv.length; i++) { const a = argv[i]; if (a.startsWith('--')) { const k = a.slice(2); const v = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true'; out[k] = v; } }
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a.startsWith('--')) continue;
+    const eq = a.indexOf('=');
+    if (eq > 2) { out[a.slice(2, eq)] = a.slice(eq + 1); continue; }              // --key=value
+    const k = a.slice(2); const v = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true'; out[k] = v;   // --key value / --flag
+  }
   return out;
 }
 function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
-function tool(cmd, argv) { const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' }); return { ok: !r.error && r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim() }; }
+function tool(cmd, argv) { const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' && cmd === 'az' }); return { ok: !r.error && r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim() }; }
+function guardWorkDir(dir, owned) {
+  // Only the sub-folders this script owns are deleted; never a directory that is the cwd, an ancestor of it, or a home directory.
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  const norm = (x) => resolve(x).replace(/[\\/]+$/, '').toLowerCase();
+  const target = norm(dir); const cwd = norm(process.cwd());
+  if (target === norm('/') || (home && target === norm(home)) || target === cwd || cwd.startsWith(target + sep.toLowerCase()) || /^[a-z]:$/.test(target)) fail(`Refusing --work-dir ${dir}: it is the current directory, one of its parents, or a home directory. Use a dedicated folder such as ./.deploy/<agent>.`);
+  for (const sub of owned) rmSync(join(dir, sub), { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+}
 function preflight() {
   const major = Number(process.versions.node.split('.')[0]);
   if (major < 20) fail(`Node ${process.versions.node} is too old: needs Node 20.19+ or 22.12+.`);
   if (!tool('pac', ['help']).ok) fail('Power Platform CLI (pac) is not on PATH. Install: dotnet tool install --global Microsoft.PowerApps.CLI.Tool, then pac auth create --environment <url>.');
   const auth = tool('pac', ['auth', 'list']);
   if (!auth.ok || !/\*/.test(auth.out)) fail('No active pac auth profile. Run: pac auth create --environment <environment url>.');
+  const envs = tool('pac', ['env', 'list']);
+  const host = environment.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase();
+  if (envs.ok && !envs.out.toLowerCase().includes(host)) fail(`The active pac profile cannot see ${environment} (not in pac env list). Run: pac auth create --environment ${environment}`);
   if (!args['token-command'] && !tool('az', ['--version']).ok) fail('Azure CLI (az) is not on PATH and no --token-command was given. Install https://aka.ms/azure-cli and az login as the pac user, or pass --token-command.');
   try { execSync(tokenCommand, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { fail(`The token command failed: ${tokenCommand}\n   ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' ')}\n   Run az login --tenant <tenant of the environment> first, or pass --token-command.`); }
   const py = ['python3', 'python', 'py'].find((c) => tool(c, c === 'py' ? ['-3', '--version'] : ['--version']).ok);

@@ -26,6 +26,10 @@
 //     [--workspace-dir ./agent] [--connections ./connections.json] [--fork-workflows] [--keep-extra-components] \
 //     [--model Sonnet46] [--language 1033] [--solution-name MyAgentHarness] [--work-dir ./.deploy]
 //
+// Flags: --name (<=42 chars) --publisher-prefix --environment [--schema-name] [--instructions-file | --workspace-dir]
+//        [--connections file] [--fork-workflows] [--keep-extra-components] [--model Sonnet46] [--language 1033]
+//        [--solution-name] [--work-dir .deploy/<schema>] [--token-command "..."]; --key=value is accepted too.
+// --work-dir: only the sub-folders workspace/, out/, deferred/ and clone/ inside it are recreated each run.
 // --connections: JSON { "<cr suffix | connector id | source logical name>": "<connection id>" } for
 // references that cannot be resolved from an existing reference in the environment.
 // Token for the Dataverse steps: `az account get-access-token --resource <environment>` (same user as the pac auth profile).
@@ -68,7 +72,7 @@ preflight();
 
 const projectDir = join(workDir, 'workspace');
 const outDir = join(workDir, 'out');
-rmSync(workDir, { recursive: true, force: true });
+guardWorkDir(workDir, ['workspace', 'out', 'deferred', 'clone']);
 mkdirSync(projectDir, { recursive: true });
 mkdirSync(outDir, { recursive: true });
 
@@ -340,9 +344,21 @@ function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith('--')) { const k = a.slice(2); const v = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true'; out[k] = v; }
+    if (!a.startsWith('--')) continue;
+    const eq = a.indexOf('=');
+    if (eq > 2) { out[a.slice(2, eq)] = a.slice(eq + 1); continue; }              // --key=value
+    const k = a.slice(2); const v = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : 'true'; out[k] = v;   // --key value / --flag
   }
   return out;
+}
+function guardWorkDir(dir, owned) {
+  // Only the sub-folders this script owns are deleted; never a directory that is the cwd, an ancestor of it, or a home directory.
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  const norm = (x) => resolve(x).replace(/[\\/]+$/, '').toLowerCase();
+  const target = norm(dir); const cwd = norm(process.cwd());
+  if (target === norm('/') || (home && target === norm(home)) || target === cwd || cwd.startsWith(target + sep.toLowerCase()) || /^[a-z]:$/.test(target)) fail(`Refusing --work-dir ${dir}: it is the current directory, one of its parents, or a home directory. Use a dedicated folder such as ./.deploy/<agent>.`);
+  for (const sub of owned) rmSync(join(dir, sub), { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
 }
 function sleepSync(ms) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
 function findFiles(dir, name) {
@@ -352,8 +368,8 @@ function findFiles(dir, name) {
   return out;
 }
 function tool(cmd, argv) {
-  // Windows: pac is pac.exe (found by spawnSync), az is az.cmd (needs a shell). Try both ways.
-  const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' });
+  // Windows: pac.exe and python.exe are real executables (no shell needed); az is az.cmd and needs one.
+  const r = spawnSync(cmd, argv, { encoding: 'utf8', shell: process.platform === 'win32' && cmd === 'az' });
   return { ok: !r.error && r.status === 0, out: ((r.stdout || '') + (r.stderr || '')).trim(), error: r.error };
 }
 function preflight() {
@@ -364,6 +380,9 @@ function preflight() {
   const version = (pacv.out.match(/Version:\s*([\d.]+)/) || [])[1] || pacv.out.split('\n')[0];
   const auth = tool('pac', ['auth', 'list']);
   if (!auth.ok || !/\*/.test(auth.out)) fail('No active pac auth profile. Run: pac auth create --environment <environment url> (then pac auth select --index N).');
+  const envs = tool('pac', ['env', 'list']);
+  const host = environment.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase();
+  if (envs.ok && !envs.out.toLowerCase().includes(host)) fail(`The active pac profile cannot see ${environment} (not in pac env list). Run: pac auth create --environment ${environment}`);
   if (!args['token-command']) {
     const az = tool('az', ['--version']);
     if (!az.ok) fail('Azure CLI (az) is not on PATH and no --token-command was given. Install https://aka.ms/azure-cli and run az login as the same user as the pac profile, or pass --token-command "<command that prints a Dataverse bearer token>".');

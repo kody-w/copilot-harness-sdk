@@ -5,23 +5,23 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { scanWorkspace, scopedReferenceName, rebindConnectionReferences, workflowIdFor, rebindWorkflows, resolveConnection, ensureConnectionReference, connectorExists, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents } from '../index.js';
 
-const OLD_WF = 'abebd69a-5798-59b5-bd38-424646da7a37';
+const OLD_WF = 'bbbbbbbb-0000-4000-8000-000000000001';
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'harness-ws-'));
   mkdirSync(join(dir, 'capabilities', 'tools'), { recursive: true });
   mkdirSync(join(dir, 'behaviors'), { recursive: true });
   mkdirSync(join(dir, 'infrastructure', 'connections'), { recursive: true });
   mkdirSync(join(dir, 'workflows', `RAPPHackerNewsWorkflow-${OLD_WF}`), { recursive: true });
-  mkdirSync(join(dir, 'connectors', 'new_rapp-20hacker-20news-5609c3d9'), { recursive: true });
+  mkdirSync(join(dir, 'connectors', 'new_rapp-20hacker-20news-cccccccc'), { recursive: true });
   writeFileSync(join(dir, 'settings.mcs.yml'), 'displayName: Pilot\nschemaName: aibast_Pilot\npublishedOn: 2026-09-10T14:59:00Z\n');
   writeFileSync(join(dir, 'capabilities', 'tools', 'aibast_dataverse-add-memory.mcs.yml'), 'mcs.metadata:\n  componentName: Add a row\nkind: ConnectorTool\nauthMode: Invoker\nconnectionReference: aibast_Pilot.cr.shared_commondataserviceforapps\nconnectorId: /providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps\noperationId: CreateRecordWithOrganization\n');
-  writeFileSync(join(dir, 'capabilities', 'tools', 'SharedMcp.mcs.yml'), 'kind: McpTool\nconnectionReference: cr8c1_sharedmcp\nconnectorId: /providers/Microsoft.PowerApps/apis/shared_new-5fmcp-5f46f18f33b2ee8a8d\n');
+  writeFileSync(join(dir, 'capabilities', 'tools', 'SharedMcp.mcs.yml'), 'kind: McpTool\nconnectionReference: cr8c1_sharedmcp\nconnectorId: /providers/Microsoft.PowerApps/apis/shared_new-5fmcp-5f0000000000000000\n');
   writeFileSync(join(dir, 'capabilities', 'tools', 'HackerNewsWorkflow.mcs.yml'), `mcs.metadata:\n  componentName: Run RAPP Hacker News workflow\nkind: WorkflowTool\nworkflowId: ${OLD_WF}\ntoolOutputs:\n  - name: status\n`);
   writeFileSync(join(dir, 'behaviors', 'aibast_fetch-hacker-news.mcs.yml'), 'kind: InlineAgentSkill\ncontent: |\n  x\n');
-  writeFileSync(join(dir, 'infrastructure', 'connections', 'aibast_Pilot.cr.shared_new_rapp_hn.sync.yaml'), 'connectionReferences:\n  - connectionReferenceLogicalName: aibast_Pilot.cr.shared_new_rapp_hn\n    connectorId: /providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d\n');
-  writeFileSync(join(dir, 'workflows', `RAPPHackerNewsWorkflow-${OLD_WF}`, 'workflow.json'), '﻿' + JSON.stringify({ properties: { connectionReferences: { 'shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d': { runtimeSource: 'invoker', connection: { connectionReferenceLogicalName: 'aibast_Pilot.cr.shared_new_rapp_hn' } } }, definition: { triggers: { manual: {} } } }, schemaVersion: '1.0.0.0' }, null, 2));
+  writeFileSync(join(dir, 'infrastructure', 'connections', 'aibast_Pilot.cr.shared_new_rapp_hn.sync.yaml'), 'connectionReferences:\n  - connectionReferenceLogicalName: aibast_Pilot.cr.shared_new_rapp_hn\n    connectorId: /providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f0000000000000000\n');
+  writeFileSync(join(dir, 'workflows', `RAPPHackerNewsWorkflow-${OLD_WF}`, 'workflow.json'), '﻿' + JSON.stringify({ properties: { connectionReferences: { 'shared_new-5frapp-20hacker-20news-5f0000000000000000': { runtimeSource: 'invoker', connection: { connectionReferenceLogicalName: 'aibast_Pilot.cr.shared_new_rapp_hn' } } }, definition: { triggers: { manual: {} } } }, schemaVersion: '1.0.0.0' }, null, 2));
   writeFileSync(join(dir, 'workflows', `RAPPHackerNewsWorkflow-${OLD_WF}`, 'metadata.yml'), `﻿jsonFileName: workflows/RAPPHackerNewsWorkflow-${OLD_WF}/workflow.json\nworkflowId: ${OLD_WF}\nname: RAPP Hacker News Workflow\ndescription: Runs HN.\n`);
-  writeFileSync(join(dir, 'connectors', 'new_rapp-20hacker-20news-5609c3d9', 'metadata.yml'), '﻿' + JSON.stringify({ connectorid: '5609c3d9-2f95-f111-8075-000d3a5b60d7', name: 'new_rapp-20hacker-20news', displayname: 'RAPP Hacker News', connectorinternalid: 'shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d' }));
+  writeFileSync(join(dir, 'connectors', 'new_rapp-20hacker-20news-cccccccc', 'metadata.yml'), '﻿' + JSON.stringify({ connectorid: 'cccccccc-0000-4000-8000-000000000001', name: 'new_rapp-20hacker-20news', displayname: 'RAPP Hacker News', connectorinternalid: 'shared_new-5frapp-20hacker-20news-5f0000000000000000' }));
   return dir;
 }
 
@@ -46,11 +46,11 @@ test('scanWorkspace collects tools, references from every source, workflows and 
   const s = scanWorkspace(fixture());
   assert.deepEqual(s.tools.map((t) => [t.name, t.kind]), [['HackerNewsWorkflow', 'WorkflowTool'], ['SharedMcp', 'McpTool'], ['aibast_dataverse-add-memory', 'ConnectorTool']]);
   assert.deepEqual([...s.connectionRefs.keys()].sort(), ['aibast_Pilot.cr.shared_commondataserviceforapps', 'aibast_Pilot.cr.shared_new_rapp_hn', 'cr8c1_sharedmcp']);
-  assert.equal(s.connectionRefs.get('aibast_Pilot.cr.shared_new_rapp_hn').connectorId, '/providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d');
+  assert.equal(s.connectionRefs.get('aibast_Pilot.cr.shared_new_rapp_hn').connectorId, '/providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f0000000000000000');
   assert.equal(s.workflows[0].id, OLD_WF);
   assert.equal(s.workflows[0].name, 'RAPP Hacker News Workflow');
   assert.deepEqual(s.workflows[0].connectionRefs.map((r) => r.logical), ['aibast_Pilot.cr.shared_new_rapp_hn']);
-  assert.equal(s.customConnectors[0].internalId, 'shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d');
+  assert.equal(s.customConnectors[0].internalId, 'shared_new-5frapp-20hacker-20news-5f0000000000000000');
   assert.deepEqual(expectedComponents(fixture(), 'aibast_Core').map((e) => e.schemaName), ['aibast_Core.tool.HackerNewsWorkflow', 'aibast_Core.tool.SharedMcp', 'aibast_Core.tool.aibast_dataverse-add-memory', 'aibast_Core.skill.aibast_fetch-hacker-news']);
 });
 
@@ -114,12 +114,12 @@ test('ensureConnectionReference creates, updates when bound elsewhere, and repor
 });
 
 test('connectorExists only queries custom connectors', async () => {
-  const { fetchImpl, calls } = fake([{ match: /connectorinternalid eq 'shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d'/, body: { value: [{ connectorid: 'cid', displayname: 'RAPP Hacker News' }] } }]);
+  const { fetchImpl, calls } = fake([{ match: /connectorinternalid eq 'shared_new-5frapp-20hacker-20news-5f0000000000000000'/, body: { value: [{ connectorid: 'cid', displayname: 'RAPP Hacker News' }] } }]);
   assert.deepEqual(await connectorExists({ ...base(fetchImpl), connectorId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps' }), { custom: false, exists: true, internal: 'shared_commondataserviceforapps' });
   assert.equal(calls.length, 0);
-  const r = await connectorExists({ ...base(fetchImpl), connectorId: '/providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f46f18f33b2ee8a8d' });
+  const r = await connectorExists({ ...base(fetchImpl), connectorId: '/providers/Microsoft.PowerApps/apis/shared_new-5frapp-20hacker-20news-5f0000000000000000' });
   assert.equal(r.custom, true); assert.equal(r.exists, true); assert.equal(r.connectorId, 'cid');
-  assert.equal((await connectorExists({ ...base(fake([{ match: /connectorinternalid/, body: { value: [] } }]).fetchImpl), connectorId: '/providers/Microsoft.PowerApps/apis/shared_new-5fmissing-5f46f18f33b2ee8a8d' })).exists, false);
+  assert.equal((await connectorExists({ ...base(fake([{ match: /connectorinternalid/, body: { value: [] } }]).fetchImpl), connectorId: '/providers/Microsoft.PowerApps/apis/shared_new-5fmissing-5f0000000000000000' })).exists, false);
 });
 
 test('ensureWorkflow posts a new agent flow and activates it, or updates and re-activates an existing one', async () => {

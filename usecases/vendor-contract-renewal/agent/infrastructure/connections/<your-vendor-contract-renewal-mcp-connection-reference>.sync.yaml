@@ -1,0 +1,3 @@
+connectionReferences:
+  - connectionReferenceLogicalName: <your-vendor-contract-renewal-mcp-connection-reference>
+    connectorId: /providers/Microsoft.PowerApps/apis/<your-vendor-contract-renewal-mcp-connector>

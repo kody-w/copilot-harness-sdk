@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents, ClassicAgentError, ACCESS_CONTROL_POLICY, CHANNELS } from '../index.js';
 
-const BOT = { botid: 'ea35ebfd-50cc-4c59-9f76-231a2d042925', name: 'H', schemaname: 'cr8c1_Harness', template: 'cliagent-1.0.0', publishedon: '2026-09-07T19:10:11Z',
+const BOT = { botid: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'H', schemaname: 'cr8c1_Harness', template: 'cliagent-1.0.0', publishedon: '2026-09-07T19:10:11Z',
   configuration: JSON.stringify({ $kind: 'BotConfiguration', recognizer: { $kind: 'CLICopilotRecognizer' }, agentSettings: { $kind: 'AgentSettings', model: { $kind: 'ModelConfig', series: 'Sonnet46' }, instructions: { $kind: 'Instructions', segments: [{ $kind: 'StaticSegment', value: 'x' }] } }, authoringModel: 'CliCopilot' }) };
 const CLASSIC = { ...BOT, schemaname: 'new_Classic', template: 'default-2.1.0', configuration: JSON.stringify({ recognizer: { $kind: 'GenerativeAIRecognizer' } }) };
 
@@ -26,11 +26,11 @@ const botRoute = (bot = BOT) => ({ match: /bots\?\$filter=schemaname eq 'cr8c1_H
 
 test('shareAgent grants read access to a user through GrantAccess and refuses classic agents', async () => {
   const { fetchImpl, calls } = fake([botRoute(), { method: 'POST', match: /GrantAccess$/, status: 204 }]);
-  const r = await shareAgent({ ...base(fetchImpl), schemaName: 'cr8c1_Harness', userId: 'ebebba12-e189-f111-ab10-000d3a5b60d7' });
+  const r = await shareAgent({ ...base(fetchImpl), schemaName: 'cr8c1_Harness', userId: 'aaaaaaaa-0000-4000-8000-000000000002' });
   assert.equal(r.access, 'ReadAccess');
   const grant = calls.find((c) => c.method === 'POST');
   assert.equal(grant.body.Target.botid, BOT.botid);
-  assert.equal(grant.body.PrincipalAccess.Principal.systemuserid, 'ebebba12-e189-f111-ab10-000d3a5b60d7');
+  assert.equal(grant.body.PrincipalAccess.Principal.systemuserid, 'aaaaaaaa-0000-4000-8000-000000000002');
   assert.equal(grant.headers.Authorization, 'Bearer dv');
   await assert.rejects(shareAgent({ ...base(fetchImpl), schemaName: 'cr8c1_Harness' }), /userId or teamId/);
   const classic = fake([{ match: /bots\?\$filter=schemaname eq 'new_Classic'/, body: { value: [CLASSIC] } }]);
@@ -38,7 +38,7 @@ test('shareAgent grants read access to a user through GrantAccess and refuses cl
 });
 
 test('setAccessControl writes the policy and comma-joined security groups', async () => {
-  const { fetchImpl, calls } = fake([botRoute(), { method: 'PATCH', match: /bots\(ea35ebfd/, status: 204 }]);
+  const { fetchImpl, calls } = fake([botRoute(), { method: 'PATCH', match: /bots\(aaaaaaaa/, status: 204 }]);
   await setAccessControl({ ...base(fetchImpl), schemaName: 'cr8c1_Harness', policy: 'GroupMembership', securityGroupIds: ['24ff5c70-0c86-4ba6-84bc-d98332b03f5e', '1cb6eeb9-d71d-42e5-87b5-04da38639020'] });
   const patch = calls.find((c) => c.method === 'PATCH');
   assert.equal(patch.body.accesscontrolpolicy, ACCESS_CONTROL_POLICY.GroupMembership);
@@ -49,7 +49,7 @@ test('setAccessControl writes the policy and comma-joined security groups', asyn
 });
 
 test('setChannels rewrites configuration.channels without touching the rest of the configuration', async () => {
-  const { fetchImpl, calls } = fake([botRoute(), { method: 'PATCH', match: /bots\(ea35ebfd/, status: 204 }]);
+  const { fetchImpl, calls } = fake([botRoute(), { method: 'PATCH', match: /bots\(aaaaaaaa/, status: 204 }]);
   const r = await setChannels({ ...base(fetchImpl), schemaName: 'cr8c1_Harness', channels: ['Teams', 'Microsoft365Copilot'] });
   assert.deepEqual(r.channels, [CHANNELS.Teams, CHANNELS.Microsoft365Copilot]);
   const cfg = JSON.parse(calls.find((c) => c.method === 'PATCH').body.configuration);
@@ -84,7 +84,7 @@ test('upsertEnvironmentVariable creates definition + value, then updates in plac
 });
 
 test('listComponents names components the way pac does and reads the kind from the YAML', async () => {
-  const { fetchImpl } = fake([botRoute(), { match: /botcomponents\?\$filter=_parentbotid_value eq ea35ebfd/, body: { value: [
+  const { fetchImpl } = fake([botRoute(), { match: /botcomponents\?\$filter=_parentbotid_value eq aaaaaaaa/, body: { value: [
     { schemaname: 'cr8c1_Harness.tool.SiteWeather', name: 'Site Weather', componenttype: 9, data: 'kind: WorkflowTool\nworkflowId: x' },
     { schemaname: 'cr8c1_Harness.knowledge.FAR', name: 'FAR', componenttype: 9, data: 'kind: KnowledgeSourceConfiguration\nsource:\n  kind: WebsiteKnowledgeSource' },
     { schemaname: 'cr8c1_Harness.tool.connected-agent.Child', name: 'Child', componenttype: 9, data: 'kind: ConnectedAgentTool\nbotSchemaName: cr8c1_Child' },

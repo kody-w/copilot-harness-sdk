@@ -3,6 +3,6 @@ mcs.metadata:
   description: "Returns affordability data for a borrower. Use when the user asks whether a borrower can afford modified terms."
 kind: McpTool
 authMode: Maker
-connectionReference: loanx_loanoriginationcreditdecisioningassistant_bf5ecd.cr.shared_loanx-5fenric.bd48a26fda3f2e8cd7f8
-connectorId: /providers/Microsoft.PowerApps/apis/shared_loanx-5fenrich-20affordability-20data-20mcp-5f46f18f33b2ee8a8d
+connectionReference: <your-loan-servicing-exception-mcp-connection-reference>
+connectorId: /providers/Microsoft.PowerApps/apis/<your-loan-servicing-exception-mcp-connector>
 operationId: InvokeMCP

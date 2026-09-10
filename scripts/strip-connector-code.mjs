@@ -5,6 +5,7 @@
 // bring your own connector and point usecases.json at its connection reference.
 //
 //   node scripts/strip-connector-code.mjs usecases/*/exports/*.zip
+// Maintainer tool: needs the unzip and zip commands (macOS/Linux, or WSL on Windows).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { mkdtempSync, rmSync, existsSync } from 'node:fs';

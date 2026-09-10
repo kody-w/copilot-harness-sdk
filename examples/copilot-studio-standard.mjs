@@ -6,6 +6,7 @@ const { ENTRA_CLIENT_ID, ENTRA_TENANT_ID, COPILOT_ENVIRONMENT_ID, COPILOT_SCHEMA
 const client = await HarnessClient.create({
   mode: 'copilot-studio-standard',
   copilotStudio: {
+    allowClassicAgent: true,   // classic (standard-harness) agents are deprecated here; HarnessClient.create refuses the mode without this
     environmentId: COPILOT_ENVIRONMENT_ID,
     schemaName: COPILOT_SCHEMA_NAME,
     getAccessToken: createDeviceCodeTokenProvider({ clientId: ENTRA_CLIENT_ID, tenantId: ENTRA_TENANT_ID })

@@ -331,7 +331,6 @@ export declare function listComponents(opts: DataverseOptions & AgentRef): Promi
 
 // Infrastructure provisioning for a harness workspace (agent-scoped connection references, agent
 // flows, component links, stale-component cleanup). Dataverse Web API, see src/harness-provision.js.
-export interface DataverseOptions { environmentUrl: string; getDataverseToken: () => Promise<string>; fetchImpl?: typeof fetch }
 export declare function dataverse(opts: DataverseOptions): (path: string, init?: RequestInit) => Promise<{ status: number; body: any; headers: Headers }>;
 export declare const AGENT_SCOPED_REF: RegExp;
 export interface WorkspaceScan {

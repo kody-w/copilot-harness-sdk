@@ -10,7 +10,7 @@ import { readFileSync, mkdtempSync, rmSync, existsSync, readdirSync } from 'node
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { classifyBot, listComponents, inspectAgentHarness } from '../index.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,7 +21,8 @@ const opt = (k) => (args.includes(k) ? args[args.indexOf(k) + 1] : null);
 export function readSolutionZip(zipPath) {
   const dir = mkdtempSync(join(tmpdir(), 'sol-'));
   try {
-    execSync(`unzip -q -o "${zipPath}" -d "${dir}"`);
+    const r = spawnSync('pac', ['solution', 'unpack', '--zipfile', zipPath, '--folder', dir, '--packagetype', 'Unmanaged'], { encoding: 'utf8' });
+    if (r.error || r.status !== 0) throw new Error(`pac solution unpack failed for ${zipPath}: ${((r.stdout || '') + (r.stderr || '')).trim().split('\n').slice(-2).join(' ')}`);
     const botsDir = join(dir, 'bots');
     const botFolder = existsSync(botsDir) ? readdirSync(botsDir)[0] : null;
     if (!botFolder) throw new Error(`${zipPath} has no bots/ folder`);

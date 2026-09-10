@@ -15,11 +15,12 @@ Everything the matrix says is traceable to [`docs/ghcp-harness-copilot-sdk-refer
 ## Install
 
 ```bash
-git clone https://github.com/kody-w/copilot-harness-sdk.git && cd copilot-harness-sdk
+git clone https://github.com/kody-w/copilot-harness-sdk.git
+cd copilot-harness-sdk
 npm install
 npm test            # unit tests (no network, no credentials)
 npm run check       # syntax check + the tutorial's fetch-only smoke (public registry, no environment needed)
-npm run test:live   # also runs the real Copilot SDK turn (needs a Copilot login)
+npm run test:live   # also runs the real Copilot SDK turn (needs a Copilot login); PowerShell: $env:COPILOT_HARNESS_LIVE=1; npm test
 ```
 
 Or, once published to npm, without cloning: `npm install copilot-harness-sdk` for the library, and
@@ -36,7 +37,7 @@ Or, once published to npm, without cloning: `npm install copilot-harness-sdk` fo
 | deploying (`deploy:harness`, `tutorial`) | [Power Platform CLI](https://aka.ms/PowerPlatformCLI) 2.10+ with an auth profile for the environment (`pac auth create --environment <url>`), and a Dataverse bearer token: [Azure CLI](https://aka.ms/azure-cli) signed in as the same user (`az login --tenant <tenant>`) or any command that prints one (`--token-command`) | step 0 of each script prints what is missing and how to install it |
 | the tutorial's agent-contract read | `python3` (or `python` / `py -3`); without it parameters are read statically | step 0 |
 
-The deploy and tutorial scripts are plain Node with no shell dependencies: they run on macOS, Linux and Windows (PowerShell) with the same commands; the CI matrix runs the unit tests and the fetch-only smoke on all three.
+The deploy and tutorial scripts are plain Node with no shell dependencies (no `ls`, `unzip`, `zip` or `sleep`; the solution zip is handled by `pac solution unpack/pack`). Verified: the unit tests and the tutorial's fetch-only smoke on ubuntu, windows and macos in CI, and the full deploy and tutorial on macOS against two environments. A full deploy from Windows PowerShell has not been run yet; if you run one, open an issue with the log either way.
 
 ## The one API
 
@@ -77,7 +78,7 @@ Turn rules that hold in every mode: turns on one session are serialized; breakin
 
 ## Scenario recipes
 
-Each recipe is a runnable file under `examples/` (`npm run example:<name>`). They read their inputs from environment variables and never embed tenant ids.
+Recipes 1, 4, 5 and 6 are runnable files under `examples/` (`npm run example:<name>`); 2, 3 and 7 are snippets. They read their inputs from environment variables and never embed tenant ids.
 
 ### 1. In-process harness with your own tools (`copilot-sdk`)
 
@@ -141,6 +142,8 @@ In a web app, pass the browser's MSAL token through instead (`getAccessToken: as
 
 Same config with `mode: 'copilot-studio-standard'`; the client library derives the URL from `environmentId` + `schemaName`.
 
+Classic agents are deprecated in this SDK: `HarnessClient.create` refuses the mode unless the config also carries `allowClassicAgent: true` (the example file sets it). Recreate the agent on the GitHub Copilot harness when you can.
+
 ### 6. Daemon with no user present (`copilot-studio-s2s`)
 
 ```js
@@ -165,7 +168,7 @@ A Copilot Studio agent is either on the **GitHub Copilot harness** or it is a **
 
 This SDK enforces the policy that **no new classic agent is ever created or targeted**, at three layers:
 
-1. **Deploy only the harness.** `npm run deploy:harness -- --name "My Agent" --publisher-prefix cr8c1 --instructions-file ./instructions.md --environment https://<org>.crm.dynamics.com/` runs the proven sequence (`pac copilot init --authoring-mode cli-copilot` → `pack` → **refuse the zip unless `bot.xml` says `cliagent-*`** → `pac solution import` → write the instructions onto the live record → `pac copilot publish` → read the record back and assert harness + instructions + published). It exits non-zero at the first sign of a classic template, never accepts `--authoring-mode classic`, and refuses display names over 42 characters (longer names never finish provisioning). Two `pac` 2.10.1 defects it works around: `pack` writes `<language>0</language>` (import rejects it) and `push` drops `agentSettings.instructions`.
+1. **Deploy only the harness.** `npm run deploy:harness -- --name "My Agent" --publisher-prefix cr8c1 --instructions-file ./instructions.md --environment https://<org>.crm.dynamics.com/` runs the ten-step sequence in the script header and in [Infrastructure by default](#infrastructure-by-default-every-deploy-comes-out-like-the-reference-pilot) below (`pac copilot init --authoring-mode cli-copilot` or a copied workspace → provision references and flows → `pack` → **refuse the zip unless `bot.xml` says `cliagent-*`** → `pac solution import` → push workflow tools → write the instructions onto the live record → bind and clean components → `pac copilot publish` → read the record back and assert harness + instructions + published + every link). It exits non-zero at the first sign of a classic template, never accepts `--authoring-mode classic`, and refuses display names over 42 characters (longer names never finish provisioning). Two `pac` 2.10.1 defects it works around: `pack` writes `<language>0</language>` (import rejects it) and `push` drops `agentSettings.instructions`.
 2. **Verify before you trust.** `assertHarnessAgent({ environmentUrl, schemaName, getDataverseToken })` reads the live record and throws `ClassicAgentError` for anything that is not the harness (optionally also for missing instructions or an unpublished agent). `classifyBot(botRecord)` is the pure version for exports you already have on disk.
 3. **Refuse to talk to one.** `HarnessClient.create({ mode: 'copilot-studio-standard' })` throws with `CLASSIC_REFUSAL` and `recommendMode` never answers that mode, unless `allowClassicAgent: true` is passed for a legacy agent you cannot recreate yet.
 
@@ -181,6 +184,7 @@ try {
   console.log(info.template, info.recognizer, info.model, info.instructionChars);        // cliagent-1.0.0 CLICopilotRecognizer Sonnet46 6338
 } catch (e) {
   if (e instanceof ClassicAgentError) { /* recreate on the harness; do not ship */ }
+  else { /* missing instructions or not published: a plain Error with the reason */ }
 }
 ```
 
@@ -205,7 +209,22 @@ npm run deploy:harness -- --name "Brainstem Core" --publisher-prefix aibast --sc
   --workspace-dir ./brainstem-core --environment https://<org>.crm.dynamics.com/ [--connections ./connections.json] [--fork-workflows]
 ```
 
-`connections.json` maps a reference suffix, connector id or source logical name to a connection id (`pac connection list`) for references the script cannot resolve from the environment. The same operations are exported for your own scripts: `rebindConnectionReferences`, `rebindWorkflows`, `workflowIdFor`, `resolveConnection`, `ensureConnectionReference`, `connectorExists`, `ensureWorkflow`, `listBotComponents`, `linkComponentConnectionReference`, `linkComponentWorkflow`, `deleteStaleComponents`, `expectedComponents` (all Dataverse Web API, `{ environmentUrl, getDataverseToken }` like the admin operations).
+`connections.json` maps a reference suffix, connector id or source logical name to a connection id (`pac connection list`) for references the script cannot resolve from the environment. The same operations are exported for your own scripts. Workspace helpers edit files only: `scanWorkspace(dir)`, `scopedReferenceName`, `rebindConnectionReferences(dir, schemaName)`, `rebindWorkflows(dir, resolveId)`, `workflowIdFor(schemaName, folder)`, `expectedComponents(dir, schemaName)`. The rest are Dataverse Web API calls taking `{ environmentUrl, getDataverseToken }` like the admin operations: `findBot`, `findConnectionReference`, `resolveConnection`, `ensureConnectionReference`, `connectorExists`, `findWorkflow`, `ensureWorkflow`, `listBotComponents`, `linkComponentConnectionReference`, `linkComponentWorkflow`, `deleteStaleComponents`.
+
+| `deploy:harness` flag | Default | Effect |
+| --- | --- | --- |
+| `--name`, `--publisher-prefix`, `--environment` | required | display name (42 characters max), solution publisher prefix, `https://<org>.crm.dynamics.com/` |
+| `--schema-name` | `<prefix>_<Name without spaces>` | the bot's schema name; a copied workspace is renamed to it |
+| `--instructions-file` or `--workspace-dir` | one required | instructions for a scaffolded agent, or a pre-authored harness workspace to deploy |
+| `--connections <file.json>` | none | `{ "<suffix | connector id | source logical name>": "<connection id>" }` for references the environment cannot resolve |
+| `--fork-workflows` | off | always mint a per-agent flow instead of reusing one that exists in the environment |
+| `--keep-extra-components` | off | leave components on the live record that the workspace no longer declares |
+| `--model`, `--language` | `Sonnet46`, `1033` | model series and language written to the record |
+| `--solution-name` | `<schema>Harness` (49 chars max) | unique name of the solution that carries the bot |
+| `--work-dir` | `.deploy/<schema>` | scratch folder; only its `workspace/`, `out/`, `deferred/` and `clone/` sub-folders are recreated |
+| `--token-command "..."` | `az account get-access-token --resource <environment> --query accessToken -o tsv` | any command that prints a Dataverse bearer token |
+
+`--key=value` is accepted as well as `--key value`.
 
 Proof (10 September 2026, kodyv8, pac 2.10.1): `aibast_BrainstemCore`, three RAPP agents (Hacker News, ManageMemory, ContextMemory) as three skills, one `WorkflowTool` on a custom-connector flow and two Dataverse `ConnectorTool`s, deployed and re-deployed through this script (references `existing`, flow `updated` in place, no stale components), and the Studio test pane answered all three prompts through the real tools: live Hacker News stories from the flow, a memory row written to Dataverse, the same row recalled by keyword.
 
@@ -246,7 +265,7 @@ await upsertEnvironmentVariable({ ...dv, schemaName: 'cr8c1_RenewalNoticeDays', 
 console.log(await listComponents({ ...dv, schemaName }));                                 // [{ name: 'tool.SiteWeather', kind: 'WorkflowTool' }, …]
 ```
 
-Every one of them resolves the bot first and throws `ClassicAgentError` for a classic agent. `dataverse({ environmentUrl, getDataverseToken })` returns the same authenticated Web API caller they use.
+`shareAgent`, `setAccessControl`, `setChannels` and `listComponents` resolve the bot first and throw `ClassicAgentError` for a classic agent; `upsertEnvironmentVariable` is solution-scoped and does not touch the bot. `dataverse({ environmentUrl, getDataverseToken })` returns the same authenticated Web API caller they use.
 
 ## Choosing a mode without guessing
 
@@ -258,9 +277,9 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 
 `validateConfig(config)` returns every problem at once; `HarnessClient.create` throws with the same list.
 
-## Verification status (6 September 2026)
+## Verification status (10 September 2026)
 
-58 unit tests (`npm test`), no network or credentials needed. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
+78 unit tests (`npm test`; 77 offline plus one live-gated), no network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
 
 | Mode | Unit tests | Live |
 | --- | --- | --- |
@@ -272,6 +291,16 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 | token providers | cache, refresh skew, in-flight dedupe, failure recovery, silent-before-device-code | — |
 
 An adversarial review pass (four lenses, 6 Sep 2026) produced 43 candidate defects; each was checked against the code and the installed dependency sources, and the confirmed ones were fixed with the regression tests above (turn cross-talk after an early break, leaked listeners and timers, autopilot idle, permission events invisible to stream consumers, swallowed start-conversation errors, card-only messages wiping the answer, cumulative snapshots that do not extend, Direct Line history replay on resume, silent timeouts, queue double-rejection).
+
+## Publishing (maintainers)
+
+The package is meant to be published to npm as `copilot-harness-sdk` (public). Publish from GitHub, not from a laptop whose npm points at a private registry:
+
+1. Create an npm automation token and add it to the repository as the `NPM_TOKEN` secret.
+2. Bump `version` in `package.json` and `package-lock.json` on `main`; CI must be green.
+3. Create a GitHub release whose tag is `v<version>`: `.github/workflows/publish.yml` runs the tests and `npm publish --access public --provenance`.
+
+`npm pack --dry-run` lists what ships: the library, types, the two command-line entry points, the tutorial profiles and the docs (see `files` in `package.json`).
 
 ## Provenance
 
