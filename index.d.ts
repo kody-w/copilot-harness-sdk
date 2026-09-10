@@ -255,7 +255,7 @@ export declare class ClassicAgentError extends Error {
 export declare function classifyBot(bot: { template?: string | null; configuration?: string | Record<string, unknown> | null }): HarnessClassification;
 export declare function assertHarnessBot(bot: { template?: string | null; configuration?: string | Record<string, unknown> | null; name?: string; schemaname?: string }, opts?: { requireInstructions?: boolean }): HarnessClassification;
 export interface InspectAgentOptions {
-  /** Dataverse org URL, e.g. https://org7dfbd855.crm.dynamics.com/ */
+  /** Dataverse org URL, e.g. https://<org>.crm.dynamics.com/ */
   environmentUrl: string;
   schemaName?: string;
   botId?: string;
@@ -314,7 +314,7 @@ export declare function explainStatus(status: number, detail?: string): string;
 // ---------------------------------------------------------------------------
 // Harness admin: the operations that have no `pac copilot` verb. Dataverse Web API, see src/harness-admin.js.
 export interface DataverseOptions {
-  /** Dataverse org URL, e.g. https://org7dfbd855.crm.dynamics.com/ */
+  /** Dataverse org URL, e.g. https://<org>.crm.dynamics.com/ */
   environmentUrl: string;
   getDataverseToken: () => Promise<string>;
   fetchImpl?: typeof fetch;

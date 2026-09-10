@@ -70,6 +70,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let ok = true;
   if (args.includes('--all')) {
     const cfg = JSON.parse(readFileSync(join(root, 'usecases/usecases.json'), 'utf8'));
+    // Real environment identity lives in usecases/usecases.local.json (gitignored); usecases.json ships placeholders.
+    { const localPath = join(root, 'usecases/usecases.local.json'); if (existsSync(localPath)) { const local = JSON.parse(readFileSync(localPath, 'utf8')); Object.assign(cfg, local, { shared: { ...cfg.shared, environmentMcp: { ...cfg.shared?.environmentMcp, ...local.shared?.environmentMcp } } }); } }
+    if (/<org>|<environment-id>|YourSolution/.test(`${cfg.environmentUrl}${cfg.environmentId}${cfg.shared?.environmentMcp?.connectionReference}`)) { console.error('usecases.json holds placeholders. Put your environmentUrl, environmentId and connection reference in usecases/usecases.local.json (see usecases/README.md).'); process.exit(2); }
     const environmentUrl = opt('--environment-url') || cfg.environmentUrl;
     for (const u of cfg.usecases) {
       const proof = JSON.parse(readFileSync(join(root, 'usecases', u.slug, 'proof.json'), 'utf8'));

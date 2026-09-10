@@ -3,6 +3,6 @@ mcs.metadata:
   description: "Dataverse MCP server for the environment. Use only when the user explicitly asks to look up or list records in Dataverse tables. Never create, update or delete records."
 kind: McpTool
 authMode: Maker
-connectionReference: aibast_RAPPNewsMemoryPilot.cr.shared_commondataserviceforapps
+connectionReference: cr8c1_YourSolution.cr.shared_commondataserviceforapps
 connectorId: /providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps
 operationId: InvokeMCP

@@ -1,8 +1,8 @@
 {
   "$comment": "Ten 'packet copilot' use cases used to prove this SDK can deploy and drive GitHub Copilot harness agents with knowledge, tools (MCP, connector, agent flow), skills and connected agents. Each becomes a parent agent + a child data agent. Generated workspaces live next to this file.",
   "publisherPrefix": "cr8c1",
-  "environmentUrl": "https://org7dfbd855.crm.dynamics.com/",
-  "environmentId": "ee67a404-325c-e726-a18a-886fe708ca0b",
+  "environmentUrl": "https://<org>.crm.dynamics.com/",
+  "environmentId": "<environment-id>",
   "shared": {
     "workflowTool": {
       "name": "SiteWeather",
@@ -34,7 +34,7 @@
       "name": "EnvironmentData",
       "componentName": "Environment Data (Dataverse MCP)",
       "description": "Dataverse MCP server for the environment. Use only when the user explicitly asks to look up or list records in Dataverse tables. Never create, update or delete records.",
-      "connectionReference": "aibast_RAPPNewsMemoryPilot.cr.shared_commondataserviceforapps",
+      "connectionReference": "cr8c1_YourSolution.cr.shared_commondataserviceforapps",
       "connectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
     }
   },

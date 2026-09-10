@@ -13,6 +13,9 @@ import { execSync, spawnSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cfg = JSON.parse(readFileSync(join(root, 'usecases/usecases.json'), 'utf8'));
+// Real environment identity lives in usecases/usecases.local.json (gitignored); usecases.json ships placeholders.
+{ const localPath = join(root, 'usecases/usecases.local.json'); if (existsSync(localPath)) { const local = JSON.parse(readFileSync(localPath, 'utf8')); Object.assign(cfg, local, { shared: { ...cfg.shared, environmentMcp: { ...cfg.shared?.environmentMcp, ...local.shared?.environmentMcp } } }); } }
+if (/<org>|<environment-id>|YourSolution/.test(`${cfg.environmentUrl}${cfg.environmentId}${cfg.shared?.environmentMcp?.connectionReference}`)) { console.error('usecases.json holds placeholders. Put your environmentUrl, environmentId and connection reference in usecases/usecases.local.json (see usecases/README.md).'); process.exit(2); }
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const env = cfg.environmentUrl.replace(/\/+$/, '');
 const api = `${env}/api/data/v9.2/`;

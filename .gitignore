@@ -3,3 +3,5 @@ node_modules/
 *.log
 .DS_Store
 .deploy/
+.review-tmp/
+usecases/usecases.local.json

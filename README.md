@@ -157,9 +157,9 @@ This SDK enforces the policy that **no new classic agent is ever created or targ
 import { assertHarnessAgent, ClassicAgentError } from 'copilot-harness-sdk';
 try {
   const info = await assertHarnessAgent({
-    environmentUrl: 'https://org7dfbd855.crm.dynamics.com/',
+    environmentUrl: 'https://<org>.crm.dynamics.com/',
     schemaName: 'cr8c1_MyAgent',
-    getDataverseToken: async () => tokenFor('https://org7dfbd855.crm.dynamics.com'),   // e.g. az account get-access-token --resource <environmentUrl>
+    getDataverseToken: async () => tokenFor('https://<org>.crm.dynamics.com'),   // e.g. az account get-access-token --resource <environmentUrl>
     requireInstructions: true, requirePublished: true
   });
   console.log(info.template, info.recognizer, info.model, info.instructionChars);        // cliagent-1.0.0 CLICopilotRecognizer Sonnet46 6338

@@ -16,7 +16,8 @@ npm install
 az login                                   # the Dataverse user of the target environment
 pac auth create --environment <env-url>    # or reuse an existing pac profile
 
-# edit usecases.json: environmentUrl / environmentId / publisherPrefix, and the connection
+# put your environmentUrl, environmentId and connection reference in usecases/usecases.local.json
+# (gitignored; the same keys as usecases.json, which ships placeholders). Also set the
 # references for the MCP tools (pac connection list) and the workflowId of an activated agent flow.
 npm run build:usecases                     # regenerate agent/ from usecases.json
 npm run deploy:usecases                    # child first, then parent; harness template or nothing

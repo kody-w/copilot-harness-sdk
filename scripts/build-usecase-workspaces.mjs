@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cfg = JSON.parse(readFileSync(join(root, 'usecases/usecases.json'), 'utf8'));
+// Generated workspaces are tracked and ship placeholders; deploy-usecases.mjs substitutes the real
+// connection reference from usecases/usecases.local.json into a temporary copy at deploy time.
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const y = (s) => JSON.stringify(String(s)); // YAML-safe double-quoted scalar
 const block = (s, indent) => s.split('\n').map((l) => ' '.repeat(indent) + l).join('\n');
