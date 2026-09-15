@@ -295,7 +295,7 @@ function fakeDirectLine(opts = {}) {
         json: async () => ({
           watermark: 'w-new',
           activities: [
-            { type: 'message', from: { id: 'copilot-harness-sdk' }, text: 'new question' },
+            { type: 'message', from: opts.echoFrom || { id: 'copilot-harness-sdk' }, text: 'new question' },
             { type: 'typing', from: { id: 'bot' } },
             { type: 'message', from: { id: 'bot' }, text: 'NEW answer' },
             { type: 'event', name: 'turn.complete', from: { id: 'bot' } }
@@ -322,6 +322,19 @@ test('agentic-directline: primes the watermark, keeps the greeting, and returns 
   const polls = fetchImpl.calls.filter((c) => c.method === 'GET' && c.url.includes('/activities'));
   assert.ok(polls[0].url.endsWith('/activities'), 'first GET primes without a watermark');
   assert.ok(polls.slice(1).every((c) => /watermark=/.test(c.url)), 'every later poll carries the watermark');
+});
+
+test('agentic-directline: the echo of our own prompt under a rewritten from.id is not the answer', async () => {
+  // Direct Line rewrites the posting user's id (and marks it role "user"); the echoed prompt must be skipped
+  // by role or by exact text, or it is mistaken for the bot's final answer.
+  for (const echoFrom of [{ id: 'dl_9f2a', role: 'user' }, { id: 'dl_9f2a' }]) {
+    const fetchImpl = fakeDirectLine({ echoFrom });
+    const client = await HarnessClient.create({ mode: 'agentic-directline', copilotStudio: { environmentId: ENV, schemaName: 'cr123_agent' } }, { fetchImpl });
+    const session = await client.createSession();
+    const result = await session.send('new question');
+    assert.equal(result.text, 'NEW answer', JSON.stringify(echoFrom));
+    await client.close();
+  }
 });
 
 test('agentic-directline: resume discards history instead of returning a stale answer', async () => {
