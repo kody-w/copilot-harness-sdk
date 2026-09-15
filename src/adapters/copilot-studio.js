@@ -457,7 +457,9 @@ async function createAgenticDirectLineAdapter(config, tokenUrl, fetchImpl, liste
             const page = await poll(token, /** @type {string} */ (conversationId), watermark);
             watermark = page.watermark;
             for (const activity of page.activities) {
-              if (activity.from?.id === userId) continue;
+              // Direct Line rewrites the posting user's id, so the echo of our own prompt can come back
+              // under another id: skip by role and by exact text as well, or the echo counts as the answer.
+              if (activity.from?.id === userId || activity.from?.role === 'user' || (activity.type === 'message' && activity.text === prompt && !activity.replyToId)) continue;
               for (const ev of normalizeStudioActivity(activity, acc)) {
                 const withTurn = { ...ev, turn };
                 emit(withTurn);
