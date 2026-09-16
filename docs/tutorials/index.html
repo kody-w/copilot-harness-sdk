@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copilot Studio ladder</title>
+<meta name="description" content="Reproducible tutorials: from RAPP agent.py files and SKILL.md skills to published Copilot Studio agents, each proven end to end.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a><a href="../ghcp-harness-copilot-sdk-reference.html">SDK reference</a></nav>
+</header>
+
+<div class="eyebrow">Tutorials</div>
+<h1>The Copilot Studio ladder</h1>
+<p class="lede">Each rung turns RAPP <code>agent.py</code> files and <code>SKILL.md</code> skills into one published Copilot Studio agent on the GitHub Copilot harness, then proves it with real prompts. Every rung is reproducible from this repo alone, and every published agent keeps working with no RAPP brainstem behind it.</p>
+
+<ol class="ladder">
+  <li><span class="rung">0</span><div><div class="title"><a href="00-skills-demo.html">Skills only</a></div><div class="what">Four SKILL.md files become skills on one agent. No connectors, no flows. Exported straight out of Copilot Studio.</div></div><span class="pill ok">proved 3/3</span></li>
+  <li><span class="rung">1</span><div><div class="title"><a href="01-starter.html">Starter with live tools</a></div><div class="what">Hacker News, ManageMemory and ContextMemory agents run for real: a custom connector, an agent flow and two Dataverse tools.</div></div><span class="pill ok">proved 3/3</span></li>
+  <li><span class="rung">2</span><div><div class="title"><a href="02-starter-skills.html">Live tools plus skills</a></div><div class="what">Rung 1 plus two SKILL.md skills on the same agent, built and deployed by one call to a brainstem agent.</div></div><span class="pill ok">proved 5/5</span></li>
+  <li><span class="rung">3</span><div><div class="title">Skills with scripts</div><div class="what">Skills whose SKILL.md ships runnable scripts; what the harness sandbox can and cannot execute.</div></div><span class="pill next">next</span></li>
+  <li><span class="rung">4</span><div><div class="title">Two AIs, one routine</div><div class="what">A parent agent that consults a child agent (connected agents), each with its own memory.</div></div><span class="pill next">next</span></li>
+  <li><span class="rung">5</span><div><div class="title">Thirty-four community skills</div><div class="what">A whole skills repository on one agent; routing at scale.</div></div><span class="pill next">next</span></li>
+  <li><span class="rung">6</span><div><div class="title">Brainstem bridge</div><div class="what">One connector that calls a hosted brainstem's <code>/chat</code>, so the agent gets every capability without porting any.</div></div><span class="pill next">next</span></li>
+</ol>
+
+<h2>What every rung has in common</h2>
+<ul>
+  <li><strong>One build, one deploy.</strong> <code>scripts/deploy-harness-agent.mjs</code> imports a workspace as a solution, provisions connection references and flows, binds tools, publishes and verifies. The <a href="../../tutorial/README.md">tutorial script</a> adds the proven infrastructure profiles for agents that match them.</li>
+  <li><strong>Proof, not a demo.</strong> A turns file of prompts and regular expressions is sent to the published agent over the SDK's <code>copilot-studio-3p</code> route (a delegated user token) and the answers are recorded. The proof files live next to each rung.</li>
+  <li><strong>No brainstem at runtime.</strong> Once published, the agent is an ordinary Copilot Studio solution. The <a href="manual-import.html">manual way</a> imports the exported solution with <code>pac</code> alone.</li>
+</ul>
+
+<h2>Before you start</h2>
+<div class="tbl"><table>
+<tr><th>Need</th><th>Why</th></tr>
+<tr><td>Node 20.19+ and <code>npm install</code> in this repo</td><td>the deploy, tutorial and proof scripts are plain Node</td></tr>
+<tr><td><a href="https://aka.ms/PowerPlatformCLI">Power Platform CLI</a> 2.10+ with <code>pac auth create --environment &lt;url&gt;</code></td><td>solution import, publish, connector creation</td></tr>
+<tr><td><a href="https://aka.ms/azure-cli">Azure CLI</a> signed in as the same user (<code>az login --tenant &lt;tenant&gt;</code>)</td><td>Dataverse bearer tokens; the user must be a member of the environment's tenant</td></tr>
+<tr><td>A Copilot Studio environment with the GitHub Copilot harness enabled</td><td>every agent here is a <code>cliagent-1.0.0</code> harness agent, never a classic agent</td></tr>
+<tr><td>For the proofs: a public-client Entra app with delegated <code>CopilotStudio.Copilots.Invoke</code></td><td>the authenticated <code>/3p</code> route is the only one that runs connectors, flows and Dataverse tools from outside the Studio</td></tr>
+</table></div>
+
+<div class="note">Environment URLs, environment ids, tenant ids and app ids are placeholders in every page here: <code>&lt;org&gt;</code>, <code>&lt;env-id&gt;</code>, <code>&lt;tenant&gt;</code>, <code>&lt;client-id&gt;</code>. Put yours in a shell or a <code>.env</code>, never in a repo.</div>
+
+<footer class="site">Proved 15–16 September 2026 against one Copilot Studio environment. Screenshots are from the Studio's Build and Preview pages of the published agents.</footer>
+</div>
+</body>
+</html>

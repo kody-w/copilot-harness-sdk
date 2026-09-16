@@ -228,6 +228,14 @@ npm run deploy:harness -- --name "Brainstem Core" --publisher-prefix aibast --sc
 
 Proof (10 September 2026, kodyv8, pac 2.10.1): `aibast_BrainstemCore`, three RAPP agents (Hacker News, ManageMemory, ContextMemory) as three skills, one `WorkflowTool` on a custom-connector flow and two Dataverse `ConnectorTool`s, deployed and re-deployed through this script (references `existing`, flow `updated` in place, no stale components), and the Studio test pane answered all three prompts through the real tools: live Hacker News stories from the flow, a memory row written to Dataverse, the same row recalled by keyword.
 
+### Tutorials with screenshots and solution packages
+
+[kody-w.github.io/copilot-harness-sdk/tutorials](https://kody-w.github.io/copilot-harness-sdk/tutorials/): the Copilot Studio
+ladder. Rung 0 (SKILL.md files only, exported straight from the Studio), rung 1 (the three starter agents with a real
+connector, flow and Dataverse tools), rung 2 (live tools plus skills from one call), each proved with recorded prompts
+and answers, plus the manual way: import the solution package with `pac` alone, no brainstem behind it.
+`scripts/portable-solution.mjs` strips an environment's org URL and connector id out of a package and puts yours back.
+
 ### Try it with nothing of your own: the RAR tutorial
 
 ```bash

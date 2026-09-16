@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The manual way</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">After publishing</div>
+<h1>The manual way: the agent without RAPP</h1>
+<p class="lede">Once an agent is published it is an ordinary Copilot Studio solution. Nothing calls back to a brainstem, the SDK or a registry. These are the packages from the proved rungs and the <code>pac</code> commands that put one into any environment with the harness enabled.</p>
+
+<h2>Packages</h2>
+<div class="tbl"><table>
+<tr><th>Rung</th><th>File</th><th>How it was produced</th><th>Environment values inside</th></tr>
+<tr><td>0</td><td><a href="solutions/rappRAPPBrainstemSkillsDemoHarness.exported.zip">rappRAPPBrainstemSkillsDemoHarness.exported.zip</a></td><td><code>pac solution export</code> from Copilot Studio, unmodified</td><td>none</td></tr>
+<tr><td>1</td><td><a href="solutions/rappBrainstemStarterHarness.portable.zip">rappBrainstemStarterHarness.portable.zip</a></td><td>the deploy's import package, org URL and connector id replaced by placeholders</td><td><code>{{ORG_URL}}</code>, <code>{{HN_CONNECTOR}}</code></td></tr>
+<tr><td>2</td><td><a href="solutions/rappBrainstemStarterSkillsHarness.portable.zip">rappBrainstemStarterSkillsHarness.portable.zip</a></td><td>same as rung 1</td><td><code>{{ORG_URL}}</code>, <code>{{HN_CONNECTOR}}</code></td></tr>
+</table></div>
+<div class="note warn"><strong>Why rungs 1 and 2 are import packages, not exports.</strong> <code>pac solution export</code> refuses a solution whose connection reference points at a custom connector that was created outside a solution: "Exporting connection reference … for a custom connector requires the custom connector to be added to a dataverse solution". The tutorial creates the Hacker News connector with <code>pac connector create</code> and no <code>--solution-unique-name</code>, so it is not solution-aware, and adding it to the solution afterwards (component type 372) does not satisfy the check. The package shipped here is the exact zip the deploy imported, which is the same solution minus the two connection references and the flow that the deploy provisions on top. Making the tutorial create the connector inside the solution is the fix that would let the Studio export these rungs too.</div>
+
+<h2>Import a package</h2>
+<ol class="steps">
+  <li>Localize the placeholders (rungs 1 and 2 only). The connector id is the <code>connectorinternalid</code> of "RAPP Hacker News" in your environment, or empty if you are importing without the Hacker News part.
+<pre><code>node scripts/portable-solution.mjs localize rappBrainstemStarterHarness.portable.zip starter.zip \
+  --org-url https://&lt;org&gt;.crm.dynamics.com/ --hn-connector shared_new-5frapp-20hacker-20news-5f&lt;suffix&gt;</code></pre></li>
+  <li>Import and publish.
+<pre><code>pac auth create --environment https://&lt;org&gt;.crm.dynamics.com/
+pac solution import --path starter.zip --environment https://&lt;org&gt;.crm.dynamics.com/ --publish-changes
+pac copilot list --environment https://&lt;org&gt;.crm.dynamics.com/        # find the bot id
+pac copilot publish --bot &lt;bot-id&gt; --environment https://&lt;org&gt;.crm.dynamics.com/</code></pre></li>
+  <li>Rung 0 is done at this point. For rungs 1 and 2, the tools need their plumbing: create the custom connector from <code>tutorial/profiles/hackernews/connector/</code> (<code>pac connector create --api-definition-file openapi.json --api-properties-file apiProperties.json --script-file script.csx</code>), create the two connections in the maker portal, and create the connection references and the flow. That is exactly what <code>scripts/deploy-harness-agent.mjs</code> steps 6 to 8 do, so the shortest manual route is: import the package, then run the deploy script once against the same schema name; it reports every existing piece as <code>existing</code> and provisions only what is missing.</li>
+  <li>Open the agent in Copilot Studio, Preview, and send the prompts from the rung's table. The first tool call may ask you to allow the connections.</li>
+</ol>
+
+<h2>What is in a package</h2>
+<pre><code>[Content_Types].xml
+solution.xml                     # unique name, version, publisher prefix
+customizations.xml               # the bot and its components
+bots/&lt;schema&gt;/bot.xml            # template cliagent-1.0.0, authentication mode, instructions
+bots/&lt;schema&gt;/configuration.json
+botcomponents/&lt;schema&gt;.skill.&lt;prefix&gt;_&lt;name&gt;/   # one InlineAgentSkill per SKILL.md, verbatim
+botcomponents/&lt;schema&gt;.tool.&lt;prefix&gt;_&lt;name&gt;/    # one per Dataverse tool</code></pre>
+<p>The SKILL.md text is in each skill component's <code>data</code> file. Open one: it is the same file that lives in the skills folder of the brainstem, which is the whole point.</p>
+
+<div class="next"><a href="./">← ladder</a><span></span></div>
+<footer class="site"><code>scripts/portable-solution.mjs</code> strips or restores the two values; its test round-trips a package byte for byte.</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+:root {
+  --ink: #1b1f24; --muted: #5b6470; --rule: #d9dee5; --ground: #f7f8fa; --paper: #ffffff;
+  --accent: #245bd1; --accent-ink: #163a86; --ok: #1f7a4d; --ok-bg: #e6f4ec; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --code-bg: #f0f2f5; --shadow: 0 1px 2px rgba(20,30,50,.06), 0 8px 24px rgba(20,30,50,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e8ebef; --muted: #a3acb8; --rule: #2d333c; --ground: #121519; --paper: #1a1e24;
+    --accent: #7ea6ff; --accent-ink: #b9ccff; --ok: #7bd39b; --ok-bg: #16301f; --warn: #f0c060; --warn-bg: #3a2c0a;
+    --code-bg: #0e1116; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+* { box-sizing: border-box; }
+html { color-scheme: light dark; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-ink); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px; }
+header.site { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 14px; margin-bottom: 28px; }
+header.site .brand { font-weight: 600; letter-spacing: .01em; text-decoration: none; color: var(--ink); }
+header.site nav a { margin-left: 16px; font-size: 14px; }
+h1 { font-size: 34px; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
+h2 { font-size: 22px; margin: 40px 0 10px; text-wrap: balance; }
+h3 { font-size: 17px; margin: 24px 0 6px; }
+p, li { max-width: 72ch; }
+.lede { font-size: 18px; color: var(--muted); margin: 0 0 24px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+.ladder { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.ladder li { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; }
+.ladder .rung { font-size: 22px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ladder .title { font-weight: 600; }
+.ladder .what { color: var(--muted); font-size: 14px; }
+.pill { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.next { background: var(--warn-bg); color: var(--warn); }
+pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; overflow-x: auto; font: 13.5px/1.5 ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; }
+code { font: 0.92em ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+figure { margin: 18px 0 26px; }
+figure img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; box-shadow: var(--shadow); background: var(--paper); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 12px 0 20px; }
+.tbl { overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.note { border-left: 3px solid var(--accent); background: var(--paper); padding: 10px 14px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.note.warn { border-left-color: var(--warn); }
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps li { counter-increment: step; position: relative; padding-left: 40px; margin: 10px 0; }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 2px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; display: grid; place-items: center; }
+footer.site { border-top: 1px solid var(--rule); margin-top: 60px; padding-top: 14px; font-size: 13px; color: var(--muted); }
+.next { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; font-size: 15px; }
+@media (max-width: 640px) { .ladder li { grid-template-columns: 40px 1fr; } .ladder li .pill { grid-column: 2; justify-self: start; } }

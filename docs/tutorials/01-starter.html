@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rung 1 · Starter with live tools</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">Rung 1 · proved 3/3</div>
+<h1>Starter with live tools: three agent.py files that really run</h1>
+<p class="lede">Hacker News, ManageMemory and ContextMemory are the three agents every RAPP brainstem ships with. Here they become one Copilot Studio agent whose tools are real: a custom connector plus an agent flow for Hacker News, and two Dataverse tools for memory. The agent's answers come from those tools, not from the model's memory.</p>
+
+<figure>
+  <img src="img/01-starter-build.jpg" alt="Copilot Studio Build page of the Brainstem Starter agent: three skills (recall-memory, fetch-hacker-news, manage-memory) and three tools (Run RAPP Hacker News workflow, List rows, Add a new row) beside the generated instructions">
+  <figcaption>What the published agent looks like in the Studio: three skills, three tools, the generated routing instructions.</figcaption>
+</figure>
+
+<h2>What goes in</h2>
+<div class="tbl"><table>
+<tr><th>agent.py</th><th>Profile</th><th>Provisioned in the environment</th></tr>
+<tr><td><code>HackerNews</code></td><td>hackernews</td><td>custom connector "RAPP Hacker News" (code-based, no credentials), an agent flow that runs the original aggregation, a <code>WorkflowTool</code>, the <code>fetch-hacker-news</code> skill</td></tr>
+<tr><td><code>ManageMemory</code></td><td>memory-write</td><td>Dataverse "Add a new row" tool on the <code>annotations</code> table, the <code>manage-memory</code> skill</td></tr>
+<tr><td><code>ContextMemory</code></td><td>memory-recall</td><td>Dataverse "List rows" tool, the <code>recall-memory</code> skill</td></tr>
+</table></div>
+<p>The profiles live in <code>tutorial/profiles/</code>. An agent that matches none is still deployed, as a reasoning-only skill carrying its code.</p>
+
+<h2>Build and deploy</h2>
+<ol class="steps">
+  <li>Sign in: <code>az login --tenant &lt;tenant&gt; --allow-no-subscriptions</code> as a member of the environment's tenant, then <code>pac auth create --environment https://&lt;org&gt;.crm.dynamics.com/</code>.</li>
+  <li>Run the tutorial. The default pulls the three agents from the public RAPP Agent Registry; <code>--agent-files</code> takes your own copies instead.
+<pre><code>npm run tutorial -- --environment https://&lt;org&gt;.crm.dynamics.com/ --name "Brainstem Starter" --publisher-prefix rapp \
+  --token-command "az account get-access-token --resource https://&lt;org&gt;.crm.dynamics.com/ --tenant &lt;tenant&gt; --query accessToken -o tsv"</code></pre></li>
+  <li>The first run in an environment stops and prints two maker-portal links: create the "RAPP Hacker News" connection (no credentials, click Create) and the Dataverse connection (sign in as yourself). The script polls until both exist, then deploys. Later runs find them.</li>
+  <li>Read the last lines: <code>DEPLOYED (GitHub Copilot harness)</code>, the bot id, and the Studio link.</li>
+</ol>
+
+<h2>Prove it</h2>
+<p>Tool-backed agents refuse the anonymous route ("No user access information available for invoker mode"), so the proof signs in as a user. One-time setup in the environment's tenant: a public-client Entra app with the delegated Power Platform API permission <code>CopilotStudio.Copilots.Invoke</code>.</p>
+<pre><code>API=8578e004-a5c6-46e7-913e-12f58912df43     # Power Platform API (first-party service principal)
+SCOPE=$(az ad sp show --id $API --query "oauth2PermissionScopes[?value=='CopilotStudio.Copilots.Invoke'].id | [0]" -o tsv)
+APP=$(az ad app create --display-name "Harness Prover" --sign-in-audience AzureADMyOrg --is-fallback-public-client true --query appId -o tsv)
+az ad sp create --id $APP; az ad app update --id $APP --public-client-redirect-uris http://localhost
+az ad app permission add --id $APP --api $API --api-permissions "$SCOPE=Scope"
+az ad app permission grant --id $APP --api $API --scope CopilotStudio.Copilots.Invoke</code></pre>
+<p>Then the proof. The first run prints a device-code sign-in; with <code>cacheFile</code> (the SDK's <code>createDeviceCodeTokenProvider</code> option) every later run is silent.</p>
+<pre><code>ENTRA_CLIENT_ID=$APP ENTRA_TENANT_ID=&lt;tenant&gt; node tools/prove-copilot.mjs --mode 3p \
+  --environment-url https://&lt;org&gt;.crm.dynamics.com/ --environment-id &lt;env-id&gt; \
+  --bot-id &lt;bot-id&gt; --schema rapp_BrainstemStarter --turns turns.json</code></pre>
+<div class="tbl"><table>
+<tr><th>Prompt</th><th>Expected</th><th>Answer (16 Sep 2026)</th></tr>
+<tr><td>What are the top 3 stories on Hacker News right now?</td><td>a numbered list with points and comment links</td><td>"Top Hacker News stories: 1. **[Introducing System One Models and Jev](…)** — 677 points, by albelfio · [217 comments](…) 2. …"</td></tr>
+<tr><td>Remember this preference exactly: I read Hacker News every morning</td><td>a stored confirmation</td><td>"Successfully stored preference memory in shared memory: "I read Hacker News every morning""</td></tr>
+<tr><td>What do you remember about my reading habits?</td><td>Hacker News, morning</td><td>"Here's what I remember from shared memory: - Memory content (verbatim): "I read Hacker News every morning" (Theme: preference, Recorded: 2026-09-16 00:31:17) …"</td></tr>
+</table></div>
+<p>Same prompts in the Studio's Preview page show the skill being loaded and the tool being called; rung 2 has those screenshots.</p>
+
+<h2>The solution package</h2>
+<p><a href="solutions/rappBrainstemStarterHarness.portable.zip">rappBrainstemStarterHarness.portable.zip</a> is the solution exactly as the deploy imported it, with the environment's org URL and the custom connector's internal id replaced by <code>{{ORG_URL}}</code> and <code>{{HN_CONNECTOR}}</code>. <code>scripts/portable-solution.mjs localize</code> writes your values back before import. See <a href="manual-import.html">the manual way</a>, including why this rung's solution is the import package rather than a fresh export.</p>
+
+<div class="next"><a href="00-skills-demo.html">← Rung 0</a><a href="02-starter-skills.html">Rung 2: live tools plus skills →</a></div>
+<footer class="site">Proof file: <code>rapp_BrainstemStarter.json</code> (3/3, copilot-studio-3p, 2026-09-16T00:31Z).</footer>
+</div>
+</body>
+</html>
