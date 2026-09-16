@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rung 4 · Two AIs, one routine</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">Rung 4 · proved 3/3</div>
+<h1>Two AIs, one routine: a parent that delegates to a child with its own memory</h1>
+<p class="lede">A briefing desk that owns nothing but the routine. The child is <a href="02-starter-skills.html">rung 2's agent</a>, with its Hacker News tools and its own Dataverse memory. The parent carries one skill of its own and a <code>ConnectedAgentTool</code> pointing at the child. "Give me my morning briefing" becomes two delegated questions and one answer.</p>
+
+<figure>
+  <img src="img/04-briefing-desk-build.jpg" alt="Copilot Studio Build page of the Brainstem Briefing Desk agent: one skill (plan-create-prd) and one connected agent (News and Memory Twin), with instructions describing the morning-briefing routine">
+  <figcaption>One skill, one connected agent. The instructions describe the routine and name the twin as the owner of news and memory.</figcaption>
+</figure>
+
+<h2>What goes in</h2>
+<div class="tbl"><table>
+<tr><th>Input</th><th>Becomes</th></tr>
+<tr><td><code>connected_agents=[{"schema": "rapp_BrainstemStarterSkills", "name": "News and Memory Twin", "description": "Anything about Hacker News stories, or remembering and recalling the user's preferences and habits."}]</code></td><td><code>capabilities/tools/NewsandMemoryTwin.mcs.yml</code>, <code>kind: ConnectedAgentTool</code>, <code>botSchemaName</code> of the child, conversation history shared; plus one routing line</td></tr>
+<tr><td><code>plan-create-prd/SKILL.md</code></td><td>the parent's own <code>InlineAgentSkill</code></td></tr>
+<tr><td>the routine, in the description</td><td>the top of the instructions: delegate two questions for a briefing, present both, name the source</td></tr>
+</table></div>
+
+<h2>Build and deploy</h2>
+<pre><code>a.perform(name="Brainstem Briefing Desk",
+          description="You are the briefing desk: one routine, two AIs. You keep no news or memory yourself; the connected "
+                      "agent News and Memory Twin owns both ... For a 'morning briefing', delegate two questions to the twin "
+                      "(the top 3 Hacker News stories, and what it remembers about the user's reading habits) and present "
+                      "both as one short briefing, naming the twin as the source. Product-idea interviews are yours, "
+                      "through the plan-create-prd skill.",
+          skills=["plan-create-prd"],
+          connected_agents=[{"schema": "rapp_BrainstemStarterSkills", "name": "News and Memory Twin",
+                             "description": "Anything about Hacker News stories, or remembering and recalling the user's preferences and habits."}],
+          deploy=True, environment="https://&lt;org&gt;.crm.dynamics.com/", tenant="&lt;tenant&gt;")</code></pre>
+<p>The child must already be published in the same environment. The component file is four lines:</p>
+<pre><code>mcs.metadata:
+  componentName: "News and Memory Twin"
+  description: "Anything about Hacker News stories, or remembering and recalling the user's preferences and habits."
+kind: ConnectedAgentTool
+botSchemaName: rapp_BrainstemStarterSkills
+historyType:
+  kind: ConversationHistory</code></pre>
+<div class="note warn">SDK fix from this rung: pac names a connected-agent component <code>&lt;bot&gt;.tool.connected-agent.&lt;Name&gt;</code>, one segment more than other tools. The deploy script looked for <code>&lt;bot&gt;.tool.&lt;Name&gt;</code>, so a workspace whose only tool was a connected agent failed with "Component tool.X from the workspace is missing on the live record after import/push". <code>toolSchemaName()</code> now knows the difference (PR #7).</div>
+
+<h2>What it looks like</h2>
+<figure>
+  <img src="img/04-briefing-desk-briefing.jpg" alt="Preview pane: asked for a morning briefing, the parent calls the News and Memory Twin connected agent and returns the recalled habit plus the top three Hacker News stories, naming the twin as the source">
+  <figcaption>"Give me my morning briefing": the parent delegates to the twin and presents the recalled habit and the three stories.</figcaption>
+</figure>
+
+<h2>Prove it</h2>
+<div class="tbl"><table>
+<tr><th>Prompt</th><th>Who answers</th><th>Answer (16 Sep 2026)</th></tr>
+<tr><td>Ask your twin to remember this preference exactly: I read Hacker News every morning with coffee</td><td>child (Dataverse write)</td><td>"Done! News and Memory Twin confirmed it has stored your preference exactly: "I read Hacker News every morning with coffee" …"</td></tr>
+<tr><td>Give me my morning briefing.</td><td>child twice, parent composes</td><td>"Here's your briefing from News and Memory Twin: Your Habit: You read Hacker News every morning with coffee … Top 3 on Hacker News Right Now: 1. **[Introducing System One Models and Jev](…)** …"</td></tr>
+<tr><td>Use the plan-create-prd skill for this idea: a shared grocery list for roommates. Ask your first interview questions in under 100 words.</td><td>parent (own skill)</td><td>"(Using the plan-create-prd skill) Got it — a shared grocery list for roommates. Foundation questions: 1. Who feels the pain most …"</td></tr>
+</table></div>
+<p>The memory the child wrote in turn 1 is the memory it recalled in turn 2: two published agents, one Dataverse table, one routine.</p>
+
+<h2>The exported solution</h2>
+<p><a href="solutions/rappBrainstemBriefingDeskHarness.exported.zip">rappBrainstemBriefingDeskHarness.exported.zip</a>, exported from Copilot Studio unmodified: one bot, one skill component, one connected-agent component (<code>tool.connected-agent.NewsandMemoryTwin</code>). It references the child by schema name, so import the child's package first (<a href="manual-import.html">the manual way</a>).</p>
+
+<div class="next"><a href="03-script-skills.html">← Rung 3</a><a href="05-community-skills.html">Rung 5: thirty-four community skills →</a></div>
+<footer class="site">Proof file: <code>rapp_BrainstemBriefingDesk.json</code> (3/3, copilot-studio-3p, 2026-09-16T01:31Z).</footer>
+</div>
+</body>
+</html>
