@@ -19,6 +19,14 @@ Add a profile under `tutorial/profiles/` to give such an agent real tools. Readi
 imports its `agent.py` in a throwaway python process (its module-level code runs), so naming an
 agent means trusting that code from the registry.
 
+## Your own files instead of the registry
+
+`--agent-files ./a_agent.py,./b_agent.py` uses local `agent.py` files as they are (no registry fetch); `--skills-dir ./skills`
+copies ready `InlineAgentSkill` behaviors (a SKILL.md wrapped in `mcs.metadata` + `kind: InlineAgentSkill` + `content: |`)
+into the workspace and routes to each by its description; `--purpose "..."` puts one paragraph at the top of the
+instructions. This is how a RAPP brainstem's `MakeCopilotStudioAgent` deploys agents with live tools plus skills in one
+call ([tutorial rung 2](https://kody-w.github.io/copilot-harness-sdk/tutorials/02-starter-skills.html)).
+
 ## Run it
 
 ```bash

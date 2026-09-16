@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rung 2 · Live tools plus skills</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">Rung 2 · proved 5/5</div>
+<h1>Live tools plus skills, from one call</h1>
+<p class="lede">Rung 1's three agents with real tools, plus two <code>SKILL.md</code> skills on the same agent: the repo's <code>hello-world</code> and the community <code>plan-create-prd</code>. A brainstem builds the workspace, the tutorial script deploys it with the infrastructure profiles, and one proof run exercises all five capabilities.</p>
+
+<figure>
+  <img src="img/02-starter-skills-build.jpg" alt="Copilot Studio Build page of the Brainstem Starter Skills agent: five skills including hello-world and plan-create-prd, three tools, and instructions that begin with the agent's purpose">
+  <figcaption>Five skills and three tools on one agent. The instructions open with the purpose passed to the builder.</figcaption>
+</figure>
+
+<h2>What goes in</h2>
+<div class="tbl"><table>
+<tr><th>Input</th><th>Becomes</th></tr>
+<tr><td><code>hacker_news_agent.py</code>, <code>manage_memory_agent.py</code>, <code>context_memory_agent.py</code></td><td>the three live-tool profiles of <a href="01-starter.html">rung 1</a></td></tr>
+<tr><td><code>hello-world/SKILL.md</code> (a RAR agent packaged as a skill, code included)</td><td><code>InlineAgentSkill</code> behavior, SKILL.md verbatim</td></tr>
+<tr><td><code>plan-create-prd/SKILL.md</code> (from coleam00/skills, unmodified)</td><td><code>InlineAgentSkill</code> behavior, SKILL.md verbatim</td></tr>
+<tr><td>a purpose sentence</td><td>the first line of the instructions, followed by the routing the profiles and skills need</td></tr>
+</table></div>
+
+<h2>Build and deploy</h2>
+<p>From a brainstem, one tool call does everything (the brainstem's <code>MakeCopilotStudioAgent</code> writes the skill behaviors, hands the agent files to the tutorial with <code>--agent-files</code> and the behaviors with <code>--skills-dir</code>, and reports which profiles matched):</p>
+<pre><code>a.perform(name="Brainstem Starter Skills",
+          description="You are a RAPP brainstem in Copilot Studio: you run the Hacker News, ManageMemory and "
+                      "ContextMemory agents for real and you follow the hello-world and plan-create-prd skills exactly.",
+          skills=["hello-world", "plan-create-prd"], agents=["HackerNews", "ManageMemory", "ContextMemory"],
+          deploy=True, environment="https://&lt;org&gt;.crm.dynamics.com/", tenant="&lt;tenant&gt;")</code></pre>
+<p>Without a brainstem, the same deploy is the tutorial script with your own files:</p>
+<pre><code>node scripts/tutorial-rar.mjs --environment https://&lt;org&gt;.crm.dynamics.com/ --name "Brainstem Starter Skills" \
+  --publisher-prefix rapp --schema-name rapp_BrainstemStarterSkills \
+  --agent-files ./agents/hacker_news_agent.py,./agents/manage_memory_agent.py,./agents/context_memory_agent.py \
+  --skills-dir ./skills --purpose "You are a RAPP brainstem in Copilot Studio ..." \
+  --token-command "az account get-access-token --resource https://&lt;org&gt;.crm.dynamics.com/ --tenant &lt;tenant&gt; --query accessToken -o tsv"</code></pre>
+<p><code>./skills</code> holds one <code>&lt;prefix&gt;_&lt;name&gt;.mcs.yml</code> per skill in the shape shown on <a href="00-skills-demo.html">rung 0</a>. The script copies them into the workspace and adds one routing line per skill from its <code>mcs.metadata.description</code>.</p>
+<div class="note warn">Gotcha we hit: the brainstem found an older checkout of this SDK on the machine and deployed without the skills. Point <code>COPILOT_HARNESS_SDK</code> at the checkout you mean. The deploy log line <code>skills from &lt;dir&gt;: hello-world, plan-create-prd</code> is the tell.</div>
+
+<h2>What it looks like</h2>
+<figure>
+  <img src="img/02-starter-skills-hn.jpg" alt="Preview pane: the agent loads the fetch-hacker-news skill, runs the RAPP Hacker News workflow, and answers with a numbered list of three stories with points and comment links">
+  <figcaption>Hacker News: the <code>fetch-hacker-news</code> skill loads, the flow runs through the custom connector, and the summary is rendered verbatim.</figcaption>
+</figure>
+<figure>
+  <img src="img/02-starter-skills-hello.jpg" alt="Preview pane: the harness tries to run the hello-world skill's script, the sandbox refuses, so it follows the skill's fallback and executes the perform method's logic itself, answering Hello, Ada! Welcome to the RAPP Agent ecosystem.">
+  <figcaption>hello-world: the harness tried the skill's script, the sandbox refused, and the SKILL.md's own fallback ("read the code and do what perform does") produced the exact answer. Rung 3 is about making scripts run.</figcaption>
+</figure>
+<figure>
+  <img src="img/02-starter-skills-memory-write.jpg" alt="Preview pane: the agent loads the manage-memory skill, builds the annotation row with subject RAPP_MEMORY|scope=shared|type=preference, and calls Add a new row to selected environment">
+  <figcaption>Memory write: the <code>manage-memory</code> skill builds the row and the Dataverse tool creates it.</figcaption>
+</figure>
+<figure>
+  <img src="img/02-starter-skills-memory-recall.jpg" alt="Preview pane: the agent loads the recall-memory skill, decides on shared scope and full recall, calls List rows from selected environment, and parses the returned annotation rows">
+  <figcaption>Memory recall: <code>recall-memory</code> queries the annotations table and parses the rows it wrote earlier.</figcaption>
+</figure>
+<figure>
+  <img src="img/02-starter-skills-prd.jpg" alt="Preview pane: the agent loads the plan-create-prd skill, restates the idea and asks five foundation questions: who specifically, the real cost, how they cope today, why now, why switch">
+  <figcaption>plan-create-prd: a community skill followed as written, problem-first and under the word limit.</figcaption>
+</figure>
+
+<h2>Prove it</h2>
+<pre><code>ENTRA_CLIENT_ID=&lt;client-id&gt; ENTRA_TENANT_ID=&lt;tenant&gt; node tools/prove-copilot.mjs --mode 3p \
+  --environment-url https://&lt;org&gt;.crm.dynamics.com/ --environment-id &lt;env-id&gt; \
+  --bot-id &lt;bot-id&gt; --schema rapp_BrainstemStarterSkills --turns turns.json</code></pre>
+<div class="tbl"><table>
+<tr><th>Prompt</th><th>Expected</th><th>Answer (16 Sep 2026)</th></tr>
+<tr><td>What are the top 3 stories on Hacker News right now?</td><td>numbered list, points, links</td><td>"Top Hacker News stories: 1. **[Introducing System One Models and Jev](…)** — 699 points …"</td></tr>
+<tr><td>Use the hello-world skill to greet Ada.</td><td>Hello, Ada … Welcome to the RAPP Agent ecosystem</td><td>"Hello, Ada! Welcome to the RAPP Agent ecosystem."</td></tr>
+<tr><td>Remember this preference exactly: I read Hacker News every morning</td><td>stored</td><td>"Successfully stored preference memory in shared memory: …"</td></tr>
+<tr><td>What do you remember about my reading habits?</td><td>Hacker News, morning</td><td>"Here's what I remember from shared memory: - Memory content (verbatim): "I read Hacker News every morning" …"</td></tr>
+<tr><td>Use the plan-create-prd skill for this idea: an app that reminds remote workers to drink water. Start your interview now; ask your first questions in under 120 words.</td><td>questions; problem, evidence, who</td><td>"Got it — a hydration reminder app built for remote workers. Before I dig in: do you have any research …? **Foundation questions:** 1. Who *specifically* has this problem …"</td></tr>
+</table></div>
+
+<h2>The solution package</h2>
+<p><a href="solutions/rappBrainstemStarterSkillsHarness.portable.zip">rappBrainstemStarterSkillsHarness.portable.zip</a>: the imported solution with placeholders for the org URL and the connector id. Seven bot components: five skills and two Dataverse tools; the Hacker News flow and the connection references are provisioned by the deploy, or by hand as described in <a href="manual-import.html">the manual way</a>.</p>
+
+<div class="next"><a href="01-starter.html">← Rung 1</a><span>Rung 3: skills with scripts (next)</span></div>
+<footer class="site">Proof file: <code>rapp_BrainstemStarterSkills.json</code> (5/5, copilot-studio-3p, 2026-09-16T00:55Z).</footer>
+</div>
+</body>
+</html>
