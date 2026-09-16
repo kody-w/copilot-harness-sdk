@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rung 3 · Skills with scripts</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">Rung 3 · proved 3/3</div>
+<h1>Skills with scripts: what the harness sandbox will and will not run</h1>
+<p class="lede">A <code>SKILL.md</code> often ships code beside it: a <code>scripts/run.py</code>, a <code>scripts/check.py</code>. An <code>InlineAgentSkill</code> carries only the SKILL.md text, so this rung asks the published agent to run two such skills and records exactly what happens. The answer is more useful than a yes or no.</p>
+
+<h2>What goes in</h2>
+<div class="tbl"><table>
+<tr><th>Skill</th><th>Where its code lives</th><th>What the agent can reach</th></tr>
+<tr><td><code>hello-world</code></td><td>inline in the SKILL.md (the agent.py and a launcher, in fenced code blocks), with a three-step fallback: run <code>scripts/run.py</code> if present, else save the blocks and run them, else read the code and do what <code>perform</code> does</td><td>everything: the code is text in the skill</td></tr>
+<tr><td><code>brainstem-doctor</code></td><td><code>scripts/check.py</code> beside the SKILL.md, not inlined</td><td>the SKILL.md only; the script never shipped</td></tr>
+</table></div>
+
+<h2>Build and deploy</h2>
+<pre><code>a.perform(name="Brainstem Script Skills",
+          description="... When a skill wants to run a script, try; if the sandbox refuses or the script is not "
+                      "present, say exactly that in one sentence, then do what the skill's own fallback says. "
+                      "Never claim a script ran when it did not.",
+          skills=["hello-world", "brainstem-doctor"], deploy=True,
+          environment="https://&lt;org&gt;.crm.dynamics.com/", tenant="&lt;tenant&gt;")</code></pre>
+<p>Plain deploy, no profiles: two behaviors and the settings file.</p>
+
+<h2>What happened</h2>
+<div class="tbl"><table>
+<tr><th>Prompt</th><th>Answer (16 Sep 2026)</th></tr>
+<tr><td>Use the hello-world skill to greet Grace. Before the greeting, say in one sentence whether you ran its script or followed the fallback.</td><td>"<code>scripts/run.py</code> was not present beside the skill file, so I followed step 2 (saved the code and launcher inline and ran them). (Skill used: hello-world) — Hello, Grace! Welcome to the RAPP Agent ecosystem."</td></tr>
+<tr><td>Use the brainstem-doctor skill to check this brainstem's health. If its scripts/check.py is not available here, say so …</td><td>a manual report: "Skill root scanned: <code>/app/skills/</code> — Skills loaded (10): analyzing-csv (preprocess.py ✅), analyzing-docx …", then the two deployed skills, with brainstem-doctor's own script marked missing</td></tr>
+<tr><td>List the skills you have and, for each, whether it needs a script to run. Two lines total.</td><td>"hello-world — no script needed; the agent code runs inline from SKILL.md. brainstem-doctor — yes, requires <code>scripts/check.py</code>, which is currently missing from the skill directory."</td></tr>
+</table></div>
+
+<figure>
+  <img src="img/03-script-skills-hello.jpg" alt="Preview pane of the Brainstem Script Skills agent answering the hello-world prompt for Grace, stating whether the script ran or the fallback was followed">
+  <figcaption>The same prompt in the Studio's Preview page.</figcaption>
+</figure>
+
+<h2>The findings</h2>
+<ul>
+  <li><strong>The harness has a sandbox, and it runs Python.</strong> Given code inline in the SKILL.md, the agent wrote the two blocks to files and executed them. On <a href="02-starter-skills.html">rung 2</a> the same skill hit "sandbox restrictions" on one run and fell back to reading the code; both runs produced the exact greeting because the SKILL.md carries its own fallback ladder. Write skills that way.</li>
+  <li><strong>Script files beside a SKILL.md do not ship.</strong> An <code>InlineAgentSkill</code> is text. <code>brainstem-doctor</code>'s <code>scripts/check.py</code> is simply absent in Copilot Studio, and the agent says so instead of pretending. To ship a script: inline it in the SKILL.md (as hello-world does), or turn it into a tool (an agent flow or connector, the <a href="01-starter.html">rung 1</a> pattern).</li>
+  <li><strong>The sandbox has its own skills.</strong> The doctor's scan found <code>/app/skills/</code> with ten built-in <code>analyzing-*</code> skills, each with a <code>preprocess.py</code>. Those are the harness's, not yours; they show up in "what skills do you have" answers next to the ones you deployed.</li>
+</ul>
+
+<h2>The exported solution</h2>
+<p><a href="solutions/rappBrainstemScriptSkillsHarness.exported.zip">rappBrainstemScriptSkillsHarness.exported.zip</a>, exported from Copilot Studio unmodified: one bot, two skill components, no environment values. Import per <a href="manual-import.html">the manual way</a>.</p>
+
+<div class="next"><a href="02-starter-skills.html">← Rung 2</a><a href="05-community-skills.html">Rung 5: thirty-four community skills →</a></div>
+<footer class="site">Proof file: <code>rapp_BrainstemScriptSkills.json</code> (3/3, copilot-studio-3p, 2026-09-16T01:19Z).</footer>
+</div>
+</body>
+</html>
