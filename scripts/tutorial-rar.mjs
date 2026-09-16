@@ -11,6 +11,10 @@
 //     [--name "RAR Starter Agent"] [--publisher-prefix rapp] [--schema-name rapp_RARStarterAgent] \
 //     [--agents "@rapp/hacker_news,@kody-w/manage_memory_agent,@kody-w/context_memory_agent"] \
 //     [--wait-minutes 15] [--work-dir .deploy/tutorial] [--build-only] [--fetch-only] [--token-command "..."]
+//     [--agent-files ./agents/a_agent.py,./agents/b_agent.py] [--skills-dir ./behaviors] [--purpose "what this agent is for"]
+//   --agent-files: local agent.py files, used as they are (no registry fetch, no sha check); combine with --agents freely.
+//   --skills-dir: a folder of ready InlineAgentSkill behaviors (*.mcs.yml, e.g. SKILL.md files wrapped by a brainstem) copied
+//     into the workspace and routed by their mcs.metadata description. --purpose: one paragraph added to the instructions.
 //   --build-only stops after the workspace is written; it still needs pac/az and creates the custom connector if it is missing.
 //   --key=value is accepted too. --work-dir: only agents/, workspace/, deploy/ and connections.json inside it are recreated.
 //   --fetch-only stops after reading the agents (no pac/az/environment needed): a smoke test anyone can run.
@@ -51,11 +55,22 @@ mkdirSync(join(workDir, 'agents'), { recursive: true });
 if (!fetchOnly) preflight();
 
 step('1/6 fetch the agents from the RAR');
-const registry = await (await fetch(registryUrl)).json();
-const entries = registry.agents || [];
-console.log(`   registry: ${entries.length} agents (${registry.version || '?'}, ${registry.generated_at || ''})`);
 const agents = [];
-for (const spec of agentSpecs) {
+const localFiles = (args['agent-files'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+for (const f of localFiles) {
+  const src = resolve(f);
+  if (!existsSync(src)) fail(`--agent-files: ${src} does not exist.`);
+  const bytes = readFileSync(src);
+  const file = join(workDir, 'agents', basename(src));
+  writeFileSync(file, bytes);
+  agents.push({ spec: src, entry: { name: basename(src, '.py'), _file: src, description: '' }, file, sha: createHash('sha256').update(bytes).digest('hex') });
+  console.log(`   ${basename(src)}  local file ✓`);
+}
+const registrySpecs = args.agents === '' || (localFiles.length && args.agents === undefined) ? [] : agentSpecs;
+const registry = registrySpecs.length ? await (await fetch(registryUrl)).json() : { agents: [] };
+const entries = registry.agents || [];
+if (registrySpecs.length) console.log(`   registry: ${entries.length} agents (${registry.version || '?'}, ${registry.generated_at || ''})`);
+for (const spec of registrySpecs) {
   const entry = entries.find((e) => e.name === spec) || entries.find((e) => e.name?.endsWith('/' + spec) || e._install_filename === spec || basename(e._file || '') === spec || basename(e._file || '') === `${spec}.py` || basename(e._file || '') === `${spec}_agent.py`);
   if (!entry) fail(`No RAR agent matches "${spec}". Search the registry: ${registryUrl}`);
   const bytes = Buffer.from(await (await fetch(rawBase + entry._file)).arrayBuffer());
@@ -159,7 +174,20 @@ for (const a of agents.filter((a) => !a.profile)) {
   writeFileSync(join(ws, 'behaviors', `${publisherPrefix}_${skillName}.mcs.yml`), `mcs.metadata:\n  componentName: ${skillName}\n  description: ${yamlScalar((a.contract.description || skillName).slice(0, 200))}\nkind: InlineAgentSkill\ncontent: |\n${content.split('\n').map((l) => (l ? '  ' + l : '')).join('\n')}\n`);
   routing.push(`generic:${skillName}`);
 }
-writeFileSync(join(ws, 'settings.mcs.yml'), settingsYaml(name, schemaName, buildInstructions(routing, agents)));
+const skillsDir = args['skills-dir'] ? resolve(args['skills-dir']) : null;
+const skills = [];
+if (skillsDir) {
+  for (const f of readdirSync(skillsDir).filter((n) => n.endsWith('.mcs.yml')).sort()) {
+    const text = readFileSync(join(skillsDir, f), 'utf8');
+    if (!/^kind:\s*InlineAgentSkill\s*$/m.test(text)) fail(`--skills-dir: ${f} is not an InlineAgentSkill behavior.`);
+    const nameM = text.match(/^\s+componentName:\s*(.+)$/m); const descM = text.match(/^\s+description:\s*(.+)$/m);
+    const unq = (v) => { const t = (v || '').trim(); try { return t.startsWith('"') ? JSON.parse(t) : t.replace(/^'|'$/g, ''); } catch { return t; } };
+    skills.push({ name: unq(nameM?.[1]) || basename(f, '.mcs.yml'), description: unq(descM?.[1]) });
+    writeFileSync(join(ws, 'behaviors', f), text);
+  }
+  console.log(`   skills from ${skillsDir}: ${skills.map((k) => k.name).join(', ') || 'none'}`);
+}
+writeFileSync(join(ws, 'settings.mcs.yml'), settingsYaml(name, schemaName, buildInstructions(routing, agents, skills, args.purpose)));
 console.log(`   ${ws}`);
 for (const f of listFiles(ws)) console.log(`     ${f}`);
 if (args['build-only'] === 'true') { console.log('\n--build-only: workspace written, not deployed.'); process.exit(0); }
@@ -204,14 +232,16 @@ function listConnections() {
     return m ? { id: m[1], name: m[2], apiId: m[3], status: m[4] } : { id: '', name: '', apiId: '', status: '' };
   });
 }
-function buildInstructions(routing, agents) {
+function buildInstructions(routing, agents, skills = [], purpose = '') {
   const template = readFileSync(join(root, 'tutorial', 'instructions.brainstem-core.md'), 'utf8');
   const names = agents.map((a) => a.contract.name).join(', ');
-  let text = template.replace(/^You are .*?\.\s*Match the observable behavior of the RAPP\n.*?agents\./s, `You are ${name}. Match the observable behavior of these RAPP agents: ${names}.`);
+  const intro = `You are ${name}.${purpose ? ' ' + purpose.trim() : ''}${names ? ` Match the observable behavior of these RAPP agents: ${names}.` : ''}`;
+  let text = template.replace(/^You are .*?\.\s*Match the observable behavior of the RAPP\n.*?agents\./s, intro);
   if (!routing.includes('hackernews')) text = text.replace(/- For current Hacker News top stories[\s\S]*?results, or invented stories\.\n/, '').replace(/- Hacker News routing is limited[\s\S]*?remembered context\.\n/, '').replace(/- For Hacker News, reproduce[\s\S]*?complete answer\.\n/, '');
   if (!routing.includes('memory-write') && !routing.includes('memory-recall')) text = text.replace(/\nCustom RAPP memory is authoritative:[\s\S]*?(?=\nValidation and safety:)/, '\n').replace(/\nAutomatic context on every turn:[\s\S]*?(?=\nValidation and safety:)/, '\n');
   const generic = routing.filter((r) => r.startsWith('generic:')).map((r) => r.slice(8));
   if (generic.length) text += `\nReasoning-only capabilities (no live tool in this deployment): ${generic.join(', ')}. For these, use the matching skill to explain and reason with its reference implementation, ask for the inputs it needs, and never claim the code executed.\n`;
+  if (skills.length) text += `\nSkills (follow the chosen skill exactly and say which skill you used):\n${skills.map((k) => `- ${(k.description || k.name).replace(/\.$/, '')}: use the ${k.name} skill.`).join('\n')}\n`;
   return text.replace(/\{\{ORG_URL\}\}/g, environment).replace(/\{\{DISPLAY_NAME\}\}/g, name);
 }
 function settingsYaml(displayName, schema, instructions) {
