@@ -39,7 +39,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync, rea
 import { join, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 import { assertHarnessAgent, classifyBot, HARNESS_TEMPLATE } from '../src/harness-guard.js';
-import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF } from '../src/harness-provision.js';
+import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF, toolSchemaName } from '../src/harness-provision.js';
 
 const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
@@ -241,7 +241,7 @@ step('8/10 bind components to their references and flows; remove stale component
 let components = await listBotComponents({ ...dv, botId: bot.botid });
 const byName = new Map(components.map((c) => [c.schemaName.toLowerCase(), c]));
 for (const t of scan.tools) {
-  const comp = byName.get(`${schemaName}.tool.${t.name}`.toLowerCase());
+  const comp = byName.get(toolSchemaName(schemaName, t).toLowerCase());
   if (!comp) fail(`Component tool.${t.name} from the workspace is missing on the live record after import/push.`);
   if (t.kind === 'ConnectorTool' && t.connectionReference) {
     const r = await linkComponentConnectionReference({ ...dv, component: comp, logicalName: t.connectionReference });

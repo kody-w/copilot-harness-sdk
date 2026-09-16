@@ -40,6 +40,15 @@ function yamlValue(text, key) {
  * files and workflow definitions) and workflows.
  * @param {string} dir workspace root (holds settings.mcs.yml)
  */
+/**
+ * Live bot-component schema name of a workspace tool. pac names connected-agent tools with an extra
+ * segment: `<bot>.tool.connected-agent.<Name>`; every other tool kind is `<bot>.tool.<Name>`.
+ * @param {string} schemaName @param {{ name: string, kind?: string }} t
+ */
+export function toolSchemaName(schemaName, t) {
+  return t.kind === 'ConnectedAgentTool' ? `${schemaName}.tool.connected-agent.${t.name}` : `${schemaName}.tool.${t.name}`;
+}
+
 export function scanWorkspace(dir) {
   const tools = listYaml(join(dir, 'capabilities', 'tools')).map((file) => {
     const text = readFileSync(join(dir, 'capabilities', 'tools', file), 'utf8');
@@ -327,7 +336,7 @@ export async function deleteStaleComponents(opts) {
 export function expectedComponents(dir, schemaName) {
   const scan = scanWorkspace(dir);
   const out = [];
-  for (const t of scan.tools) out.push({ schemaName: `${schemaName}.tool.${t.name}`, kind: t.kind });
+  for (const t of scan.tools) out.push({ schemaName: toolSchemaName(schemaName, t), kind: t.kind });
   for (const b of scan.behaviors) out.push({ schemaName: `${schemaName}.skill.${b.name}`, kind: b.kind });
   for (const k of scan.knowledge) out.push({ schemaName: `${schemaName}.knowledge.${k.name}`, kind: k.kind });
   return out;

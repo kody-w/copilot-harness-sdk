@@ -162,3 +162,10 @@ test('component links: connection reference added once, workflow links converge,
   const removed = await deleteStaleComponents({ ...base(fetchImpl), botId: 'bot1', keep: ['aibast_Core.tool.aibast_dataverse-add-memory', 'AIBAST_CORE.TOOL.HACKERNEWSWORKFLOW'] });
   assert.deepEqual(removed, [{ schemaName: 'aibast_Core.skill.stale', kind: 'InlineAgentSkill' }]);
 });
+
+test('toolSchemaName: connected-agent tools carry pac\'s extra segment, other tools do not', async () => {
+  const { toolSchemaName } = await import('../src/harness-provision.js');
+  assert.equal(toolSchemaName('rapp_Parent', { name: 'NewsTwin', kind: 'ConnectedAgentTool' }), 'rapp_Parent.tool.connected-agent.NewsTwin');
+  assert.equal(toolSchemaName('rapp_Parent', { name: 'HackerNewsWorkflow', kind: 'WorkflowTool' }), 'rapp_Parent.tool.HackerNewsWorkflow');
+  assert.equal(toolSchemaName('rapp_Parent', { name: 'x' }), 'rapp_Parent.tool.x');
+});
