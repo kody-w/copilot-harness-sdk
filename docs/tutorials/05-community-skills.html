@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rung 5 · Thirty-four community skills</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a class="brand" href="./">copilot-harness-sdk · tutorials</a>
+  <nav><a href="./">ladder</a><a href="https://github.com/kody-w/copilot-harness-sdk">repo</a></nav>
+</header>
+
+<div class="eyebrow">Rung 5 · proved 5/5</div>
+<h1>Thirty-four community skills on one agent</h1>
+<p class="lede">The whole <a href="https://github.com/coleam00/skills">coleam00/skills</a> collection, unmodified, as one Copilot Studio agent: 34 <code>InlineAgentSkill</code> behaviors and an instructions block with one routing line per skill. The question this rung answers is whether routing still works at that width.</p>
+
+<figure>
+  <img src="img/05-community-skills-build.jpg" alt="Copilot Studio Build page of the Brainstem Community Skills agent: the Skills panel shows five names and a +29 badge; the instructions list one capability-and-routing bullet per skill">
+  <figcaption>34 skills (the panel shows five and "+29") and a routing bullet per skill, generated from each SKILL.md description.</figcaption>
+</figure>
+
+<h2>Build and deploy</h2>
+<p>Clone the skills repo into the brainstem's <code>agents/community/</code>, then one call with every folder name:</p>
+<pre><code>comm = sorted(p.name for p in Path("agents/community").iterdir() if (p / "SKILL.md").exists())   # 34
+a.perform(name="Brainstem Community Skills",
+          description="You are a RAPP brainstem in Copilot Studio carrying the whole coleam00/skills community "
+                      "collection ... Pick the one skill that matches the request, follow it exactly, and say which skill you used.",
+          skills=comm, deploy=True, environment="https://&lt;org&gt;.crm.dynamics.com/", tenant="&lt;tenant&gt;")</code></pre>
+<p>The solution import carried 34 bot components in one pass; publish succeeded on the first attempt. The live record has exactly 34 skill components.</p>
+
+<h2>Prove it</h2>
+<div class="tbl"><table>
+<tr><th>Prompt</th><th>Skill that should answer</th><th>Answer (16 Sep 2026)</th></tr>
+<tr><td>Use the ast-grep skill: write one ast-grep rule (YAML) that finds every console.log call in JavaScript. Under 120 words.</td><td>ast-grep</td><td>"Skill used: ast-grep — <code>id: find-console-log / language: javascript / rule: pattern: console.log($$$ARGS)</code> …"</td></tr>
+<tr><td>Use the plan-create-stories skill: turn this PRD phase into three engineer-ready tickets: 'Users can reset their password by email.'</td><td>plan-create-stories</td><td>"Skill used: plan-create-stories — Ticket 1 — Add POST /auth/password-reset-request endpoint …"</td></tr>
+<tr><td>Use the hooks-create skill: I want a Claude Code hook that blocks any git push to main.</td><td>hooks-create</td><td>a correct PreToolUse hook on Bash with a guard script, but prefixed "applied from built-in knowledge — skill not in this collection" (see below)</td></tr>
+<tr><td>Use the skills-create skill: outline a lean SKILL.md for a skill named release-notes …</td><td>skills-create</td><td>"Skill used: skills-create (create mode, artifact-generator type) — <code>name: release-notes …</code>"</td></tr>
+<tr><td>Which of your skills would you use to review a pull request end to end, and what does it do?</td><td>piv-review-pr</td><td>"Skill: piv-review-pr — the agentic gate that runs on an open PR before a human approves …"</td></tr>
+</table></div>
+
+<h2>The findings</h2>
+<ul>
+  <li><strong>Routing holds at 34.</strong> Four of five prompts loaded the named skill and followed it; the fifth named the right skill for an open question.</li>
+  <li><strong>One skill was there and the model said it was not.</strong> <code>hooks-create</code> is among the 34 live components, yet the agent answered from "built-in knowledge" and claimed the skill was missing. The answer was still right. The instructions carry 34 routing bullets, and the skill panel itself paginates; treat this as the first sign of a width limit for how many skills the harness will consider on one turn, and split collections that matter into separate agents or a parent with connected agents (rung 4).</li>
+  <li><strong>Every SKILL.md is verbatim.</strong> Open any component's <code>data</code> file in the exported solution: it is the upstream file, frontmatter and all.</li>
+</ul>
+
+<h2>The exported solution</h2>
+<p><a href="solutions/rappBrainstemCommunitySkillsHarness.exported.zip">rappBrainstemCommunitySkillsHarness.exported.zip</a>, exported from Copilot Studio unmodified: one bot, 34 skill components, no environment values. Import per <a href="manual-import.html">the manual way</a>. The skills keep their upstream MIT license.</p>
+
+<div class="next"><a href="03-script-skills.html">← Rung 3</a><span>Rung 4: two AIs, one routine (next)</span></div>
+<footer class="site">Proof file: <code>rapp_BrainstemCommunitySkills.json</code> (5/5, copilot-studio-3p, 2026-09-16T01:14Z).</footer>
+</div>
+</body>
+</html>
