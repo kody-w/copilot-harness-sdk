@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, staticToken } from '../src/auth/entra.js';
+import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, staticToken, fileCachePlugin } from '../src/auth/entra.js';
+import { mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const IDS = { clientId: '11111111-2222-3333-4444-555555555555', tenantId: '22222222-2222-3333-4444-555555555555' };
 
@@ -75,4 +78,27 @@ test('device-code provider prefers a silent token and falls back to the device-c
   assert.equal(await providerLate(), 'silent-tok', 'later acquisitions go silent when an account exists');
   assert.equal(silentCalls, 1);
   assert.equal(deviceCalls, 1, 'device code was not prompted again');
+});
+
+test('device-code provider persists the MSAL cache to cacheFile so a later process signs in silently', async () => {
+  const file = join(mkdtempSync(join(tmpdir(), 'entra-')), 'nested', 'cache.json');
+  let config;
+  const pcaFactory = (c) => { config = c; return { getTokenCache: () => ({ getAllAccounts: async () => [] }), acquireTokenByDeviceCode: async () => ({ accessToken: 'dc', expiresOn: new Date(Date.now() + 3600_000) }) }; };
+  await createDeviceCodeTokenProvider({ ...IDS, cacheFile: file, onDeviceCode: () => {} }, { pcaFactory })();
+  assert.ok(config.cache?.cachePlugin, 'cacheFile → an MSAL cachePlugin');
+  // the plugin round-trips the serialized cache through the file, creating parent folders, owner-only
+  const plugin = fileCachePlugin(file);
+  let loaded = null;
+  await plugin.beforeCacheAccess({ tokenCache: { deserialize: (s) => { loaded = s; } } });
+  assert.equal(loaded, null, 'no file yet: nothing deserialized, no throw');
+  await plugin.afterCacheAccess({ cacheHasChanged: false, tokenCache: { serialize: () => 'NOPE' } });
+  await plugin.afterCacheAccess({ cacheHasChanged: true, tokenCache: { serialize: () => '{"Account":{}}' } });
+  assert.equal(readFileSync(file, 'utf8'), '{"Account":{}}');
+  if (process.platform !== 'win32') assert.equal(statSync(file).mode & 0o777, 0o600);
+  await plugin.beforeCacheAccess({ tokenCache: { deserialize: (s) => { loaded = s; } } });
+  assert.equal(loaded, '{"Account":{}}');
+  // without cacheFile the config carries no cache plugin
+  config = undefined;
+  await createDeviceCodeTokenProvider({ ...IDS, onDeviceCode: () => {} }, { pcaFactory })();
+  assert.equal(config.cache, undefined);
 });
