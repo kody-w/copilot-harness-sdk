@@ -13,6 +13,8 @@
  * acquisition between concurrent callers.
  */
 import { powerPlatformScope } from '../url.js';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 const REFRESH_SKEW_MS = 60 * 1000;
 const FALLBACK_TTL_MS = 5 * 60 * 1000;
@@ -61,11 +63,15 @@ function cachedProvider(acquire, now) {
  * applications platform, redirect http://localhost) holding the Power
  * Platform API delegated permission CopilotStudio.Copilots.Invoke.
  *
- * @param {{ clientId: string, tenantId: string, cloud?: import('../url.js').SupportedCloud, scopes?: string[], onDeviceCode?: (message: string) => void }} opts
+ * Pass `cacheFile` to persist MSAL's token cache (refresh token included) to that path, so later
+ * processes acquire silently instead of asking the user to sign in again; the file is written with
+ * owner-only permissions and holds credentials, so keep it out of repositories.
+ *
+ * @param {{ clientId: string, tenantId: string, cloud?: import('../url.js').SupportedCloud, scopes?: string[], onDeviceCode?: (message: string) => void, cacheFile?: string }} opts
  * @param {{ pcaFactory?: (config: any) => any, now?: () => number }} [deps] test seam
  * @returns {() => Promise<string>}
  */
-export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Prod', scopes, onDeviceCode }, deps = {}) {
+export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Prod', scopes, onDeviceCode, cacheFile }, deps = {}) {
   if (!clientId || !tenantId) throw new Error('createDeviceCodeTokenProvider requires clientId and tenantId.');
   const requestScopes = scopes || [powerPlatformScope(cloud)];
   const now = deps.now || Date.now;
@@ -73,11 +79,13 @@ export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Pro
   let pca;
   async function getPca() {
     if (pca) return pca;
+    const config = { auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` } };
+    if (cacheFile) config.cache = { cachePlugin: fileCachePlugin(cacheFile) };
     if (deps.pcaFactory) {
-      pca = deps.pcaFactory({ auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` } });
+      pca = deps.pcaFactory(config);
     } else {
       const { PublicClientApplication } = await import('@azure/msal-node');
-      pca = new PublicClientApplication({ auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` } });
+      pca = new PublicClientApplication(config);
     }
     return pca;
   }
@@ -100,6 +108,25 @@ export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Pro
     if (!result?.accessToken) throw new Error('Device-code sign-in did not return an access token.');
     return result;
   }, now);
+}
+
+/**
+ * MSAL cache plugin backed by one JSON file (owner read/write only).
+ * @param {string} file
+ */
+export function fileCachePlugin(file) {
+  return {
+    /** @param {{ tokenCache: { deserialize: (s: string) => void } }} ctx */
+    async beforeCacheAccess(ctx) {
+      try { ctx.tokenCache.deserialize(readFileSync(file, 'utf8')); } catch { /* first run: no cache yet */ }
+    },
+    /** @param {{ cacheHasChanged: boolean, tokenCache: { serialize: () => string } }} ctx */
+    async afterCacheAccess(ctx) {
+      if (!ctx.cacheHasChanged) return;
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, ctx.tokenCache.serialize(), { mode: 0o600 });
+    }
+  };
 }
 
 /**
