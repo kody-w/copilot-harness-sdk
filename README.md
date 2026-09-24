@@ -222,6 +222,7 @@ npm run deploy:harness -- --name "Brainstem Core" --publisher-prefix aibast --sc
 | `--model`, `--language` | `Sonnet46`, `1033` | model series and language written to the record |
 | `--solution-name` | `<schema>Harness` (49 chars max) | unique name of the solution that carries the bot |
 | `--work-dir` | `.deploy/<schema>` | scratch folder; only its `workspace/`, `out/`, `deferred/` and `clone/` sub-folders are recreated |
+| `--push-batch` | `15` | workflow tools per `pac copilot push` in step 6; each push must finish inside pac's 100-second request timeout |
 | `--token-command "..."` | `az account get-access-token --resource <environment> --query accessToken -o tsv` | any command that prints a Dataverse bearer token |
 
 `--key=value` is accepted as well as `--key value`.

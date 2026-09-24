@@ -254,19 +254,25 @@ export async function connectorExists(opts) {
 
 /** @param {DataverseOptions & { workflowId: string }} opts */
 export async function findWorkflow(opts) {
-  const { body } = await dataverse(opts)(`workflows?$filter=workflowid eq ${opts.workflowId}&$select=workflowid,name,statecode,statuscode,category`);
+  const select = opts.select || 'workflowid,name,statecode,statuscode,category';
+  const { body } = await dataverse(opts)(`workflows?$filter=workflowid eq ${opts.workflowId}&$select=${select}`);
   return body.value?.[0] || null;
 }
 
 /**
- * Create or update an agent flow from a workspace `workflow.json` and activate it.
+ * Create or update an agent flow from a workspace `workflow.json` and activate it. An activated flow that already
+ * has this name, description and definition is left alone ('unchanged'), so a re-deploy does not deactivate and
+ * re-activate every flow.
  * @param {DataverseOptions & { workflowId: string, name: string, description?: string, definition: any }} opts
  */
 export async function ensureWorkflow(opts) {
   const call = dataverse(opts);
   const clientdata = JSON.stringify(opts.definition);
-  const existing = await findWorkflow(opts);
+  const existing = await findWorkflow({ ...opts, select: 'workflowid,name,description,statecode,statuscode,category,clientdata' });
   const body = { name: opts.name, description: opts.description || '', clientdata };
+  if (existing && existing.statecode === 1 && existing.clientdata === clientdata && existing.name === body.name && (existing.description || '') === body.description) {
+    return { operation: 'unchanged', workflowId: opts.workflowId, name: opts.name };
+  }
   if (existing) {
     if (existing.statecode === 1) await call(`workflows(${opts.workflowId})`, { method: 'PATCH', body: JSON.stringify({ statecode: 0, statuscode: 1 }) });
     await call(`workflows(${opts.workflowId})`, { method: 'PATCH', body: JSON.stringify(body) });

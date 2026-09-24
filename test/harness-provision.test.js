@@ -133,6 +133,12 @@ test('ensureWorkflow posts a new agent flow and activates it, or updates and re-
   const live = fake([{ match: /workflows\?\$filter=workflowid eq/, body: { value: [{ workflowid: OLD_WF, statecode: 1 }] } }, { method: 'PATCH', match: /workflows\(/, status: 204 }]);
   assert.equal((await ensureWorkflow({ ...base(live.fetchImpl), workflowId: OLD_WF, name: 'HN', definition: def })).operation, 'updated');
   assert.deepEqual(live.calls.filter((c) => c.method === 'PATCH').map((c) => c.body), [{ statecode: 0, statuscode: 1 }, { name: 'HN', description: '', clientdata: JSON.stringify(def) }, { statecode: 1, statuscode: 2 }]);
+  const same = fake([{ match: /workflows\?\$filter=workflowid eq/, body: { value: [{ workflowid: OLD_WF, statecode: 1, name: 'HN', description: '', clientdata: JSON.stringify(def) }] } }]);
+  assert.equal((await ensureWorkflow({ ...base(same.fetchImpl), workflowId: OLD_WF, name: 'HN', definition: def })).operation, 'unchanged');
+  assert.equal(same.calls.filter((c) => c.method === 'PATCH').length, 0);
+  assert.match(same.calls[0].url, /clientdata/);
+  const draft = fake([{ match: /workflows\?\$filter=workflowid eq/, body: { value: [{ workflowid: OLD_WF, statecode: 0, name: 'HN', description: '', clientdata: JSON.stringify(def) }] } }, { method: 'PATCH', match: /workflows\(/, status: 204 }]);
+  assert.equal((await ensureWorkflow({ ...base(draft.fetchImpl), workflowId: OLD_WF, name: 'HN', definition: def })).operation, 'updated');
 });
 
 test('component links: connection reference added once, workflow links converge, stale components deleted', async () => {
