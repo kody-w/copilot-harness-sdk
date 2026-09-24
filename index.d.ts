@@ -334,8 +334,8 @@ export declare function listComponents(opts: DataverseOptions & AgentRef): Promi
 export declare function dataverse(opts: DataverseOptions): (path: string, init?: RequestInit) => Promise<{ status: number; body: any; headers: Headers }>;
 export declare const AGENT_SCOPED_REF: RegExp;
 export interface WorkspaceScan {
-  tools: { file: string; name: string; kind?: string; connectionReference?: string; connectorId?: string; workflowId?: string }[];
-  behaviors: { file: string; name: string; kind?: string }[];
+  tools: { file: string; name: string; kind?: string; connectionReference?: string; connectorId?: string; workflowId?: string; componentName?: string; description?: string }[];
+  behaviors: { file: string; name: string; kind?: string; componentName?: string; description?: string }[];
   knowledge: { file: string; name: string; kind?: string }[];
   connectionRefs: Map<string, { connectorId?: string; sources: string[] }>;
   workflows: { folder: string; id?: string; name: string; description: string; connectionRefs: { api: string; logical?: string }[]; definition: any; hasMetadata: boolean }[];
@@ -354,8 +354,12 @@ export declare function ensureConnectionReference(opts: DataverseOptions & { log
 export declare function connectorExists(opts: DataverseOptions & { connectorId: string }): Promise<{ custom: boolean; exists: boolean; internal: string; connectorId?: string; displayName?: string }>;
 export declare function findWorkflow(opts: DataverseOptions & { workflowId: string }): Promise<any | null>;
 export declare function ensureWorkflow(opts: DataverseOptions & { workflowId: string; name: string; description?: string; definition: any }): Promise<{ operation: 'created' | 'updated'; workflowId: string; name: string }>;
-export interface BotComponent { id: string; schemaName: string; displayName: string; componentType: number; kind: string; workflows: { id: string; name: string; statecode: number }[]; connectionReferences: { id: string; logicalName: string }[] }
+export interface BotComponent { id: string; schemaName: string; displayName: string; description: string; componentType: number; kind: string; workflows: { id: string; name: string; statecode: number }[]; connectionReferences: { id: string; logicalName: string }[] }
 export declare function listBotComponents(opts: DataverseOptions & { botId: string }): Promise<BotComponent[]>;
 export declare function linkComponentConnectionReference(opts: DataverseOptions & { component: BotComponent; logicalName: string }): Promise<{ operation: 'linked' | 'existing'; logicalName: string }>;
 export declare function linkComponentWorkflow(opts: DataverseOptions & { component: BotComponent; workflowId: string }): Promise<{ operation: string; workflowId: string }>;
+/** Write a component's display name and description onto the live record (pac push skips metadata-only changes). */
+export declare function syncComponentMetadata(opts: DataverseOptions & { component: BotComponent; componentName?: string; description?: string }): Promise<{ operation: 'updated' | 'existing'; fields: string[] }>;
+/** componentName and description from a component file's mcs.metadata block (single-line scalars). */
+export declare function mcsMetadata(text: string): { componentName?: string; description?: string };
 export declare function deleteStaleComponents(opts: DataverseOptions & { botId: string; keep: Set<string> | string[] }): Promise<{ schemaName: string; kind: string }[]>;

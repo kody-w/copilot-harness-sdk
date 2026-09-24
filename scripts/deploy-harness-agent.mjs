@@ -13,7 +13,8 @@
 //    3. pac copilot pack                                     (pac 2.10.1 writes <language>0</language>; fixed via pac solution unpack/pack)
 //    4. guard: refuse the zip unless bot.xml says template=cliagent-*
 //    5. pac solution import --async --force-overwrite
-//    6. push WorkflowTools through a synced clone (pack cannot resolve them)
+//    6. push WorkflowTools through a synced clone (pack cannot resolve them): tool files only, since step 2
+//       provisioned their flows, in batches of --push-batch
 //    7. PATCH bots(<id>).configuration with the instructions  (pac push drops agentSettings.instructions in 2.10.1)
 //    8. bind: ConnectorTool → connection reference, WorkflowTool → flow; delete components the
 //       workspace no longer declares (--keep-extra-components to skip)
@@ -24,11 +25,12 @@
 //   node scripts/deploy-harness-agent.mjs --name "My Agent" --publisher-prefix cr8c1 \
 //     --instructions-file ./instructions.md --environment https://org.crm.dynamics.com/ [--schema-name cr8c1_MyAgent] \
 //     [--workspace-dir ./agent] [--connections ./connections.json] [--fork-workflows] [--keep-extra-components] \
-//     [--model Sonnet46] [--language 1033] [--solution-name MyAgentHarness] [--work-dir ./.deploy]
+//     [--model Sonnet46] [--language 1033] [--solution-name MyAgentHarness] [--work-dir ./.deploy] [--push-batch 15]
 //
 // Flags: --name (<=42 chars) --publisher-prefix --environment [--schema-name] [--instructions-file | --workspace-dir]
 //        [--connections file] [--fork-workflows] [--keep-extra-components] [--model Sonnet46] [--language 1033]
-//        [--solution-name] [--work-dir .deploy/<schema>] [--token-command "..."]; --key=value is accepted too.
+//        [--solution-name] [--work-dir .deploy/<schema>] [--token-command "..."] [--push-batch 15]; --key=value is accepted too.
+// --push-batch: workflow tools per pac push in step 6 (each push must finish inside pac's 100 s request timeout).
 // --work-dir: only the sub-folders workspace/, out/, deferred/ and clone/ inside it are recreated each run.
 // --connections: JSON { "<cr suffix | connector id | source logical name>": "<connection id>" } for
 // references that cannot be resolved from an existing reference in the environment.
@@ -39,7 +41,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync, rea
 import { join, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 import { assertHarnessAgent, classifyBot, HARNESS_TEMPLATE } from '../src/harness-guard.js';
-import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF, toolSchemaName } from '../src/harness-provision.js';
+import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, syncComponentMetadata, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF, toolSchemaName } from '../src/harness-provision.js';
 
 const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
@@ -61,6 +63,7 @@ const tokenCommand = args['token-command'] || `az account get-access-token --res
 const connections = args.connections ? JSON.parse(readFileSync(args.connections, 'utf8')) : {};
 const forkWorkflows = args['fork-workflows'] === 'true';
 const keepExtra = args['keep-extra-components'] === 'true';
+const pushBatch = Math.max(1, Number(args['push-batch'] || 15));
 if (args['authoring-mode'] && args['authoring-mode'] !== 'cli-copilot') {
   console.error(`Refusing --authoring-mode ${args['authoring-mode']}: this script only produces GitHub Copilot harness agents.`);
   process.exit(3);
@@ -203,9 +206,18 @@ if (deferred.length) {
   const synced = join(cloneRoot, 'synced');
   // Merge, do not overwrite: on a re-deploy the clone already holds the flow folder pac wrote (fuller metadata.yml than
   // a workspace carries); replacing it makes pac 2.10.1 push crash with ArgumentException. Copy only what is new or changed.
-  const changed = mergeDeferred(deferredDir, synced);
-  if (changed.length) { console.log(`   pushing: ${changed.join(', ')}`); pac(['copilot', 'push', '--project-dir', synced], { retries: 4, delayMs: 15000 }); }
-  else console.log('   clone already matches the deferred workflow tools; nothing to push');
+  // Step 2 already created and activated every deferred flow through Dataverse, and pac links a pushed WorkflowTool
+  // to its existing flow by workflowId, so only the tool files are pushed. Re-sending flow folders is what made a push
+  // slow: pac 2.10.1 sends a push as one Dataverse request under a 100 s HttpClient timeout, and 71 tools with their
+  // flows timed out on every retry (2026-09-24, kodyv8) while the server kept committing them. Tool-only pushes in
+  // batches of --push-batch took 30-60 s per 15 tools.
+  const plan = deferredPlan(deferredDir, synced, new Set(provisioned.workflows.map((w) => w.workflowId.toLowerCase())));
+  if (!plan.length) console.log('   clone already matches the deferred workflow tools; nothing to push');
+  for (let i = 0; i < plan.length; i += pushBatch) {
+    const changed = applyDeferred(deferredDir, synced, plan.slice(i, i + pushBatch));
+    console.log(`   pushing batch ${i / pushBatch + 1}/${Math.ceil(plan.length / pushBatch)}: ${changed.join(', ')}`);
+    pac(['copilot', 'push', '--project-dir', synced], { retries: 4, delayMs: 15000 });
+  }
 } else {
   step('6/10 no workflow tools to push');
 }
@@ -252,6 +264,14 @@ for (const t of scan.tools) {
     const r = await linkComponentWorkflow({ ...dv, component: comp, workflowId: wf.workflowId });
     console.log(`   tool.${t.name} → flow ${wf.workflowId}: ${r.operation}`);
   }
+}
+// pac push skips a change that only touches a file's mcs.metadata; the orchestrator reads the live name and
+// description columns, so write them from the workspace.
+for (const c of [...scan.tools.map((t) => ({ ...t, live: toolSchemaName(schemaName, t) })), ...scan.behaviors.map((b) => ({ ...b, live: `${schemaName}.skill.${b.name}` }))]) {
+  const comp = byName.get(c.live.toLowerCase());
+  if (!comp) continue;
+  const r = await syncComponentMetadata({ ...dv, component: comp, componentName: c.componentName, description: c.description });
+  if (r.operation === 'updated') console.log(`   ${c.live.replace(`${schemaName}.`, '')}: ${r.fields.join(' + ')} written to the live record`);
 }
 if (keepExtra) {
   console.log('   --keep-extra-components: leaving undeclared components in place');
@@ -310,22 +330,38 @@ function deferWorkflowTools(dir, deferredDir) {
   if (existsSync(wf)) { cpSync(wf, join(deferredDir, 'workflows'), { recursive: true }); rmSync(wf, { recursive: true, force: true }); }
   return names;
 }
-function mergeDeferred(deferredDir, synced) {
-  const changed = [];
+// What the synced clone still needs: one entry per workflow tool that is new or changed, with the flow folders it
+// points at that the clone lacks and step 2 did not provision, and a last entry for such folders no tool points at.
+// Merge, do not overwrite: a flow folder the clone already holds (pac's fuller metadata.yml) is never replaced.
+function deferredPlan(deferredDir, synced, provisionedIds = new Set()) {
   const toolsDir = join(deferredDir, 'capabilities', 'tools');
-  if (existsSync(toolsDir)) {
-    for (const f of readdirSync(toolsDir).filter((f) => f.endsWith('.mcs.yml')).sort()) {
-      const src = readFileSync(join(toolsDir, f), 'utf8');
-      const dst = join(synced, 'capabilities', 'tools', f);
-      if (!existsSync(dst) || readFileSync(dst, 'utf8').replace(/^\uFEFF/, '').trim() !== src.replace(/^\uFEFF/, '').trim()) { mkdirSync(join(synced, 'capabilities', 'tools'), { recursive: true }); writeFileSync(dst, src); changed.push(`capabilities/tools/${f}`); }
-    }
-  }
   const wfDir = join(deferredDir, 'workflows');
-  if (existsSync(wfDir)) {
-    for (const folder of readdirSync(wfDir).filter((f) => statSync(join(wfDir, f)).isDirectory()).sort()) {
-      const id = (folder.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) || [])[0];
-      const already = existsSync(join(synced, 'workflows')) && readdirSync(join(synced, 'workflows')).some((f) => id && f.toLowerCase().endsWith(id.toLowerCase()));
-      if (!already) { cpSync(join(wfDir, folder), join(synced, 'workflows', folder), { recursive: true }); changed.push(`workflows/${folder}`); }
+  const idOf = (name) => ((name.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) || [])[0] || '').toLowerCase();
+  const held = existsSync(join(synced, 'workflows')) ? readdirSync(join(synced, 'workflows')).map(idOf) : [];
+  const missing = existsSync(wfDir) ? readdirSync(wfDir).filter((f) => statSync(join(wfDir, f)).isDirectory() && !(idOf(f) && (held.includes(idOf(f)) || provisionedIds.has(idOf(f))))).sort() : [];
+  const plan = [];
+  const used = new Set();
+  for (const f of existsSync(toolsDir) ? readdirSync(toolsDir).filter((f) => f.endsWith('.mcs.yml')).sort() : []) {
+    const src = readFileSync(join(toolsDir, f), 'utf8');
+    const dst = join(synced, 'capabilities', 'tools', f);
+    const changed = !existsSync(dst) || readFileSync(dst, 'utf8').replace(/^\uFEFF/, '').trim() !== src.replace(/^\uFEFF/, '').trim();
+    const id = ((src.match(/^workflowId:\s*(\S+)/m) || [])[1] || '').toLowerCase();
+    const workflows = missing.filter((m) => id && idOf(m) === id);
+    workflows.forEach((w) => used.add(w));
+    if (changed || workflows.length) plan.push({ tool: f, workflows });
+  }
+  const orphans = missing.filter((m) => !used.has(m));
+  if (orphans.length) plan.push({ tool: null, workflows: orphans });
+  return plan;
+}
+function applyDeferred(deferredDir, synced, entries) {
+  const changed = [];
+  for (const e of entries) {
+    for (const folder of e.workflows) { cpSync(join(deferredDir, 'workflows', folder), join(synced, 'workflows', folder), { recursive: true }); changed.push(`workflows/${folder}`); }
+    if (e.tool) {
+      mkdirSync(join(synced, 'capabilities', 'tools'), { recursive: true });
+      writeFileSync(join(synced, 'capabilities', 'tools', e.tool), readFileSync(join(deferredDir, 'capabilities', 'tools', e.tool), 'utf8'));
+      changed.push(`capabilities/tools/${e.tool}`);
     }
   }
   return changed;

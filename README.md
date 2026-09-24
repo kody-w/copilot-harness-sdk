@@ -200,6 +200,7 @@ Reaching a harness agent from code still needs an Entra app with the delegated `
 | `WorkflowTool` + `workflows/<Name>-<id>/workflow.json` | reuses the flow when it exists in the environment, otherwise mints a per-agent id (UUID v5 of schema name + folder; `--fork-workflows` always mints), rewrites the tool and folder, creates or updates the flow from the definition and **activates** it | links the component to exactly that flow |
 | a shared reference without `.cr.` (the use cases' MCP references) | verifies it exists and is bound, fails early with the reason otherwise | — |
 | custom connectors (`connectors/`, or a `.cr.` reference to `shared_<name>-5f…`) | verifies the connector exists in the environment; creating one is `pac connector create` (see the tutorial) | — |
+| a tool's or skill's `componentName` / `description` | — | writes them to the live record's `name` / `description` columns (`pac push` skips metadata-only changes) |
 | components no longer in the workspace | — | deletes them (`--keep-extra-components` to skip) |
 | everything | — | reads the record back: harness template, instructions, published, every component with its kind and its reference/flow link, or exits non-zero |
 
@@ -222,6 +223,7 @@ npm run deploy:harness -- --name "Brainstem Core" --publisher-prefix aibast --sc
 | `--model`, `--language` | `Sonnet46`, `1033` | model series and language written to the record |
 | `--solution-name` | `<schema>Harness` (49 chars max) | unique name of the solution that carries the bot |
 | `--work-dir` | `.deploy/<schema>` | scratch folder; only its `workspace/`, `out/`, `deferred/` and `clone/` sub-folders are recreated |
+| `--push-batch` | `15` | workflow tools per `pac copilot push` in step 6; each push must finish inside pac's 100-second request timeout |
 | `--token-command "..."` | `az account get-access-token --resource <environment> --query accessToken -o tsv` | any command that prints a Dataverse bearer token |
 
 `--key=value` is accepted as well as `--key value`.
