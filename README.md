@@ -200,6 +200,7 @@ Reaching a harness agent from code still needs an Entra app with the delegated `
 | `WorkflowTool` + `workflows/<Name>-<id>/workflow.json` | reuses the flow when it exists in the environment, otherwise mints a per-agent id (UUID v5 of schema name + folder; `--fork-workflows` always mints), rewrites the tool and folder, creates or updates the flow from the definition and **activates** it | links the component to exactly that flow |
 | a shared reference without `.cr.` (the use cases' MCP references) | verifies it exists and is bound, fails early with the reason otherwise | — |
 | custom connectors (`connectors/`, or a `.cr.` reference to `shared_<name>-5f…`) | verifies the connector exists in the environment; creating one is `pac connector create` (see the tutorial) | — |
+| a tool's or skill's `componentName` / `description` | — | writes them to the live record's `name` / `description` columns (`pac push` skips metadata-only changes) |
 | components no longer in the workspace | — | deletes them (`--keep-extra-components` to skip) |
 | everything | — | reads the record back: harness template, instructions, published, every component with its kind and its reference/flow link, or exits non-zero |
 

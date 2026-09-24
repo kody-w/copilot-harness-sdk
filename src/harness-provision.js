@@ -36,6 +36,24 @@ function yamlValue(text, key) {
 }
 
 /**
+ * componentName and description from a component file's `mcs.metadata` block (single-line scalars only; a
+ * block scalar is left undefined, so it is never synced).
+ * @param {string} text
+ */
+export function mcsMetadata(text) {
+  const block = (stripBom(text).match(/^mcs\.metadata:[ \t]*\r?\n((?:[ \t]+.*(?:\r?\n|$))*)/m) || [])[1] || '';
+  const read = (key) => {
+    const m = block.match(new RegExp(`^[ \\t]+${key}:[ \\t]*(.*?)[ \\t]*\\r?$`, 'm'));
+    if (!m || !m[1] || /^[|>]/.test(m[1])) return undefined;
+    const raw = m[1];
+    if (raw.startsWith('"')) { try { return JSON.parse(raw); } catch { return raw.slice(1, -1); } }
+    if (raw.startsWith("'")) return raw.slice(1, -1).replace(/''/g, "'");
+    return raw;
+  };
+  return { componentName: read('componentName'), description: read('description') };
+}
+
+/**
  * Read what the workspace binds to: tools by kind, connection references (from tool YAMLs, sync
  * files and workflow definitions) and workflows.
  * @param {string} dir workspace root (holds settings.mcs.yml)
@@ -52,9 +70,12 @@ export function toolSchemaName(schemaName, t) {
 export function scanWorkspace(dir) {
   const tools = listYaml(join(dir, 'capabilities', 'tools')).map((file) => {
     const text = readFileSync(join(dir, 'capabilities', 'tools', file), 'utf8');
-    return { file, name: file.replace(/\.mcs\.yml$/, ''), kind: yamlValue(text, 'kind'), connectionReference: yamlValue(text, 'connectionReference'), connectorId: yamlValue(text, 'connectorId'), workflowId: yamlValue(text, 'workflowId') };
+    return { file, name: file.replace(/\.mcs\.yml$/, ''), kind: yamlValue(text, 'kind'), connectionReference: yamlValue(text, 'connectionReference'), connectorId: yamlValue(text, 'connectorId'), workflowId: yamlValue(text, 'workflowId'), ...mcsMetadata(text) };
   });
-  const behaviors = listYaml(join(dir, 'behaviors')).map((file) => ({ file, name: file.replace(/\.mcs\.yml$/, ''), kind: yamlValue(readFileSync(join(dir, 'behaviors', file), 'utf8'), 'kind') }));
+  const behaviors = listYaml(join(dir, 'behaviors')).map((file) => {
+    const text = readFileSync(join(dir, 'behaviors', file), 'utf8');
+    return { file, name: file.replace(/\.mcs\.yml$/, ''), kind: yamlValue(text, 'kind'), ...mcsMetadata(text) };
+  });
   const knowledge = listYaml(join(dir, 'capabilities', 'knowledge')).map((file) => ({ file, name: file.replace(/\.mcs\.yml$/, ''), kind: yamlValue(readFileSync(join(dir, 'capabilities', 'knowledge', file), 'utf8'), 'kind') }));
   /** @type {Map<string, { connectorId?: string, sources: string[] }>} */
   const refs = new Map();
@@ -285,8 +306,23 @@ export async function ensureWorkflow(opts) {
 
 /** @param {DataverseOptions & { botId: string }} opts */
 export async function listBotComponents(opts) {
-  const { body } = await dataverse(opts)(`botcomponents?$filter=_parentbotid_value eq ${opts.botId}&$select=botcomponentid,schemaname,name,componenttype,data&$expand=botcomponent_workflow($select=workflowid,name,statecode),botcomponent_connectionreference($select=connectionreferenceid,connectionreferencelogicalname)`);
-  return (body.value || []).map((c) => ({ id: c.botcomponentid, schemaName: c.schemaname, displayName: c.name, componentType: c.componenttype, kind: (String(c.data || '').match(/^kind:\s*(\S+)/m) || [])[1] || 'unknown', workflows: (c.botcomponent_workflow || []).map((w) => ({ id: w.workflowid, name: w.name, statecode: w.statecode })), connectionReferences: (c.botcomponent_connectionreference || []).map((r) => ({ id: r.connectionreferenceid, logicalName: r.connectionreferencelogicalname })) }));
+  const { body } = await dataverse(opts)(`botcomponents?$filter=_parentbotid_value eq ${opts.botId}&$select=botcomponentid,schemaname,name,description,componenttype,data&$expand=botcomponent_workflow($select=workflowid,name,statecode),botcomponent_connectionreference($select=connectionreferenceid,connectionreferencelogicalname)`);
+  return (body.value || []).map((c) => ({ id: c.botcomponentid, schemaName: c.schemaname, displayName: c.name, description: c.description || '', componentType: c.componenttype, kind: (String(c.data || '').match(/^kind:\s*(\S+)/m) || [])[1] || 'unknown', workflows: (c.botcomponent_workflow || []).map((w) => ({ id: w.workflowid, name: w.name, statecode: w.statecode })), connectionReferences: (c.botcomponent_connectionreference || []).map((r) => ({ id: r.connectionreferenceid, logicalName: r.connectionreferencelogicalname })) }));
+}
+
+/**
+ * Write a component's display name and description onto the live record. They live in the botcomponent's name and
+ * description columns, and pac 2.10.1 push skips a change that touches only a file's `mcs.metadata`: a tool
+ * description edited in the workspace never reached the live agent (24 Sep 2026, kodyv8).
+ * @param {DataverseOptions & { component: { id: string, displayName?: string, description?: string }, componentName?: string, description?: string }} opts
+ */
+export async function syncComponentMetadata(opts) {
+  const body = {};
+  if (opts.componentName && opts.component.displayName !== opts.componentName) body.name = opts.componentName;
+  if (opts.description !== undefined && (opts.component.description || '') !== opts.description) body.description = opts.description;
+  if (!Object.keys(body).length) return { operation: 'existing', fields: [] };
+  await dataverse(opts)(`botcomponents(${opts.component.id})`, { method: 'PATCH', body: JSON.stringify(body) });
+  return { operation: 'updated', fields: Object.keys(body) };
 }
 
 /**

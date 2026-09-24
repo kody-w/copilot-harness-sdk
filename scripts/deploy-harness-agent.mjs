@@ -41,7 +41,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, cpSync, rea
 import { join, resolve, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 import { assertHarnessAgent, classifyBot, HARNESS_TEMPLATE } from '../src/harness-guard.js';
-import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF, toolSchemaName } from '../src/harness-provision.js';
+import { scanWorkspace, rebindConnectionReferences, rebindWorkflows, workflowIdFor, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, syncComponentMetadata, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF, toolSchemaName } from '../src/harness-provision.js';
 
 const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
@@ -264,6 +264,14 @@ for (const t of scan.tools) {
     const r = await linkComponentWorkflow({ ...dv, component: comp, workflowId: wf.workflowId });
     console.log(`   tool.${t.name} → flow ${wf.workflowId}: ${r.operation}`);
   }
+}
+// pac push skips a change that only touches a file's mcs.metadata; the orchestrator reads the live name and
+// description columns, so write them from the workspace.
+for (const c of [...scan.tools.map((t) => ({ ...t, live: toolSchemaName(schemaName, t) })), ...scan.behaviors.map((b) => ({ ...b, live: `${schemaName}.skill.${b.name}` }))]) {
+  const comp = byName.get(c.live.toLowerCase());
+  if (!comp) continue;
+  const r = await syncComponentMetadata({ ...dv, component: comp, componentName: c.componentName, description: c.description });
+  if (r.operation === 'updated') console.log(`   ${c.live.replace(`${schemaName}.`, '')}: ${r.fields.join(' + ')} written to the live record`);
 }
 if (keepExtra) {
   console.log('   --keep-extra-components: leaving undeclared components in place');

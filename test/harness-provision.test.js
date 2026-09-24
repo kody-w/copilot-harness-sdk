@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { scanWorkspace, scopedReferenceName, rebindConnectionReferences, workflowIdFor, rebindWorkflows, resolveConnection, ensureConnectionReference, connectorExists, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, deleteStaleComponents, expectedComponents } from '../index.js';
+import { scanWorkspace, scopedReferenceName, rebindConnectionReferences, workflowIdFor, rebindWorkflows, resolveConnection, ensureConnectionReference, connectorExists, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, syncComponentMetadata, mcsMetadata, deleteStaleComponents, expectedComponents } from '../index.js';
 
 const OLD_WF = 'bbbbbbbb-0000-4000-8000-000000000001';
 function fixture() {
@@ -139,6 +139,25 @@ test('ensureWorkflow posts a new agent flow and activates it, or updates and re-
   assert.match(same.calls[0].url, /clientdata/);
   const draft = fake([{ match: /workflows\?\$filter=workflowid eq/, body: { value: [{ workflowid: OLD_WF, statecode: 0, name: 'HN', description: '', clientdata: JSON.stringify(def) }] } }, { method: 'PATCH', match: /workflows\(/, status: 204 }]);
   assert.equal((await ensureWorkflow({ ...base(draft.fetchImpl), workflowId: OLD_WF, name: 'HN', definition: def })).operation, 'updated');
+});
+
+test('mcsMetadata reads single-line componentName and description in any YAML quoting', () => {
+  assert.deepEqual(mcsMetadata('mcs.metadata:\n  componentName: "Claims \\u2014 Agent"\n  description: "Set `operation` to \\"x\\"."\nkind: WorkflowTool\ntoolInputs:\n  - name: a\n    description: "input"\n'),
+    { componentName: 'Claims \u2014 Agent', description: 'Set `operation` to "x".' });
+  assert.deepEqual(mcsMetadata("mcs.metadata:\n  componentName: 'It''s'\n  description: plain words\nkind: X\n"), { componentName: "It's", description: 'plain words' });
+  assert.deepEqual(mcsMetadata('mcs.metadata:\n  componentName: A\n  description: |\n    block\nkind: X\n'), { componentName: 'A', description: undefined });
+  assert.deepEqual(mcsMetadata('kind: X\ndescription: not metadata\n'), { componentName: undefined, description: undefined });
+});
+
+test('syncComponentMetadata writes only the columns that differ', async () => {
+  const comp = { id: 'c9', displayName: 'Claims Processing Agent', description: 'old' };
+  const upd = fake([{ method: 'PATCH', match: /botcomponents\(c9\)$/, status: 204 }]);
+  const r = await syncComponentMetadata({ ...base(upd.fetchImpl), component: comp, componentName: 'Claims Processing Agent', description: 'new' });
+  assert.deepEqual(r, { operation: 'updated', fields: ['description'] });
+  assert.deepEqual(upd.calls[0].body, { description: 'new' });
+  const same = fake([]);
+  assert.equal((await syncComponentMetadata({ ...base(same.fetchImpl), component: comp, componentName: 'Claims Processing Agent', description: 'old' })).operation, 'existing');
+  assert.equal(same.calls.length, 0);
 });
 
 test('component links: connection reference added once, workflow links converge, stale components deleted', async () => {
