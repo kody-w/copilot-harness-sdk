@@ -17,7 +17,8 @@
 import { MODES, capabilitiesFor, allCapabilities } from './src/modes.js';
 import { build3pUrl, buildAgenticDirectLineTokenUrl, environmentHost, guard3pUrl, powerPlatformScope, CLOUD_SUFFIX } from './src/url.js';
 import { TextAccumulator, normalizeStudioActivity, createEventQueue, safeEmit } from './src/events.js';
-import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, staticToken } from './src/auth/entra.js';
+import { createDeviceCodeTokenProvider, createClientCredentialTokenProvider, createInteractiveTokenProvider, staticToken } from './src/auth/entra.js';
+import { ms, readConfig, writeConfig, checkAllowedActions, inferAllowedActions, setConnectorAllowedActions, setTableAllowedActions, gitAuthEnv, git, pushApp, deploy as deployManagedApp, playUrl, MANAGED_APPS_GIT_CLIENT_ID, MANAGED_APPS_GIT_SCOPE, TABLE_VERBS, PLAYER_MEDIA_SRC } from './src/managed-apps.js';
 import { createCopilotSdkAdapter } from './src/adapters/copilot-sdk.js';
 import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
@@ -42,6 +43,7 @@ export {
   createSdkEventMapper,
   createDeviceCodeTokenProvider,
   createClientCredentialTokenProvider,
+  createInteractiveTokenProvider,
   staticToken,
   resolveStudioConnection,
   preflight3p,
@@ -83,6 +85,12 @@ export {
   ACCESS_CONTROL_POLICY,
   CHANNELS
 };
+
+/** Managed apps (Copilot Managed Runtime): the microsoft-managed-apps plugin lifecycle as a library (src/managed-apps.js). */
+export const managedApps = Object.freeze({
+  ms, readConfig, writeConfig, checkAllowedActions, inferAllowedActions, setConnectorAllowedActions, setTableAllowedActions, gitAuthEnv, git, pushApp,
+  deploy: deployManagedApp, playUrl, MANAGED_APPS_GIT_CLIENT_ID, MANAGED_APPS_GIT_SCOPE, TABLE_VERBS, PLAYER_MEDIA_SRC
+});
 
 /** @typedef {import('./index.js').HarnessClientConfig} HarnessClientConfig */
 /** @typedef {import('./index.js').HarnessMode} HarnessMode */
