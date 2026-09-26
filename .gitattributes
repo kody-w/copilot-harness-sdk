@@ -1,0 +1,2 @@
+# Vendored files are pinned by sha256 (vendor/managed-apps/VENDOR.json): never convert their line endings.
+vendor/managed-apps/** -text

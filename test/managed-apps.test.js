@@ -362,6 +362,7 @@ function repo() {
   const d = workspace();
   const g = (...a) => { const r = spawnSync('git', a, { cwd: d, encoding: 'utf8' }); if (r.status) throw new Error(r.stderr); return r.stdout.trim(); };
   g('init', '-q', '-b', 'main'); g('config', 'user.email', 't@example.com'); g('config', 'user.name', 'T');
+  g('config', 'core.autocrlf', 'false');   // the same bytes on every OS (Windows runners default to true)
   return { d, g };
 }
 
