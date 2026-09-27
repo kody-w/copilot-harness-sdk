@@ -4,8 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const script = new URL('../scripts/tutorial-rar.mjs', import.meta.url).pathname;
+const script = fileURLToPath(new URL('../scripts/tutorial-rar.mjs', import.meta.url));
 const AGENT = `from agents.basic_agent import BasicAgent
 class HackerNewsAgent(BasicAgent):
     def __init__(self):
