@@ -1,5 +1,9 @@
 # copilot-harness-sdk
 
+<!-- rapp1:network-header:start -->
+[![RAPP/1](https://kody-w.github.io/rapp-hive-public/portfolio/badges/copilot-harness-sdk.svg)](https://github.com/kody-w/rapp-hive-public/blob/main/portfolio/repos/copilot-harness-sdk.md) · **New to RAPP?** [Start here: get your Brainstem →](https://github.com/kody-w/rapp-installer#start-here)
+<!-- rapp1:network-header:end -->
+
 One client for every way to reach a GitHub Copilot harness. Pick a mode, ask the client what that mode can do, open a session, and read one normalized event stream regardless of which wire is underneath.
 
 | Mode | What it reaches | Identity | Support today |
