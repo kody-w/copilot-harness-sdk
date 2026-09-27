@@ -130,6 +130,60 @@ export function fileCachePlugin(file) {
 }
 
 /**
+ * Delegated token for the signed-in user through the browser (authorization code + PKCE on a loopback redirect).
+ * Silent first, from the file cache, so only the first run shows a sign-in. For public clients whose registration
+ * allows a loopback redirect (http://localhost), such as the managed apps git client the ms CLI configures.
+ *
+ * `openBrowser(url)` receives the sign-in URL: open it in any browser (or hand it to a browser driver).
+ *
+ * @param {{ clientId: string, tenantId: string, scopes: string[], loginHint?: string, cacheFile?: string, openBrowser?: (url: string) => Promise<void> }} opts
+ * @param {{ pcaFactory?: (config: any) => any, now?: () => number }} [deps] test seam
+ * @returns {() => Promise<string>}
+ */
+export function createInteractiveTokenProvider({ clientId, tenantId, scopes, loginHint, cacheFile, openBrowser }, deps = {}) {
+  if (!clientId || !tenantId || !scopes?.length) throw new Error('createInteractiveTokenProvider requires clientId, tenantId and scopes.');
+  const now = deps.now || Date.now;
+  /** @type {any} */
+  let pca;
+  async function getPca() {
+    if (pca) return pca;
+    const config = { auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` } };
+    if (cacheFile) config.cache = { cachePlugin: fileCachePlugin(cacheFile) };
+    if (deps.pcaFactory) pca = deps.pcaFactory(config);
+    else {
+      const { PublicClientApplication } = await import('@azure/msal-node');
+      pca = new PublicClientApplication(config);
+    }
+    return pca;
+  }
+  return cachedProvider(async () => {
+    const app = await getPca();
+    const accounts = await app.getTokenCache().getAllAccounts();
+    const account = accounts.find((/** @type {any} */ a) => !loginHint || a.username?.toLowerCase() === loginHint.toLowerCase());
+    if (account) {
+      try {
+        const silent = await app.acquireTokenSilent({ account, scopes });
+        if (silent?.accessToken) return silent;
+      } catch {
+        // fall through to the browser
+      }
+    }
+    const open = openBrowser || (async (/** @type {string} */ url) => {
+      const { spawn } = await import('node:child_process');
+      const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open';
+      spawn(cmd, [url], { stdio: 'ignore', detached: true }).unref();
+    });
+    const result = await app.acquireTokenInteractive({
+      scopes, loginHint, openBrowser: open,
+      successTemplate: 'Signed in. You can close this tab.',
+      errorTemplate: 'Sign-in failed. You can close this tab and try again.'
+    });
+    if (!result?.accessToken) throw new Error('Interactive sign-in did not return an access token.');
+    return result;
+  }, now);
+}
+
+/**
  * App-only token via client credentials. Only meaningful for the S2S
  * private-preview mode against a No Authentication agent.
  *

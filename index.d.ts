@@ -306,6 +306,11 @@ export declare function createClientCredentialTokenProvider(
   opts: { clientId: string; tenantId: string; clientSecret: string; cloud?: keyof typeof CLOUD_SUFFIX; scopes?: string[] },
   deps?: { ccaFactory?: (config: any) => any; now?: () => number }
 ): () => Promise<string>;
+/** Delegated token through the browser (auth code + PKCE, loopback redirect); silent from cacheFile after the first sign-in. */
+export declare function createInteractiveTokenProvider(
+  opts: { clientId: string; tenantId: string; scopes: string[]; loginHint?: string; cacheFile?: string; openBrowser?: (url: string) => Promise<void> },
+  deps?: { pcaFactory?: (config: any) => any; now?: () => number }
+): () => Promise<string>;
 
 export declare function resolveStudioConnection(mode: HarnessMode, config: CopilotStudioConfig): { settings?: Record<string, unknown>; conversationsUrl?: URL; tokenUrl?: string };
 export declare function preflight3p(conversationsUrl: URL, token: string, fetchImpl?: typeof fetch): Promise<PreflightResult>;
@@ -363,3 +368,38 @@ export declare function syncComponentMetadata(opts: DataverseOptions & { compone
 /** componentName and description from a component file's mcs.metadata block (single-line scalars). */
 export declare function mcsMetadata(text: string): { componentName?: string; description?: string };
 export declare function deleteStaleComponents(opts: DataverseOptions & { botId: string; keep: Set<string> | string[] }): Promise<{ schemaName: string; kind: string }[]>;
+
+// ---------------------------------------------------------------------------
+// Managed apps (Copilot Managed Runtime): the microsoft-managed-apps plugin lifecycle as a library, driving
+// Microsoft's `ms` CLI (@microsoft/managed-apps-cli). See src/managed-apps.js and docs/managed-apps.md.
+export interface AllowedActionsIssue { reference: string; table?: string; problem: 'missing-table' | 'invalid-table' | 'missing-connector' | 'invalid-connector' }
+export interface MsRunOptions { cwd?: string; bin?: string; env?: Record<string, string>; run?: any; timeoutMs?: number }
+export declare const managedApps: Readonly<{
+  /** Run `ms <args> --non-interactive --json`; throws on a failed exit or success:false. */
+  ms(args: string[], opts?: MsRunOptions): any;
+  readConfig(dir: string): any;
+  writeConfig(dir: string, config: any): void;
+  /** Shared-connection policy validation, including the four table verbs, as data. */
+  checkAllowedActions(config: any): { ok: boolean; issues: AllowedActionsIssue[] };
+  /** Least privilege: the `<Service>.<Method>(` calls in src/. Service must be an identifier, not a dotted path. */
+  inferAllowedActions(appDir: string, serviceName: string, opts?: { kind?: 'action' | 'table' }): { actions: string[]; files: string[] };
+  /** Shared references only; prefer the action data source's owner, or require reference if ambiguous. IDs must be Allow actions. */
+  setConnectorAllowedActions(appDir: string, opts: { reference?: string; connector: string; actions: string[]; connectorActions?: { id: string; behavior: string }[]; msOpts?: MsRunOptions }): { reference: string; allowedActions: string[] };
+  /** Shared references only; write one table's four verbs. `table` is its key or tableName; reference must match connector. */
+  setTableAllowedActions(appDir: string, opts: { reference?: string; connector: string; table: string; dataset?: string; verbs: Array<'get' | 'post' | 'patch' | 'delete'> }): { reference: string; dataset: string; table: string; allowedActions: Array<'get' | 'post' | 'patch' | 'delete'> };
+  /** git environment that authenticates to the platform repo with a bearer token (no GCM; token never in argv). */
+  gitAuthEnv(accessToken: string): Record<string, string>;
+  git(dir: string, args: string[], opts?: { token?: string; run?: any }): string;
+  /** Push the current branch; rebases a first push onto the platform's seeded "Initial commit". Returns HEAD. */
+  pushApp(dir: string, opts?: { token?: string; branch?: string; run?: any }): string;
+  /** Refuses missing policies, a dirty tree or a commit absent from origin. repoType:none cannot select a commit. */
+  deploy(dir: string, opts?: { msOpts?: MsRunOptions; run?: any; token?: string; commit?: string }): any;
+  /** commit and branch are mutually exclusive and require preview mode. */
+  playUrl(dir: string, opts?: { mode?: 'live' | 'preview'; commit?: string; branch?: string; msOpts?: MsRunOptions }): string;
+  /** The public client the ms CLI configures for Git Credential Manager. */
+  MANAGED_APPS_GIT_CLIENT_ID: string;
+  MANAGED_APPS_GIT_SCOPE: string;
+  TABLE_VERBS: readonly ['get', 'post', 'patch', 'delete'];
+  /** The deployed player's media-src: data: URLs work, blob: URLs are blocked. */
+  PLAYER_MEDIA_SRC: string;
+}>;

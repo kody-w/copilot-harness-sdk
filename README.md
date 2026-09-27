@@ -281,6 +281,42 @@ console.log(await listComponents({ ...dv, schemaName }));                       
 
 `shareAgent`, `setAccessControl`, `setChannels` and `listComponents` resolve the bot first and throw `ClassicAgentError` for a classic agent; `upsertEnvironmentVariable` is solution-scoped and does not touch the bot. `dataverse({ environmentUrl, getDataverseToken })` returns the same authenticated Web API caller they use.
 
+## Managed apps (Copilot Managed Runtime)
+
+The [microsoft-managed-apps plugin](https://github.com/microsoft/managed-apps/tree/main/plugins/microsoft-managed-apps/skills) skills (create-app, the add-* connector skills, deploy, play) are vendored unchanged under [`vendor/managed-apps`](vendor/managed-apps), with a sha256 for every file (`VENDOR.json`). `managedApps` runs the same lifecycle as a library, driving Microsoft's own CLI (`ms`, `@microsoft/managed-apps-cli`) with `--non-interactive --json`, and does the parts the skills leave to a person:
+
+```js
+import { managedApps, createInteractiveTokenProvider } from 'copilot-harness-sdk';
+const { actions } = managedApps.inferAllowedActions(appDir, 'Office365UsersService');         // what src/ calls
+managedApps.setConnectorAllowedActions(appDir, { connector: 'office365users', actions });     // shared references only; checked against Allow actions
+managedApps.setTableAllowedActions(appDir, { connector: 'commondataserviceforapps', table: 'cr123_task', verbs: ['get', 'post'] });
+managedApps.checkAllowedActions(managedApps.readConfig(appDir));                              // the CLI's shared-connection check, as data
+const getToken = createInteractiveTokenProvider({ clientId: managedApps.MANAGED_APPS_GIT_CLIENT_ID, tenantId,
+  scopes: [managedApps.MANAGED_APPS_GIT_SCOPE], cacheFile });                                 // browser once, then silent
+managedApps.pushApp(appDir, { token: await getToken() });                                      // no Git Credential Manager prompt
+managedApps.deploy(appDir);                                                                    // refuses a missing policy, a dirty tree or an unpushed commit
+```
+
+The same from a shell: `npx copilot-harness-managed-apps skills | verify-vendor | check | infer | allow | allow-table | push | deploy | play-url` (see the header of [`scripts/managed-apps.mjs`](scripts/managed-apps.mjs)). A shared connection's `allowedActions` come from the app's own calls, never "everything": action ids only from the connector's `Allow` list, a table's four verbs only on that table. The push authenticates with an Entra token in git's environment (never in argv), and rebases a first push onto the commit the platform seeds a new repository with.
+
+Both policy setters **refuse non-shared references** (absent, null or blank `sharedConnectionId`); leave those references alone.
+An explicit `reference` must exist and belong to the specified connector. Without one, the connector setter selects the
+reference owning the connector's action data source (`dataSources` contains its id without `shared_`), falling back only
+when there is exactly one reference for that connector. Ambiguous matches require `reference`; ambiguous tables may also
+need `dataset`. Mixed action/table references keep separate policies. Results are `{ reference, allowedActions }` for
+connectors and `{ reference, dataset, table, allowedActions }` for tables; neither includes `shared`.
+
+```bash
+node scripts/managed-apps.mjs allow <app-dir> <connector> <ActionId,...> --reference <name>
+node scripts/managed-apps.mjs allow-table <app-dir> <connector> <table-key-or-name> <get,post,patch,delete> --reference <name> --dataset <dataset>
+```
+
+These commands print JSON, reject unknown flags and missing/empty flag values, and never treat another flag as a value.
+`infer` accepts a service identifier (including `$` and `_`, not a dotted path). `check` also rejects invalid table verbs.
+`play-url --commit <sha>` requires `--preview`; `deploy --commit <sha>` requires a git-backed app and a commit tracked on `origin`.
+
+[rapp-brainfreeze-studio](https://github.com/kody-w/rapp-brainfreeze-studio) uses this to write and deploy five kinds of managed app from a spec: a SharePoint media player, a people directory, a calendar dashboard, a SharePoint list viewer and a Dataverse task tracker. On 26 Sep 2026 all five were deployed that way in a dev environment and checked in the App Player. What was found there (the player's content security policy, the connector forms that bind, what blocks a deploy) is in [`docs/managed-apps.md`](docs/managed-apps.md).
+
 ## Choosing a mode without guessing
 
 ```js
@@ -293,7 +329,7 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 
 ## Verification status (10 September 2026)
 
-78 unit tests (`npm test`; 77 offline plus one live-gated), no network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
+78 unit tests (`npm test`; 77 offline plus one live-gated) as of that date; 114 today (113 offline plus the same live-gated one), including the managed-apps suite. No network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
 
 | Mode | Unit tests | Live |
 | --- | --- | --- |
@@ -320,6 +356,7 @@ The package is meant to be published to npm as `copilot-harness-sdk` (public). P
 
 - Research and live `/3p` observations come from the public playground [jzh24516/copilot-streaming-chat-playground](https://github.com/jzh24516/copilot-streaming-chat-playground), used as context for this work; the `/3p` URL guard in `src/url.js` mirrors its `ghcp3p-url.js` so both stay equally strict.
 - The `/3p` URL shape and the 30/2 environment-host split come from Microsoft's experimental [copilot-studio-plugin](https://github.com/microsoft/copilot-studio-plugin) (MIT).
+- `vendor/managed-apps` is Microsoft's [managed-apps](https://github.com/microsoft/managed-apps) plugin and schemas (MIT, its LICENSE copied with it), byte for byte at the commit `VENDOR.json` pins.
 - The rendered reference page is regenerated from the Markdown with `python3 docs/build-reference-html.py` (needs the `markdown` package).
 
 ## License
