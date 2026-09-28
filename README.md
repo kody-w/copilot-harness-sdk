@@ -16,7 +16,7 @@ Microsoft's agent platform moves fast and comes in many parts: GitHub Copilot, C
 
 | Covered today | Next |
 | --- | --- |
-| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry | Hosting through the Microsoft 365 Agents SDK (Teams and Microsoft 365 Copilot); Foundry agents |
+| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry; serving an agent through the Microsoft 365 Agents SDK (proved locally) | A recorded run inside Teams and Microsoft 365 Copilot; Foundry agents |
 
 ## What it does today
 
@@ -25,7 +25,7 @@ One client for every way to reach a GitHub Copilot harness. Pick a mode, ask the
 | Mode | What it reaches | Identity | Support today |
 | --- | --- | --- | --- |
 | `copilot-sdk` | The Copilot CLI harness in (or next to) your process via `@github/copilot-sdk` | GitHub user token, org-billed GitHub App/Actions token, or BYOK | GA |
-| `copilot-studio-3p` | A Copilot Studio **GitHub Copilot harness** agent over the Agentic Runtime `/3p` route | Delegated Entra user token (`CopilotStudio.Copilots.Invoke`) | Experimental (route verified live from the playground referenced below; Microsoft: client library not yet official for this harness) |
+| `copilot-studio-3p` | A Copilot Studio **GitHub Copilot harness** agent over the Agentic Runtime `/3p` route | Delegated Entra user token (`CopilotStudio.Copilots.Invoke`) | Experimental (verified live through this SDK, last on 28 Sep 2026; Microsoft: client library not yet official for this harness) |
 | `copilot-studio-standard` | A Copilot Studio **classic (standard-harness)** agent via the official client library | Delegated Entra user token | **Deprecated here** (refused unless `allowClassicAgent: true`; Microsoft still lists the harness itself as GA) |
 | `copilot-studio-s2s` | A Copilot Studio harness agent with **No Authentication**, app-only over `/3p` | Entra app (client credentials) | Private preview (Microsoft enables per tenant) |
 | `agentic-directline` | The no-auth agentic Direct Line token endpoint | None | Diagnostic; final-only responses |
@@ -98,7 +98,7 @@ Turn rules that hold in every mode: turns on one session are serialized; breakin
 
 ## Scenario recipes
 
-Recipes 1, 4, 5 and 6 are runnable files under `examples/` (`npm run example:<name>`); 2, 3 and 7 are snippets. They read their inputs from environment variables and never embed tenant ids.
+Recipes 1, 4, 5, 6 and 8 are runnable files under `examples/` (`npm run example:<name>`); 2, 3 and 7 are snippets. They read their inputs from environment variables and never embed tenant ids.
 
 ### 1. In-process harness with your own tools (`copilot-sdk`)
 
@@ -176,6 +176,34 @@ Works only after Microsoft enables S2S Direct-to-Engine for the tenant and only 
 ### 7. Orchestrate both worlds
 
 Open two clients (`copilot-sdk` and `copilot-studio-3p`), subscribe with `client.onEvent(...)` on each, and route by `ev.source`. The Copilot Studio side has no client-side tools by design; give the Studio agent its tools in the Build tab.
+
+### 8. Put the agent in Teams and Microsoft 365 Copilot
+
+`createAgentsSdkAgent` serves any client as a [Microsoft 365 Agents SDK](https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/) agent. Build the agent once; the Agents SDK carries it to Teams, Microsoft 365 Copilot and its other channels.
+
+```bash
+npm install @microsoft/agents-hosting @microsoft/agents-hosting-express   # optional peer dependency, 1.8.1 or later
+npm run example:host
+```
+
+```js
+import { startServer } from '@microsoft/agents-hosting-express';
+import { HarnessClient, createAgentsSdkAgent } from 'copilot-harness-sdk';
+
+const client = await HarnessClient.create({ mode: 'copilot-sdk', copilotSdk: { model: 'auto', runtime: { mode: 'empty' } } });
+const { agent } = await createAgentsSdkAgent({ client, greeting: 'Hi. Ask me anything.' });
+startServer(agent);                                   // POST /api/messages on PORT (default 3978)
+```
+
+| What happens | How |
+| --- | --- |
+| Each chat keeps its own memory | one harness session per channel conversation; idle sessions close after 30 minutes |
+| People see the answer as it is written | `text.delta` is streamed where the channel supports it (Teams, Web Chat, Direct Line); other channels get one message |
+| People see what the agent is doing | `status` and tool use show as progress updates (`describeTool` changes or hides the wording) |
+| A failure never shows a technical error | the person reads a plain sentence; the real error goes to `onError` |
+| Nothing runs without a decision | permission requests are denied unless `onPermissionRequest` approves them |
+
+To reach Teams and Microsoft 365 Copilot the server needs an Azure Bot registration pointing at `https://<your-host>/api/messages`, and its app registration in the environment as `clientId`, `tenantId` and `clientSecret` ([Microsoft's steps](https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/deploy-azure-bot-service-manually)). With no `clientId` the Agents SDK accepts anonymous requests for local testing, never when `NODE_ENV=production`. A Copilot Studio agent does not need this: publish it to Teams with `setChannels`.
 
 ## Never a classic agent
 
@@ -345,16 +373,17 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 
 ## Verification status (10 September 2026)
 
-78 unit tests (`npm test`; 77 offline plus one live-gated) as of that date; 114 today (113 offline plus the same live-gated one), including the managed-apps suite. No network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
+78 unit tests (`npm test`; 77 offline plus one live-gated) as of that date; 130 today (129 offline plus the same live-gated one), including the managed-apps and Agents SDK host suites. No network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
 
 | Mode | Unit tests | Live |
 | --- | --- | --- |
 | `copilot-sdk` | event mapping; turn serialization; early break aborts and cleans up; autopilot idle; turn timeout; close during a stream; throwing listener isolation; permissions `emit` / `approve-all` / `deny`; empty-mode defaults; `runtime.env`; send failure; config validation | Passed 6 Sep 2026 on Copilot CLI 1.0.84 / SDK 1.0.13: `npm run test:live` streamed deltas → final → idle for a real prompt, and `examples/copilot-sdk.mjs` ran the full custom-tool loop: `tool.start lookupOrder` → `permission.request` (`kind=custom-tool`) → approve (`approve-once`) → `tool.end success=true` → "Order 9 is shipped and is expected to arrive in 2 days." (`model: auto` resolved to `mai-code-1.1-flash` and later `gpt-5.6-luna`). Denying the same request produced `success=false` and an explanation. |
-| `copilot-studio-3p` | preflight and 403 hint, guard, token refresh per turn, outbound activity shape, cumulative→delta normalization, onEvent parity and unsubscribe, resume without preflight, turn failure with status, token-provider failure in-stream, turn timeout | Same route verified live from the playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET); not yet re-run through this SDK (no Entra credentials on the build machine) |
+| `copilot-studio-3p` | preflight and 403 hint, guard, token refresh per turn, outbound activity shape, cumulative→delta normalization, onEvent parity and unsubscribe, resume without preflight, turn failure with status, token-provider failure in-stream, turn timeout | Passed 28 Sep 2026 through `HarnessClient` (`npm run prove:usecase`): two published harness agents, preflight 200, 10 of 10 scripted turns (knowledge, connected agent, skill, agent flow, MCP tool). Also 7 Sep 2026: ten agents, 50 of 50 turns. Both runs are in the [ledger](docs/harness-capability-ledger.md). The route was first verified from the playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET). |
 | `copilot-studio-standard` | settings shape, no preflight, start failure propagates with status and hint | Not run in this session |
 | `copilot-studio-s2s` | app-only token to the guarded route | Requires Microsoft's private-preview enablement |
 | `agentic-directline` | watermark priming, greeting capture, resume discards history, HTTP failures (401/403/500) and timeout as error then idle | Route observed final-only from the playground; not yet re-run through this SDK |
 | token providers | cache, refresh skew, in-flight dedupe, failure recovery, silent-before-device-code | — |
+| Agents SDK host (`createAgentsSdkAgent`) | streaming and final-only answers, two messages in one turn, tool updates, one session per conversation, idle sweep, close, resume and fallback, plain-language failures, permission decisions, replaced snapshots, missing package | Passed 28 Sep 2026, locally: `examples/host-agents-sdk.mjs` on `@microsoft/agents-hosting` 1.8.1 with a real Copilot SDK runtime (CLI 1.0.88), driven by activities posted the way a channel posts them, replies captured at the service URL. Greeting sent; a Teams-shaped turn streamed then finished; the same conversation recalled an earlier fact and a different conversation did not; a non-streaming channel got one message; a custom tool ran after `onPermissionRequest` approved it and showed "Using lookupOrder…"; a 968-character answer arrived as three growing updates then the final message. **Not yet run inside Teams or Microsoft 365 Copilot** (needs an Azure Bot registration). |
 
 An adversarial review pass (four lenses, 6 Sep 2026) produced 43 candidate defects; each was checked against the code and the installed dependency sources, and the confirmed ones were fixed with the regression tests above (turn cross-talk after an early break, leaked listeners and timers, autopilot idle, permission events invisible to stream consumers, swallowed start-conversation errors, card-only messages wiping the answer, cumulative snapshots that do not extend, Direct Line history replay on resume, silent timeouts, queue double-rejection).
 
