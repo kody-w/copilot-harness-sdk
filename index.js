@@ -27,9 +27,13 @@ import { createSdkEventMapper } from './src/adapters/copilot-sdk-map.js';
 import { createCopilotStudioAdapter, resolveStudioConnection, preflight3p, explainStatus } from './src/adapters/copilot-studio.js';
 import { classifyBot, assertHarnessBot, inspectAgentHarness, assertHarnessAgent, ClassicAgentError, HARNESS_TEMPLATE, HARNESS_RECOGNIZERS } from './src/harness-guard.js';
 import { resolveHarnessBot, shareAgent, setAccessControl, setChannels, upsertEnvironmentVariable, listComponents, dataverse, ACCESS_CONTROL_POLICY, CHANNELS } from './src/harness-admin.js';
+import { createAgentsSdkAgent, sessionIdForConversation, AGENTS_SDK_PACKAGE } from './src/hosting/agents-sdk.js';
 import { scanWorkspace, scopedReferenceName, rebindConnectionReferences, workflowIdFor, rebindWorkflows, findBot, findConnectionReference, resolveConnection, ensureConnectionReference, connectorExists, findWorkflow, ensureWorkflow, listBotComponents, linkComponentConnectionReference, linkComponentWorkflow, syncComponentMetadata, mcsMetadata, deleteStaleComponents, expectedComponents, AGENT_SCOPED_REF } from './src/harness-provision.js';
 
 export {
+  createAgentsSdkAgent,
+  sessionIdForConversation,
+  AGENTS_SDK_PACKAGE,
   MODES,
   capabilitiesFor,
   allCapabilities,
@@ -272,7 +276,7 @@ export function recommendMode(facts) {
       }
       return { mode: 'copilot-studio-3p', why: 'A classic (standard-harness) agent is deprecated here: recreate it on the GitHub Copilot harness and use /3p. Pass allowClassicAgent: true only for a legacy agent you cannot recreate yet.' };
     }
-    return { mode: 'copilot-studio-3p', why: 'GitHub Copilot harness agent with a delegated user token: the /3p Direct-to-Engine route (experimental, verified live from the playground).' };
+    return { mode: 'copilot-studio-3p', why: 'GitHub Copilot harness agent with a delegated user token: the /3p Direct-to-Engine route (experimental, verified live through this SDK).' };
   }
   if (facts.hasAppOnlyEntraCredentials) {
     if (facts.agentAuthentication === 'none') {

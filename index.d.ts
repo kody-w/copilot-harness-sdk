@@ -180,6 +180,72 @@ export interface HarnessSession {
   native: unknown;
 }
 
+/**
+ * Options for serving a HarnessClient as a Microsoft 365 Agents SDK agent
+ * (Teams, Microsoft 365 Copilot and the other Agents SDK channels).
+ */
+export interface AgentsSdkAgentOptions {
+  /** The client to serve. Any mode; `copilot-sdk` is the usual one. */
+  client: Pick<HarnessClient, 'createSession'>;
+  /** Sent when someone joins the conversation. No greeting when omitted. */
+  greeting?: string;
+  /** What the user reads when a turn fails before any answer. Never the technical error. */
+  errorText?: string;
+  /** What the user reads when a turn produced no answer. */
+  emptyText?: string;
+  /** Called with the real error after the user has been answered. */
+  onError?: (error: Error, context: unknown) => void | Promise<void>;
+  /** Text shown while a tool runs. Return '' to show nothing. Default: "Using <name>…". */
+  describeTool?: (event: Extract<HarnessEvent, { type: 'tool.start' }>) => string;
+  /**
+   * Decide a permission request (clients created with permissions: "emit").
+   * Anything other than "approve", and any throw, denies. Default: deny.
+   */
+  onPermissionRequest?: (event: Extract<HarnessEvent, { type: 'permission.request' }>, context: unknown) => 'approve' | 'deny' | Promise<'approve' | 'deny'>;
+  /** Which conversations share a session. Default: `activity.conversation.id`. */
+  conversationKey?: (activity: any) => string | undefined;
+  /** Try to resume the conversation's session before opening a new one (survives a restart). Default false. */
+  resumeSessions?: boolean;
+  /** Close a session nobody has used for this long. Default 30 minutes; 0 keeps sessions until close(). */
+  idleSessionMs?: number;
+  /** How often idle sessions are swept. Default 60 s; 0 turns the timer off (call sweep() yourself). */
+  sweepIntervalMs?: number;
+  /** Per-turn timeout passed to session.stream(). Default: the client's own. */
+  turnTimeoutMs?: number;
+  /** Mark answers as AI generated where the channel shows it. Default true. */
+  aiLabel?: boolean;
+  /** Agents SDK storage. Default: MemoryStorage. */
+  storage?: unknown;
+  /** Raw passthrough merged into AgentApplicationOptions. */
+  application?: Record<string, unknown>;
+}
+
+export interface AgentsSdkAgent {
+  /** The `AgentApplication` to hand to `startServer()` or `createAgentRequestHandler()`. */
+  agent: any;
+  /** Open harness sessions, one per channel conversation. */
+  readonly sessionCount: number;
+  /** Close sessions idle for longer than `idleSessionMs`; resolves to how many were closed. */
+  sweep(): Promise<number>;
+  /** Close every harness session and stop the idle sweep. Does not close the client. */
+  close(): Promise<void>;
+}
+
+/** The optional peer dependency `createAgentsSdkAgent` loads on first use. */
+export declare const AGENTS_SDK_PACKAGE: '@microsoft/agents-hosting';
+
+/**
+ * Serve a HarnessClient as a Microsoft 365 Agents SDK agent. Needs
+ * `@microsoft/agents-hosting` installed (optional peer dependency).
+ */
+export declare function createAgentsSdkAgent(
+  options: AgentsSdkAgentOptions,
+  deps?: { hosting?: any; importHosting?: () => Promise<any>; now?: () => number }
+): Promise<AgentsSdkAgent>;
+
+/** The stable harness session id used for a channel conversation. */
+export declare function sessionIdForConversation(conversationKey: string): string;
+
 export interface PreflightResult {
   ok: boolean;
   mode: HarnessMode | string;

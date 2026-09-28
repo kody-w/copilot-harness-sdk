@@ -81,6 +81,19 @@ Run 2026-09-07 20:30 UTC through `HarnessClient` (`copilot-studio-3p`, delegated
 | `cr8c1_SupplierOnboardingComplianceCopilot` | 200 | ✔ 41s | ✔ 35s | ✔ 14s | ✔ 12s | ✔ 26s | 5/5 |
 | `cr8c1_VendorContractRenewalCopilot` | 200 | ✔ 51s | ✔ 47s | ✔ 18s | ✔ 11s | ✔ 14s | 5/5 |
 
+### Re-run, 28 September 2026
+
+Run 2026-09-28 through `HarnessClient` (`copilot-studio-3p`, `npm run prove:usecase`), same Entra app and environment, Node 25.2.0, `@microsoft/agents-copilotstudio-client` 1.8.1. Both agents were read back first: `cliagent-1.0.0`, `CLICopilotRecognizer`, published, **Authenticate with Microsoft**. Every turn delivered `text.delta`, `text.final` and `idle`; eight of the ten also delivered `status` (the two skill turns did not).
+
+| Agent | Preflight | knowledge | connected-agent | skill | workflow-tool | mcp-tool | Total |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `cr8c1_VendorContractRenewalCopilot` | 200 | ✔ 46s | ✔ 37s | ✔ 10s | ✔ 11s | ✔ 12s | 5/5 |
+| `cr8c1_ClaimsIntakeReconciliationCopilot` | 200 | ✔ 58s | ✔ 55s | ✔ 10s | ✔ 9s | ✔ 12s | 5/5 |
+
+The other eight agents were not re-run on this date.
+
+### Answers from the 7 September run
+
 Answers that can only come from the component, not the prompt:
 
 - **cr8c1_ClaimsIntakeReconciliationCopilot · connected-agent**: ---

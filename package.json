@@ -22,6 +22,7 @@
     "example:studio-standard": "node examples/copilot-studio-standard.mjs",
     "example:studio-s2s": "node examples/copilot-studio-s2s.mjs",
     "example:agentic-directline": "node examples/agentic-directline.mjs",
+    "example:host": "node examples/host-agents-sdk.mjs",
     "deploy:harness": "node scripts/deploy-harness-agent.mjs",
     "tutorial": "node scripts/tutorial-rar.mjs",
     "build:usecases": "node scripts/build-usecase-workspaces.mjs",
@@ -37,6 +38,14 @@
     "@azure/msal-node": "^5.5.0",
     "@github/copilot-sdk": "^1.0.13",
     "@microsoft/agents-copilotstudio-client": "^1.8.1"
+  },
+  "peerDependencies": {
+    "@microsoft/agents-hosting": "^1.8.1"
+  },
+  "peerDependenciesMeta": {
+    "@microsoft/agents-hosting": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",
@@ -69,8 +78,10 @@
     "dataverse",
     "github-copilot",
     "harness",
+    "microsoft-365-agents-sdk",
     "power-platform",
-    "rapp"
+    "rapp",
+    "teams"
   ],
   "homepage": "https://github.com/kody-w/copilot-harness-sdk#readme",
   "bugs": {

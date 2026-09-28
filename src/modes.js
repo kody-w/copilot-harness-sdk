@@ -63,7 +63,8 @@ const MATRIX = {
       'Microsoft Learn (21 Aug 2026): the Copilot Studio client library officially supports standard-harness agents only.',
       'Agent must be published, set to Authenticate with Microsoft, and shared with the signed-in user (unshared → 403).',
       'Token: delegated user token for https://api.powerplatform.com/.default from an app with CopilotStudio.Copilots.Invoke.',
-      'Verified live from the copilot-streaming-chat-playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET Agent Framework).'
+      'Verified live from the copilot-streaming-chat-playground on 5 Aug 2026 (Node) and 6 Aug 2026 (.NET Agent Framework).',
+      'Verified live through this SDK on 7 Sep 2026 (ten agents, 50 turns) and 28 Sep 2026 (two agents, 10 turns): docs/harness-capability-ledger.md.'
     ],
     sources: [
       'https://learn.microsoft.com/en-us/microsoft-365/agents-sdk/integrate-with-mcs',
