@@ -16,7 +16,7 @@ Microsoft's agent platform moves fast and comes in many parts: GitHub Copilot, C
 
 | Covered today | Next |
 | --- | --- |
-| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry; serving an agent through the Microsoft 365 Agents SDK (proved locally) | A recorded run inside Teams and Microsoft 365 Copilot; Foundry agents |
+| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry; a chat app for a deployed agent, as a managed app; serving an agent through the Microsoft 365 Agents SDK (proved locally) | A recorded run inside Teams and Microsoft 365 Copilot; Foundry agents |
 
 ## What it does today
 
@@ -358,6 +358,10 @@ node scripts/managed-apps.mjs allow-table <app-dir> <connector> <table-key-or-na
 These commands print JSON, reject unknown flags and missing/empty flag values, and never treat another flag as a value.
 `infer` accepts a service identifier (including `$` and `_`, not a dotted path). `check` also rejects invalid table verbs.
 `play-url --commit <sha>` requires `--preview`; `deploy --commit <sha>` requires a git-backed app and a commit tracked on `origin`.
+
+### A chat app for a deployed agent
+
+[`examples/managed-app-chat`](examples/managed-app-chat) is a managed app people chat with: it runs a Copilot Studio GitHub Copilot harness agent through the **Agents** connector and shows the answer with its headings, lists and tables. Saved chats with search, light and dark, Stop, and Export are included; which agent it uses is one line in `src/config.ts`. Deployed and driven in the App Player on 28 Sep 2026: a question answered by the agent, a follow-up that used the earlier turns, Stop, and a redeploy. The steps and what was checked are in its [README](examples/managed-app-chat/README.md).
 
 [rapp-brainfreeze-studio](https://github.com/kody-w/rapp-brainfreeze-studio) uses this to write and deploy five kinds of managed app from a spec: a SharePoint media player, a people directory, a calendar dashboard, a SharePoint list viewer and a Dataverse task tracker. On 26 Sep 2026 all five were deployed that way in a dev environment and checked in the App Player. What was found there (the player's content security policy, the connector forms that bind, what blocks a deploy) is in [`docs/managed-apps.md`](docs/managed-apps.md).
 

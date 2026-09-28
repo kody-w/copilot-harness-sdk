@@ -112,8 +112,36 @@ The shared path (`allow`, `allow-table`, `check`) is covered by the unit tests, 
 **Tenant policy decides what a managed app may call.** In the tenant used, the flows connector
 (`shared_logicflows`) was blocked for managed apps, and the Copilot Studio connector offered only `ExecuteCopilot`
 and `ExecuteCopilotAsyncV2`, while GitHub Copilot harness agents need its agentic-runtime action. So a managed app
-there can't reach a harness agent or a Power Automate flow. List what is allowed with
+there can't reach a harness agent through the Copilot Studio connector, or a Power Automate flow. It can reach one
+through the Agents connector (next finding). List what is allowed with
 `ms connector list-actions --connector <id> --json` (`behavior: Allow`).
+
+**A managed app reaches a harness agent through the Agents connector** (`shared_agentnode`, data source
+`agentnode`; verified 28 Sep 2026 with the chat sample in `examples/managed-app-chat`). `ms connector list-actions`
+shows two actions, `InvokeAgent` and `InvokeDefinition`, and `ms app add data-source` generates a service for those
+two only. The connector's definition holds eleven more operations marked internal, among them `InvokeAgent_V2`,
+`GetConversationStatus_V2`, `CancelConversation_V2` and `ListAgents`. The data client builds each request from the
+data source description it is given (`getClient(dataSources)`), so an app can describe those operations itself,
+beside `generated/`, and call them by name; the player let all four through on a single sign-on connection.
+
+- Running an agent is long-running. `InvokeAgent_V2` with `{ agentId, prompt }` answers `202` with
+  `{ conversationId }`, a `Location` and `Retry-After: 5`. `GetConversationStatus_V2` answers `202`
+  `{ status: "InProgress" }` until it answers `200` `{ status: "Completed", result }`. The data client returns each
+  of those bodies as `{ success: true, data }` and does not follow `Location` itself, so the app polls.
+- `agentId` is the agent's schema name. `ListAgents` returns `{ agents: [{ agentId, agentName }] }` (170 in the
+  environment used).
+- Both routes answered for a GitHub Copilot harness agent when called directly: the published one
+  (`/copilotflows/agentnodes/published/conversations`) and the listed one
+  (`/powerautomate/agentnodes/conversations`). On the listed route `result` holds the **prompt** while the run is in
+  progress; read it only once the status is `Completed`.
+- A run cannot be continued. `conversationId` in the request body is ignored and a new conversation starts, so a chat
+  has to send the earlier turns with each message.
+- `result` is the run's messages joined, including what the agent said while working ("Let me fetch both
+  records…").
+- Inside the player the app's storage (`localStorage`) worked, a `data:` download was saved, and the app's frame
+  is on its own origin, so neither is shared with another app.
+- Browsers slow the timers of a hidden tab, down to one a minute; a polling app should check again when its tab is
+  shown.
 
 **Local development and Chrome's Local Network Access checks.** `ms app dev` serves the app's config from
 `http://localhost:5173/__vite_managedapps_plugin__/ms.config.json`, which the hosted dev player fetches; recent
