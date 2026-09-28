@@ -4,6 +4,22 @@
 [![RAPP/1](https://kody-w.github.io/rapp-hive-public/portfolio/badges/copilot-harness-sdk.svg)](https://github.com/kody-w/rapp-hive-public/blob/main/portfolio/repos/copilot-harness-sdk.md) · **New to RAPP?** [Start here: get your Brainstem →](https://github.com/kody-w/rapp-installer#start-here)
 <!-- rapp1:network-header:end -->
 
+## Mission
+
+**One harness for all of Microsoft AI.** Build against one client and one event stream, and get the full value of Microsoft's AI platform without having to learn, track or reconcile each product's rules yourself.
+
+Microsoft's agent platform moves fast and comes in many parts: GitHub Copilot, Copilot Studio, Foundry, the Microsoft 365 Agents SDK, Agent 365, managed apps. Each has its own identity model, wire format, limits and preview gates. This SDK takes that on so you do not have to:
+
+- **One API for every route.** Each new way to build, reach, deploy or govern an agent arrives as a mode, an adapter or a helper behind the same client. Your code does not change shape.
+- **It adapts as the platform changes.** When Microsoft ships or changes something, the SDK is updated to match, and `client.capabilities()` tells you what each mode supports today.
+- **Nothing is claimed without proof.** Every capability traces to a Microsoft source or a recorded live run. What is not covered yet is listed as not covered.
+
+| Covered today | Next |
+| --- | --- |
+| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry | Agent 365 (coverage per mode, agent identity check, observability); hosting through the Microsoft 365 Agents SDK; Foundry agents |
+
+## What it does today
+
 One client for every way to reach a GitHub Copilot harness. Pick a mode, ask the client what that mode can do, open a session, and read one normalized event stream regardless of which wire is underneath.
 
 | Mode | What it reaches | Identity | Support today |

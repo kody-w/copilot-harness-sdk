@@ -1,7 +1,7 @@
 {
   "name": "copilot-harness-sdk",
   "version": "0.2.0",
-  "description": "One client for every way to reach a GitHub Copilot harness: the in-process Copilot SDK, Copilot Studio GitHub Copilot harness agents over the Agentic Runtime /3p route, standard-harness Copilot Studio agents, app-only S2S, and the no-auth agentic Direct Line diagnostic.",
+  "description": "One harness for all of Microsoft AI. Today, one client for every way to reach a GitHub Copilot harness: the in-process Copilot SDK, Copilot Studio GitHub Copilot harness agents over the Agentic Runtime /3p route, standard-harness Copilot Studio agents, app-only S2S, and the no-auth agentic Direct Line diagnostic.",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",

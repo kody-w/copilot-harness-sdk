@@ -2,6 +2,9 @@
 /**
  * copilot-harness-sdk
  *
+ * Mission: one harness for all of Microsoft AI. The SDK carries each
+ * product's rules and adapts as the platform changes, so callers do not.
+ *
  * One client for every way to reach a GitHub Copilot harness. Pick a mode,
  * ask `capabilities()` what it can do, open a session, and consume one
  * normalized event stream no matter which wire is underneath.
