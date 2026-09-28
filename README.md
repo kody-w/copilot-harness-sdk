@@ -16,7 +16,7 @@ Microsoft's agent platform moves fast and comes in many parts: GitHub Copilot, C
 
 | Covered today | Next |
 | --- | --- |
-| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry; Agent 365 coverage reported per mode | Agent 365 observability export and agent identity check; hosting through the Microsoft 365 Agents SDK; Foundry agents |
+| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry | Hosting through the Microsoft 365 Agents SDK (Teams and Microsoft 365 Copilot); Foundry agents |
 
 ## What it does today
 
@@ -66,7 +66,7 @@ import { HarnessClient } from 'copilot-harness-sdk';
 
 const client = await HarnessClient.create({ mode: 'copilot-sdk', copilotSdk: { model: 'auto', permissions: 'deny' } });
 
-console.log(client.capabilities());   // support, identity, streaming shape, tools/mcp/skills, agent365, notes, sources
+console.log(client.capabilities());   // support, identity, streaming shape, tools/mcp/skills, notes, sources
 await client.preflight();             // connectivity check with the 401/403/404 hint table applied
 
 const session = await client.createSession({ sessionId: 'user-42-task-1' });
@@ -333,25 +333,6 @@ These commands print JSON, reject unknown flags and missing/empty flag values, a
 
 [rapp-brainfreeze-studio](https://github.com/kody-w/rapp-brainfreeze-studio) uses this to write and deploy five kinds of managed app from a spec: a SharePoint media player, a people directory, a calendar dashboard, a SharePoint list viewer and a Dataverse task tracker. On 26 Sep 2026 all five were deployed that way in a dev environment and checked in the App Player. What was found there (the player's content security policy, the connector forms that bind, what blocks a deploy) is in [`docs/managed-apps.md`](docs/managed-apps.md).
 
-## Agent 365: what your admin will see
-
-Microsoft Agent 365 is where an organisation's IT team sees and governs its agents. Ask the client what Agent 365 sees of the mode you picked:
-
-```js
-client.capabilities().agent365;   // { telemetry: 'platform' | 'undocumented' | 'none', notes, sources }
-```
-
-| Mode | Agent 365 telemetry | In short |
-| --- | --- | --- |
-| `copilot-sdk` | `none` | Nothing is sent unless you instrument the agent yourself. Microsoft ships no Agent 365 instrumentation for the Copilot SDK. |
-| `copilot-studio-3p` | `undocumented` | Microsoft documents automatic coverage for Copilot Studio agents but does not say whether it applies to the GitHub Copilot harness. Confirm in your tenant. |
-| `copilot-studio-standard` | `platform` | The platform sends it for you. |
-| `copilot-studio-s2s`, `agentic-directline` | `none` | No Authentication agents: telemetry is captured only for authenticated sessions. |
-
-Where the platform sends telemetry, multi-tenant agents are excluded and agents with names over 42 characters are not logged, which is one more reason `deploy:harness` refuses longer names.
-
-In `copilot-sdk` mode you can already get generic OpenTelemetry traces by passing `copilotSdk.client.telemetry` (for example `{ otlpEndpoint: 'http://localhost:4318' }`). Those are not Agent 365 spans. An exporter that produces them is planned, not built; it needs a tenant with a Microsoft 365 E7 or Agent 365 licence assigned and admin consent. The details and sources are in [section 12 of the reference](docs/ghcp-harness-copilot-sdk-reference.md#12-microsoft-agent-365-coverage-checked-28-september-2026). Checked against Microsoft's documentation on 28 September 2026; not exercised against a live Agent 365 tenant.
-
 ## Choosing a mode without guessing
 
 ```js
@@ -364,7 +345,7 @@ recommendMode({ hasCopilotStudioAgent: true, hasDelegatedEntraToken: true, agent
 
 ## Verification status (10 September 2026)
 
-78 unit tests (`npm test`; 77 offline plus one live-gated) as of that date; 116 today (115 offline plus the same live-gated one), including the managed-apps suite. No network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
+78 unit tests (`npm test`; 77 offline plus one live-gated) as of that date; 114 today (113 offline plus the same live-gated one), including the managed-apps suite. No network or credentials needed; CI runs them on ubuntu, windows and macos with Node 20 and 22. The guard, admin and provisioning suites replay recorded Dataverse Web API shapes against a fake `fetch` and edit real temporary workspaces on disk. The `copilot-sdk` adapter is tested offline against a fake runtime whose dispatch/abort/disconnect semantics mirror `@github/copilot-sdk` `dist/session.js`, and the Copilot Studio adapters against fakes that replay the wire shapes recorded in the playground.
 
 | Mode | Unit tests | Live |
 | --- | --- | --- |

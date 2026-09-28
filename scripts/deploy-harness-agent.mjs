@@ -47,8 +47,7 @@ const args = parseArgs(process.argv.slice(2));
 const need = (k) => { if (!args[k]) { console.error(`Missing --${k}`); process.exit(2); } return args[k]; };
 const name = need('name');
 // Display names longer than 42 characters leave the bot stuck in "Provisioning" forever (44 stalled, 41 worked; pac 2.10.1, 2026-09-07).
-// Microsoft Agent 365 also does not log Copilot Studio agents whose names exceed 42 characters (Learn, builder/observability).
-if (name.length > 42) { console.error(`Refusing display name "${name}" (${name.length} chars): names over 42 characters never finish provisioning, and Microsoft Agent 365 does not log them.`); process.exit(2); }
+if (name.length > 42) { console.error(`Refusing display name "${name}" (${name.length} chars): names over 42 characters never finish provisioning.`); process.exit(2); }
 const publisherPrefix = need('publisher-prefix');
 const instructionsFile = args['instructions-file'];
 if (!instructionsFile && !args['workspace-dir']) { console.error('Missing --instructions-file (or --workspace-dir with instructions in settings.mcs.yml)'); process.exit(2); }
