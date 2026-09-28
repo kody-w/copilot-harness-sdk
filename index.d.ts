@@ -12,6 +12,20 @@ export type Identity = 'github-user' | 'github-app-installation' | 'byok' | 'ent
 export type StreamingShape = 'delta' | 'typing' | 'final-only';
 export type OnAgent = boolean | 'on-agent';
 
+/**
+ * What Microsoft Agent 365 sees of an agent reached through a mode.
+ * "platform": Microsoft documents that the platform emits telemetry itself.
+ * "undocumented": Microsoft's documentation does not say either way.
+ * "none": nothing reaches Agent 365 unless you instrument the agent yourself.
+ */
+export type Agent365Telemetry = 'platform' | 'undocumented' | 'none';
+
+export interface Agent365Coverage {
+  telemetry: Agent365Telemetry;
+  notes: string[];
+  sources: string[];
+}
+
 export interface HarnessCapabilities {
   mode: HarnessMode;
   harness: string;
@@ -26,6 +40,8 @@ export interface HarnessCapabilities {
   resume: boolean;
   permissions: 'callback' | 'none';
   hooks: boolean;
+  /** Microsoft Agent 365 coverage for this mode (reference section 12). */
+  agent365: Agent365Coverage;
   notes: string[];
   sources: string[];
 }
@@ -75,7 +91,11 @@ export interface CopilotSdkConfig {
      */
     baseDirectory?: string;
   };
-  /** Raw passthrough merged into CopilotClientOptions. */
+  /**
+   * Raw passthrough merged into CopilotClientOptions. `client.telemetry`
+   * (for example `{ otlpEndpoint }`) turns on the Copilot SDK's own
+   * OpenTelemetry export; `client.onGetTraceContext` links your spans to it.
+   */
   client?: CopilotClientOptions;
   /** Raw passthrough merged into SessionConfig. */
   session?: Partial<SessionConfig>;

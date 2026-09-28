@@ -126,6 +126,16 @@ test('copilot-sdk: a turn streams deltas, final and idle; send() returns the fin
   assert.equal(log.stops, 1);
 });
 
+test('copilot-sdk: client.telemetry and client.onGetTraceContext reach the Copilot SDK client unchanged', async () => {
+  const { sdk, log } = fakeSdk(simpleReply('ok'));
+  const telemetry = { otlpEndpoint: 'http://localhost:4318', otlpProtocol: 'http/json', sourceName: 'my-app', captureContent: false };
+  const onGetTraceContext = () => ({ traceparent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01' });
+  const client = await HarnessClient.create({ mode: 'copilot-sdk', copilotSdk: { model: 'auto', client: { telemetry, onGetTraceContext } } }, { sdk });
+  assert.deepEqual(log.clientOptions.telemetry, telemetry);
+  assert.equal(log.clientOptions.onGetTraceContext, onGetTraceContext);
+  await client.close();
+});
+
 test('copilot-sdk: breaking out of a stream aborts the SDK turn, unsubscribes, and the next turn gets its own answer', async () => {
   let n = 0;
   const { sdk, log } = fakeSdk(async (prompt, dispatch) => {
