@@ -16,7 +16,7 @@ Microsoft's agent platform moves fast and comes in many parts: GitHub Copilot, C
 
 | Covered today | Next |
 | --- | --- |
-| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry | Agent 365 (coverage per mode, agent identity check, observability); hosting through the Microsoft 365 Agents SDK; Foundry agents |
+| GitHub Copilot SDK; Copilot Studio GitHub Copilot harness agents (reach, deploy, verify, administer); managed apps; bring-your-own-key models, including Foundry | Hosting through the Microsoft 365 Agents SDK (Teams and Microsoft 365 Copilot); Foundry agents |
 
 ## What it does today
 
