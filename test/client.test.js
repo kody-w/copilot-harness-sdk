@@ -18,22 +18,6 @@ test('every mode has a capability record with sources', () => {
   assert.throws(() => capabilitiesFor('nope'), /Unknown harness mode/);
 });
 
-test('every mode reports its Agent 365 coverage with sources, and never claims what Microsoft has not documented', () => {
-  for (const mode of MODES) {
-    const a = capabilitiesFor(mode).agent365;
-    assert.ok(['platform', 'undocumented', 'none'].includes(a.telemetry), `${mode} telemetry`);
-    assert.ok(a.notes.length > 0 && a.sources.length > 0, `${mode} must explain and cite its Agent 365 coverage`);
-    for (const url of a.sources) assert.match(url, /^https:\/\/(learn\.microsoft\.com|docs\.github\.com)\//);
-  }
-  assert.equal(capabilitiesFor('copilot-sdk').agent365.telemetry, 'none');
-  assert.equal(capabilitiesFor('copilot-studio-standard').agent365.telemetry, 'platform');
-  // The GitHub Copilot harness is not mentioned by the Agent 365 pages: say so, do not claim coverage.
-  assert.equal(capabilitiesFor('copilot-studio-3p').agent365.telemetry, 'undocumented');
-  // No Authentication agents: telemetry is captured only for authenticated sessions.
-  assert.equal(capabilitiesFor('copilot-studio-s2s').agent365.telemetry, 'none');
-  assert.equal(capabilitiesFor('agentic-directline').agent365.telemetry, 'none');
-});
-
 test('capabilities encode the findings that matter for routing', () => {
   assert.equal(capabilitiesFor('copilot-sdk').codeTools, true);
   assert.equal(capabilitiesFor('copilot-sdk').appOnly, true);

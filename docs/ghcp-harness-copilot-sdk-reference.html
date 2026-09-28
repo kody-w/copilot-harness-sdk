@@ -303,15 +303,6 @@ td code:has(+ code), td code + code { white-space: normal; }
 <li><a href="#9-capabilities-you-can-leverage-now-and-gaps-to-plan-around">9. Capabilities you can leverage now, and gaps to plan around</a></li>
 <li><a href="#10-version-ledger-checked-6-september-2026">10. Version ledger (checked 6 September 2026)</a></li>
 <li><a href="#11-sources">11. Sources</a></li>
-<li><a href="#12-microsoft-agent-365-coverage-checked-28-september-2026">12. Microsoft Agent 365 coverage (checked 28 September 2026)</a><ul>
-<li><a href="#121-how-an-agent-gets-into-agent-365">12.1 How an agent gets into Agent 365</a></li>
-<li><a href="#122-coverage-by-mode">12.2 Coverage by mode</a></li>
-<li><a href="#123-opentelemetry-in-copilot-sdk-mode-today">12.3 OpenTelemetry in copilot-sdk mode today</a></li>
-<li><a href="#124-what-an-agent-365-exporter-would-have-to-meet">12.4 What an Agent 365 exporter would have to meet</a></li>
-<li><a href="#125-not-built-and-why">12.5 Not built, and why</a></li>
-<li><a href="#126-sources">12.6 Sources</a></li>
-</ul>
-</li>
 </ul>
 
 
@@ -362,15 +353,6 @@ td code:has(+ code), td code + code { white-space: normal; }
 <li><a href="#9-capabilities-you-can-leverage-now-and-gaps-to-plan-around">9. Capabilities you can leverage now, and gaps to plan around</a></li>
 <li><a href="#10-version-ledger-checked-6-september-2026">10. Version ledger (checked 6 September 2026)</a></li>
 <li><a href="#11-sources">11. Sources</a></li>
-<li><a href="#12-microsoft-agent-365-coverage-checked-28-september-2026">12. Microsoft Agent 365 coverage (checked 28 September 2026)</a><ul>
-<li><a href="#121-how-an-agent-gets-into-agent-365">12.1 How an agent gets into Agent 365</a></li>
-<li><a href="#122-coverage-by-mode">12.2 Coverage by mode</a></li>
-<li><a href="#123-opentelemetry-in-copilot-sdk-mode-today">12.3 OpenTelemetry in copilot-sdk mode today</a></li>
-<li><a href="#124-what-an-agent-365-exporter-would-have-to-meet">12.4 What an Agent 365 exporter would have to meet</a></li>
-<li><a href="#125-not-built-and-why">12.5 Not built, and why</a></li>
-<li><a href="#126-sources">12.6 Sources</a></li>
-</ul>
-</li>
 </ul>
 
 </details>
@@ -1459,146 +1441,6 @@ Console.WriteLine(response);
 <p>This repository</p>
 <ul>
 <li><code>README.md</code> (live verifications of 5, 6, and 30 Aug 2026), <code>sidecars/AgentFrameworkGhcp/Program.cs</code>, <code>docs/ghcp-harness-bom-and-setup.html</code>, <code>docs/dynamics-sidepane-deployment.html</code></li>
-</ul>
-<hr>
-<h2 id="12-microsoft-agent-365-coverage-checked-28-september-2026"><span class="num">12</span>Microsoft Agent 365 coverage (checked 28 September 2026)</h2>
-<p>Agent 365 is Microsoft's control plane for agents: a tenant-wide registry, an Entra-backed agent identity, and telemetry that feeds the Microsoft 365 admin center, Defender and Purview. This section is what <code>capabilities().agent365</code> reports. It rests on documentation and package source only; nothing here was exercised against a live Agent 365 tenant from this repository.</p>
-<h3 id="121-how-an-agent-gets-into-agent-365">12.1 How an agent gets into Agent 365</h3>
-<div class="tbl"><table>
-<thead>
-<tr>
-<th>Path</th>
-<th>Who does the work</th>
-<th>SDK needed</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Built-in integration (Agent Builder, Copilot Studio, Foundry)</td>
-<td>the platform</td>
-<td><span class="chip chip-no">No</span></td>
-</tr>
-<tr>
-<td>Registry sync (preview; for example Google Vertex AI, Amazon Bedrock)</td>
-<td>the platform</td>
-<td><span class="chip chip-no">No</span></td>
-</tr>
-<tr>
-<td>Agent 365 SDK and CLI</td>
-<td>the developer, in the agent's own code</td>
-<td><span class="chip chip-ok">Yes</span></td>
-</tr>
-</tbody>
-</table></div>
-<p>Built-in support is conditional. Microsoft says Copilot Studio and Foundry provide it "for some scenarios"; Foundry hosted agents, for example, still need the Agent 365 SDK to send activity data.</p>
-<h3 id="122-coverage-by-mode">12.2 Coverage by mode</h3>
-<div class="tbl"><table>
-<thead>
-<tr>
-<th>Mode</th>
-<th><code>agent365.telemetry</code></th>
-<th>Why</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>copilot-sdk</code></td>
-<td><code>none</code></td>
-<td>Nothing is sent by default. Microsoft's auto-instrumentation covers the OpenAI Agents SDK and LangChain only; there is no extension for <code>@github/copilot-sdk</code>.</td>
-</tr>
-<tr>
-<td><code>copilot-studio-3p</code></td>
-<td><code>undocumented</code></td>
-<td>The Agent 365 pages for Copilot Studio do not mention the GitHub Copilot harness, and the harness pages do not mention Agent 365. Absence is not proof either way.</td>
-</tr>
-<tr>
-<td><code>copilot-studio-standard</code></td>
-<td><code>platform</code></td>
-<td>The platform emits agent invocations and tool calls itself, with no SDK.</td>
-</tr>
-<tr>
-<td><code>copilot-studio-s2s</code></td>
-<td><code>none</code></td>
-<td>Targets No Authentication agents; telemetry is captured only for authenticated sessions.</td>
-</tr>
-<tr>
-<td><code>agentic-directline</code></td>
-<td><code>none</code></td>
-<td>No-auth endpoint; same rule.</td>
-</tr>
-</tbody>
-</table></div>
-<p>Where the platform emits, three limits apply: authenticated sessions only, multi-tenant agents excluded, and agents with names over 42 characters are not logged. The deploy script's 42-character refusal therefore protects telemetry coverage as well as provisioning.</p>
-<p>A client cannot export spans on behalf of a Copilot Studio agent. The export token's app id must equal the agent id in the URL and on every span, so a user token or an unrelated app token is rejected.</p>
-<h3 id="123-opentelemetry-in-copilot-sdk-mode-today">12.3 OpenTelemetry in <code>copilot-sdk</code> mode today</h3>
-<p><code>@github/copilot-sdk</code> has its own OpenTelemetry support, and this SDK passes it through unchanged:</p>
-<pre><code class="language-js">const client = await HarnessClient.create({
-  mode: 'copilot-sdk',
-  copilotSdk: { model: 'auto', client: { telemetry: { otlpEndpoint: 'http://localhost:4318' } } }
-});
-</code></pre>
-<p>Options: <code>otlpEndpoint</code>, <code>otlpProtocol</code> (<code>http/json</code> or <code>http/protobuf</code>), <code>filePath</code>, <code>exporterType</code> (<code>otlp-http</code> or <code>file</code>), <code>sourceName</code>, <code>captureContent</code>. <code>client.onGetTraceContext</code> links your own spans to the CLI's. The spans come from the Copilot CLI process, and they are generic traces, not Agent 365 spans. Verified against the GitHub documentation and the 1.0.14 package; the pass-through is unit-tested here, the export itself has not been run from this repository, and whether 1.0.13 carries the option is unconfirmed.</p>
-<h3 id="124-what-an-agent-365-exporter-would-have-to-meet">12.4 What an Agent 365 exporter would have to meet</h3>
-<div class="tbl"><table>
-<thead>
-<tr>
-<th>Requirement</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Accepted <code>gen_ai.operation.name</code></td>
-<td><code>invoke_agent</code>, <code>execute_tool</code>, <code>chat</code>, <code>output_messages</code>. Anything else is dropped. The inference span is <code>chat</code>.</td>
-</tr>
-<tr>
-<td>Required on every span</td>
-<td><code>microsoft.tenant.id</code>, <code>gen_ai.agent.id</code>; <code>gen_ai.conversation.id</code> is the join key for a run</td>
-</tr>
-<tr>
-<td>Root span</td>
-<td>a run needs an <code>invoke_agent</code> root to appear in the admin center, Defender agent views and Purview</td>
-</tr>
-<tr>
-<td>Token</td>
-<td>resource <code>9b975845-388f-4429-889e-eab1ef63949c</code>, permission <code>Agent365.Observability.OtelWrite</code>, tenant admin consent</td>
-</tr>
-<tr>
-<td>Licence</td>
-<td>at least one user in the tenant with Microsoft 365 E7 or Microsoft Agent 365 assigned</td>
-</tr>
-<tr>
-<td>Proof of ingestion</td>
-<td>not the HTTP status: an unlicensed tenant returns 200 OK with every span rejected as <code>tenant_not_licensed</code></td>
-</tr>
-<tr>
-<td>Recommended package</td>
-<td><code>@microsoft/opentelemetry</code> (npm <code>engines</code>: Node 22 or later). The older <code>@microsoft/agents-a365-*</code> packages still work and are on a preview line.</td>
-</tr>
-</tbody>
-</table></div>
-<p>How this SDK's events would map onto those four operations is a design choice of this SDK, not something Microsoft documents. <code>reasoning.delta</code>, <code>usage</code>, <code>permission.request</code> and <code>idle</code> have no operation of their own.</p>
-<h3 id="125-not-built-and-why">12.5 Not built, and why</h3>
-<ul>
-<li>An Agent 365 exporter for the Copilot Studio modes: the platform emits, and a client cannot export as the agent.</li>
-<li>A check that an agent has an Entra Agent ID or a registry entry: the Microsoft Graph, Dataverse and <code>a365</code> CLI routes were found but not verified, so nothing is built on them yet.</li>
-<li>Restoring telemetry for No Authentication agents: no documented way was found.</li>
-</ul>
-<h3 id="126-sources">12.6 Sources</h3>
-<ul>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/choose-integration-option</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/agent-365-sdk</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/faq</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/observability</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/observability-concepts</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/direct-open-telemetry-integration</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/developer/microsoft-opentelemetry</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/builder/overview</li>
-<li>https://learn.microsoft.com/en-us/microsoft-agent-365/builder/observability</li>
-<li>https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/agent-365-integration</li>
-<li>https://docs.github.com/en/copilot/how-tos/copilot-sdk/observability/opentelemetry</li>
-<li>https://github.com/microsoft/Agent365-nodejs</li>
-<li>https://github.com/microsoft/opentelemetry-distro-javascript/blob/main/MIGRATION_A365.md</li>
 </ul>
   </article>
 </div>
