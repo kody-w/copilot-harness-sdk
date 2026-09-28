@@ -138,8 +138,8 @@ beside `generated/`, and call them by name; the player let all four through on a
   has to send the earlier turns with each message.
 - `result` is the run's messages joined, including what the agent said while working ("Let me fetch both
   records…").
-- Inside the player the app's storage (`localStorage`) worked, a `data:` download was saved, and the app's frame
-  is on its own origin, so neither is shared with another app.
+- Inside the player the app's storage (`localStorage`) worked and a `data:` download was saved. The app's frame is
+  served from a host name that carries the app id.
 - Browsers slow the timers of a hidden tab, down to one a minute; a polling app should check again when its tab is
   shown.
 
