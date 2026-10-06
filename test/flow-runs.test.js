@@ -59,18 +59,21 @@ test('flow run outputs: only runs since the turn, the Respond action output, and
   const fetchImpl = async (url, init) => {
     urls.push([url.split('?')[0], init.headers.Authorization || 'unsigned']);
     if (/\/runs\?/.test(url)) return json(200, { value: [
-      { name: 'new', properties: { status: 'Succeeded', startTime: '2026-10-06T15:36:06Z' } },
+      { name: 'new', properties: { status: 'Succeeded', startTime: '2026-10-06T15:36:06Z',
+        trigger: { outputsLink: { uri: 'https://blob/trigger?sig=2' } } } },
       { name: 'old', properties: { status: 'Succeeded', startTime: '2026-10-05T10:00:00Z' } }] });
     if (/\/runs\/new\/actions/.test(url)) return json(200, { value: [
       { name: 'Run_a_script', properties: { outputsLink: { uri: 'https://blob/script' } } },
       { name: 'Respond_to_agent', properties: { outputsLink: { uri: 'https://blob/respond?sig=1' } } }] });
     if (url.startsWith('https://blob/respond')) return json(200, { statusCode: '200', body: { result: out } });
+    if (url.startsWith('https://blob/trigger')) return json(200, { body: { vendor: 'Contoso', amount: 22400 } });
     throw new Error('unexpected ' + url);
   };
   const runs = await flowRunOutputs({ environmentId: 'env', workflowId: 'wf', since: new Date('2026-10-06T15:36:00Z'),
     getFlowToken: async () => 'flow-token', fetchImpl });
   assert.deepEqual(runs.map((r) => r.runId), ['new']);
   assert.equal(runs[0].output, out);
+  assert.deepEqual(runs[0].inputs, { vendor: 'Contoso', amount: 22400 });
   assert.equal(runs[0].sha256, createHash('sha256').update(out).digest('hex'));
   assert.ok(urls.every(([u, a]) => (u.startsWith('https://blob/') ? a === 'unsigned' : a === 'Bearer flow-token')),
     'the signed outputs link gets no bearer token');
@@ -80,4 +83,16 @@ test('workflowIdFromComponent reads the tool YAML', () => {
   assert.equal(workflowIdFromComponent('kind: WorkflowTool\nworkflowId: 971f1514-d4b1-5e75-8836-3ee6304551da\n'),
     '971f1514-d4b1-5e75-8836-3ee6304551da');
   assert.equal(workflowIdFromComponent('kind: InlineAgentSkill\n'), null);
+});
+
+test('flow run reads retry a dropped connection', async () => {
+  let n = 0;
+  const fetchImpl = async (url) => {
+    if (/\/runs\?/.test(url) && ++n === 1) throw new TypeError('fetch failed');
+    if (/\/runs\?/.test(url)) return json(200, { value: [] });
+    throw new Error('unexpected');
+  };
+  const runs = await flowRunOutputs({ environmentId: 'e', workflowId: 'w', since: 0, getFlowToken: async () => 't', fetchImpl, sleep: async () => {} });
+  assert.deepEqual(runs, []);
+  assert.equal(n, 2);
 });
