@@ -29,17 +29,26 @@ export function workflowIdFromComponent(data) {
  * Runs of one flow that started at or after `since`, each with what it returned to the agent.
  *
  * @param {{ environmentId: string, workflowId: string, since: Date | number, getFlowToken: () => Promise<string>,
- *           fetchImpl?: typeof fetch, top?: number }} opts
- * @returns {Promise<Array<{ runId: string, status: string, startTime: string, output: string | null, sha256: string | null }>>}
+ *           fetchImpl?: typeof fetch, top?: number, sleep?: (ms: number) => Promise<void> }} opts
+ * @returns {Promise<Array<{ runId: string, status: string, startTime: string, inputs: any, output: string | null, sha256: string | null }>>}
  */
-export async function flowRunOutputs({ environmentId, workflowId, since, getFlowToken, fetchImpl, top = 20 }) {
+export async function flowRunOutputs({ environmentId, workflowId, since, getFlowToken, fetchImpl, top = 20, sleep }) {
   const doFetch = fetchImpl || ((...a) => fetch(...a));
   const token = await getFlowToken();
   const auth = { Authorization: `Bearer ${token}` };
+  const wait = sleep || ((/** @type {number} */ ms) => new Promise((r) => setTimeout(r, ms)));
+  // Run history reads retry a dropped connection or a 5xx, like the sign-in does.
   const get = async (/** @type {string} */ url, /** @type {boolean} */ signed) => {
-    const res = await doFetch(url, { headers: signed ? {} : auth });
-    if (!res.ok) throw new Error(`GET ${url.split('?')[0]} -> HTTP ${res.status}`);
-    return res.json();
+    let last;
+    for (let i = 0; i < 4; i++) {
+      if (i) await wait(1000 * 2 ** (i - 1));
+      let res;
+      try { res = await doFetch(url, { headers: signed ? {} : auth }); } catch (e) { last = e; continue; }
+      if (res.status >= 500 && i < 3) { last = new Error(`HTTP ${res.status}`); continue; }
+      if (!res.ok) throw new Error(`GET ${url.split('?')[0]} -> HTTP ${res.status}`);
+      return res.json();
+    }
+    throw new Error(`GET ${url.split('?')[0]} failed after 4 attempts: ${last?.message || last}`);
   };
   const base = `${FLOW_API}/${environmentId}/flows/${workflowId}/runs`;
   const after = new Date(since).getTime();
@@ -57,7 +66,9 @@ export async function flowRunOutputs({ environmentId, workflowId, since, getFlow
           : typeof body.result === 'string' && Object.keys(body).length === 1 ? body.result
             : JSON.stringify(body);
     }
-    out.push({ runId: r.name, status: r.properties?.status, startTime: r.properties?.startTime, output,
+    const trigger = r.properties?.trigger?.outputsLink?.uri;
+    const inputs = trigger ? (await get(trigger, true))?.body ?? null : null;
+    out.push({ runId: r.name, status: r.properties?.status, startTime: r.properties?.startTime, inputs, output,
       sha256: output == null ? null : sha256(output) });
   }
   return out;
