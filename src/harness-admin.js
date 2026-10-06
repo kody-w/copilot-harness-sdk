@@ -145,6 +145,8 @@ export async function listComponents(opts) {
   return (body.value || []).map((c) => {
     const short = c.schemaname.startsWith(`${bot.schemaname}.`) ? c.schemaname.slice(bot.schemaname.length + 1) : c.schemaname;
     const kind = (String(c.data || '').match(/^kind:\s*(\S+)/m) || [])[1] || (c.componenttype === 14 ? 'SkillResource' : 'unknown');
-    return { schemaName: c.schemaname, name: short, displayName: c.name, kind, componentType: c.componenttype };
+    const workflowId = (String(c.data || '').match(/^workflowId:\s*([0-9a-fA-F-]{36})\s*$/m) || [])[1];
+    return { schemaName: c.schemaname, name: short, displayName: c.name, kind, componentType: c.componenttype,
+      ...(workflowId ? { workflowId } : {}) };
   });
 }

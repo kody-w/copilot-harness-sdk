@@ -11,12 +11,21 @@
 // {
 //   "schemaName": "cr8c1_VendorContractRenewalCopilot",
 //   "turns": [
-//     { "prompt": "…", "expect": ["regex", "…"], "component": "knowledge" }
+//     { "prompt": "…", "expect": ["regex", "…"], "component": "knowledge",
+//       "expectToolOutput": [{ "tool": "InvoiceRouterFlow", "equals": "exact text the original returned" }] }
 //   ]
 // }
+//
+// The sign-in is cached (~/.copilot-harness-sdk/prove-msal-<tenant>.json, owner-only; PROVE_CACHE_FILE to move
+// it, PROVE_CACHE_FILE=none to keep it in memory), so later runs need no new device code.
+// With --environment-url, each turn also reads what the agent's flow tools returned from the Power Automate
+// run history (as the az CLI user) and records it with its SHA-256; "expectToolOutput" makes that a check:
+// the tool's output must equal the text byte for byte (or "sha256": its digest).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { HarnessClient, createDeviceCodeTokenProvider, assertHarnessAgent, listComponents } from '../index.js';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { HarnessClient, createDeviceCodeTokenProvider, assertHarnessAgent, listComponents, flowRunOutputs } from '../index.js';
 
 const args = process.argv.slice(2);
 const specs = [];
@@ -32,8 +41,10 @@ if (!specs.length) { console.error('Pass at least one --spec <proof.json>'); pro
 const { ENTRA_CLIENT_ID, ENTRA_TENANT_ID, COPILOT_ENVIRONMENT_ID } = process.env;
 if (!ENTRA_CLIENT_ID || !ENTRA_TENANT_ID) { console.error('Set ENTRA_CLIENT_ID and ENTRA_TENANT_ID'); process.exit(2); }
 
+const cacheFile = process.env.PROVE_CACHE_FILE === 'none' ? undefined
+  : process.env.PROVE_CACHE_FILE || join(homedir(), '.copilot-harness-sdk', `prove-msal-${ENTRA_TENANT_ID}.json`);
 const getAccessToken = createDeviceCodeTokenProvider({
-  clientId: ENTRA_CLIENT_ID, tenantId: ENTRA_TENANT_ID,
+  clientId: ENTRA_CLIENT_ID, tenantId: ENTRA_TENANT_ID, cacheFile,
   onDeviceCode: (message) => { console.log(`\n${message}\n`); if (process.env.DEVICE_CODE_FILE) writeFileSync(process.env.DEVICE_CODE_FILE, String(message)); }
 });
 
@@ -53,6 +64,8 @@ for (const spec of specs) {
   console.log(`   preflight ${pre.status} in ${pre.elapsedMs} ms`);
   const session = await client.createSession({ sessionId: `prove-${spec.schemaName}-${Date.now()}` });
   const rec = { schemaName: spec.schemaName, preflight: pre.status, components, turns: [] };
+  const flowTools = (components || []).filter((c) => c.workflowId);
+  const getFlowToken = async () => execSync('az account get-access-token --resource https://service.flow.microsoft.com/ --query accessToken -o tsv', { encoding: 'utf8' }).trim();
   for (const t of spec.turns) {
     const started = Date.now();
     let text = '', events = [], error = null;
@@ -60,11 +73,33 @@ for (const spec of specs) {
     const kinds = [...new Set(events.map((e) => e.type))];
     const rawTypes = [...new Set(events.filter((e) => e.type === 'raw').map((e) => e.raw?.type || e.raw?.activity?.type || e.raw?.valueType || '?'))];
     const expect = (t.expect || []).map((rx) => ({ rx, ok: new RegExp(rx, 'i').test(text) }));
-    const ok = !error && expect.every((e) => e.ok);
-    rec.turns.push({ component: t.component, prompt: t.prompt, ok, error, expect, elapsedMs: Date.now() - started, eventKinds: kinds, rawTypes, text });
+    /** @type {Array<{ tool: string, runId: string, status: string, output: string | null, sha256: string | null }>} */
+    const toolRuns = [];
+    let toolRunsError = null;
+    if (flowTools.length && environmentId) {
+      try {
+        for (const c of flowTools) {
+          for (const r of await flowRunOutputs({ environmentId, workflowId: c.workflowId, since: started - 5000, getFlowToken })) {
+            toolRuns.push({ tool: c.name.replace(/^tool\./, ''), ...r });
+          }
+        }
+      } catch (e) { toolRunsError = e.message; }
+    }
+    const toolChecks = (t.expectToolOutput || []).map((x) => {
+      const runs = toolRuns.filter((r) => !x.tool || r.tool === x.tool || r.tool.endsWith(x.tool));
+      const hit = runs.find((r) => (x.equals != null ? r.output === x.equals : r.sha256 === x.sha256));
+      return { tool: x.tool, want: x.sha256 || (x.equals != null ? `= ${JSON.stringify(x.equals).slice(0, 80)}` : '?'), ok: Boolean(hit),
+        got: runs.map((r) => r.sha256) };
+    });
+    const ok = !error && expect.every((e) => e.ok) && toolChecks.every((c) => c.ok);
+    rec.turns.push({ component: t.component, prompt: t.prompt, ok, error, expect, toolChecks, toolRuns, toolRunsError,
+      elapsedMs: Date.now() - started, eventKinds: kinds, rawTypes, text });
     console.log(`\n   [${ok ? 'PASS' : 'FAIL'}] ${t.component || ''} · ${t.prompt}`);
     if (error) console.log(`   error: ${error}`);
     for (const e of expect) if (!e.ok) console.log(`   missing: /${e.rx}/i`);
+    for (const r of toolRuns) console.log(`   tool ${r.tool} run ${r.status}: sha256 ${r.sha256 ? r.sha256.slice(0, 16) : '-'} ${JSON.stringify(r.output ?? '').slice(0, 120)}`);
+    for (const c of toolChecks) console.log(`   ${c.ok ? 'equal' : 'NOT EQUAL'}: ${c.tool || 'a tool'} output ${c.want}`);
+    if (toolRunsError) console.log(`   tool outputs not read: ${toolRunsError}`);
     console.log('   ' + text.replace(/\s+/g, ' ').slice(0, 420));
   }
   await client.close();
