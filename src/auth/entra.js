@@ -68,7 +68,10 @@ function cachedProvider(acquire, now) {
  * owner-only permissions and holds credentials, so keep it out of repositories.
  *
  * @param {{ clientId: string, tenantId: string, cloud?: import('../url.js').SupportedCloud, scopes?: string[], onDeviceCode?: (message: string) => void, cacheFile?: string }} opts
- * @param {{ pcaFactory?: (config: any) => any, now?: () => number }} [deps] test seam
+ * Network calls retry transient failures (`retryingNetworkClient`), so a dropped connection while the user is
+ * signing in does not end the sign-in.
+ *
+ * @param {{ pcaFactory?: (config: any) => any, now?: () => number, fetchImpl?: typeof fetch, sleep?: (ms: number) => Promise<void> }} [deps] test seam
  * @returns {() => Promise<string>}
  */
 export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Prod', scopes, onDeviceCode, cacheFile }, deps = {}) {
@@ -79,7 +82,8 @@ export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Pro
   let pca;
   async function getPca() {
     if (pca) return pca;
-    const config = { auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` } };
+    const config = { auth: { clientId, authority: `https://login.microsoftonline.com/${tenantId}` },
+      system: { networkClient: retryingNetworkClient({ fetchImpl: deps.fetchImpl, sleep: deps.sleep }) } };
     if (cacheFile) config.cache = { cachePlugin: fileCachePlugin(cacheFile) };
     if (deps.pcaFactory) {
       pca = deps.pcaFactory(config);
@@ -108,6 +112,53 @@ export function createDeviceCodeTokenProvider({ clientId, tenantId, cloud = 'Pro
     if (!result?.accessToken) throw new Error('Device-code sign-in did not return an access token.');
     return result;
   }, now);
+}
+
+const TRANSIENT_STATUS = new Set([502, 503, 504]);
+
+/**
+ * MSAL network client that retries transient failures (a dropped connection, 502/503/504) with backoff.
+ * MSAL's own client gives up on the first `fetch failed`, which ends a device-code sign-in the user may be
+ * completing at that moment; the device code itself stays valid, so retrying the poll loses nothing.
+ * HTTP answers (including the 400 `authorization_pending` polls) pass through untouched.
+ *
+ * @param {{ attempts?: number, baseDelayMs?: number, fetchImpl?: typeof fetch, sleep?: (ms: number) => Promise<void> }} [opts]
+ */
+export function retryingNetworkClient({ attempts = 5, baseDelayMs = 1000, fetchImpl, sleep } = {}) {
+  const doFetch = fetchImpl || ((...a) => fetch(...a));
+  const wait = sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  /** @param {string} method @param {string} url @param {{ headers?: Record<string, string>, body?: string }} [options] */
+  async function send(method, url, options = {}) {
+    let lastError;
+    for (let i = 0; i < attempts; i++) {
+      if (i) await wait(baseDelayMs * 2 ** (i - 1));
+      let res;
+      try {
+        res = await doFetch(url, { method, headers: options.headers, body: method === 'POST' ? options.body : undefined });
+      } catch (e) {
+        lastError = e;
+        continue;
+      }
+      if (TRANSIENT_STATUS.has(res.status) && i < attempts - 1) {
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
+      }
+      const text = await res.text();
+      let body;
+      try { body = text ? JSON.parse(text) : {}; } catch { body = { error: 'invalid_json', error_description: text.slice(0, 500) }; }
+      /** @type {Record<string, string>} */
+      const headers = {};
+      res.headers.forEach((v, k) => { headers[k] = v; });
+      return { headers, body, status: res.status };
+    }
+    throw new Error(`network request failed after ${attempts} attempts: ${lastError?.message || lastError}`);
+  }
+  return {
+    /** @param {string} url @param {any} [options] */
+    sendGetRequestAsync: (url, options) => send('GET', url, options),
+    /** @param {string} url @param {any} [options] */
+    sendPostRequestAsync: (url, options) => send('POST', url, options)
+  };
 }
 
 /**
