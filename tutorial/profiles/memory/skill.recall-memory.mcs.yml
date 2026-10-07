@@ -37,9 +37,9 @@ content: |
   ## Scope and query
   1. Build the same deterministic subject prefix used by manage-memory:
      - supplied `user_guid`:
-       `RAPP_MEMORY|scope=user:<user_guid>|type=`
+       `RAPP_MEMORY|agent={{SCHEMA_NAME}}|scope=user:<user_guid>|type=`
      - no `user_guid`:
-       `RAPP_MEMORY|scope=shared|type=`
+       `RAPP_MEMORY|agent={{SCHEMA_NAME}}|scope=shared|type=`
   2. Call `List rows from selected environment` against the Dataverse logical
      table `annotations` in organization
      `{{ORG_URL}}`. Never derive or substitute a

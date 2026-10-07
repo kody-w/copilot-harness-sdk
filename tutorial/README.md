@@ -80,4 +80,6 @@ Re-running is safe: the connector is reused if present (delete it in the maker p
 (`{{SCHEMA_NAME}}`, `{{DISPLAY_NAME}}`, `{{ORG_URL}}`, `{{HN_API_NAME}}`, `{{HN_WORKFLOW_ID}}`) are filled per
 environment. The skills are the ones proved live in the reference environment on 10 September 2026:
 the Hacker News answer is the flow's `summary` verbatim, and memory writes and recalls go through
-the `annotations` table with a deterministic `RAPP_MEMORY|scope=…|type=…` subject.
+the `annotations` table with a deterministic `RAPP_MEMORY|agent=<schema>|scope=…|type=…` subject. The
+`agent=` part keeps each copilot's memories to itself: copilots in the same environment share the table but
+never read each other's rows, the way each local brainstem keeps its own memory.

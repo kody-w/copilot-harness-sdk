@@ -57,9 +57,9 @@ content: |
      `importance` is a JSON number, not a quoted string.
   2. Build the deterministic Dataverse subject:
      - supplied `user_guid`:
-       `RAPP_MEMORY|scope=user:<user_guid>|type=<memory_type>`
+       `RAPP_MEMORY|agent={{SCHEMA_NAME}}|scope=user:<user_guid>|type=<memory_type>`
      - no `user_guid`:
-       `RAPP_MEMORY|scope=shared|type=<memory_type>`
+       `RAPP_MEMORY|agent={{SCHEMA_NAME}}|scope=shared|type=<memory_type>`
   3. Serialize the object as valid JSON and place that JSON in `notetext`.
   4. Call `Add a new row to selected environment` against the Dataverse logical
      table `annotations` in organization
